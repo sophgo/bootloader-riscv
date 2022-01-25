@@ -13,9 +13,15 @@
 #include <sbi_utils/timer/fdt_timer.h>
 
 extern struct fdt_timer fdt_timer_mtimer;
+#ifdef PLAT_MANGO_MTIMER
+extern struct fdt_timer fdt_timer_mango_mtimer;
+#endif
 
 static struct fdt_timer *timer_drivers[] = {
-	&fdt_timer_mtimer
+	&fdt_timer_mtimer,
+#ifdef PLAT_MANGO_MTIMER
+	&fdt_timer_mango_mtimer,
+#endif
 };
 
 static struct fdt_timer dummy = {

@@ -13,6 +13,9 @@
 #include <sbi/sbi_platform.h>
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_trap.h>
+#ifdef PLAT_MANGO_DISDVM
+#include <platform.h>
+#endif
 
 #define BOOT_STATUS_RELOCATE_DONE	1
 #define BOOT_STATUS_BOOT_HART_DONE	2
@@ -47,6 +50,13 @@
 	.globl _start
 	.globl _start_warm
 _start:
+
+#ifdef PLAT_MANGO_DISDVM
+	/* disable dvm */                                                        
+	li      t0, 0x20                                                         
+	csrw    CSR_MHINT4, t0  
+#endif
+
 	/* Find preferred boot HART id */
 	MOV_3R	s0, a0, s1, a1, s2, a2
 	call	fw_boot_hart
@@ -439,6 +449,13 @@ _start_warm:
 
 	/* Find HART id */
 	csrr	s6, CSR_MHARTID
+
+#ifdef PLAT_MANGO_VHARTID
+	/* convert real mhartid to virtual contiguous hart id */
+	srli    t0, s6, 1                                                        
+	andi    s6, s6, 1                                                        
+	or      s6, s6, t0                                                       
+#endif    
 
 	/* Find HART index */
 	beqz	s9, 3f

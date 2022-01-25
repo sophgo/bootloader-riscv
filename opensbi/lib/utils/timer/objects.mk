@@ -10,3 +10,5 @@
 libsbiutils-objs-y += timer/aclint_mtimer.o
 libsbiutils-objs-y += timer/fdt_timer.o
 libsbiutils-objs-y += timer/fdt_timer_mtimer.o
+libsbiutils-objs-$(PLAT_MANGO_MTIMER) += timer/fdt_timer_mango_mtimer.o
+libsbiutils-objs-$(PLAT_MANGO_MTIMER) += timer/mango_mtimer.o

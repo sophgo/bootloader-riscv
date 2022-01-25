@@ -163,7 +163,25 @@ void csr_write_num(int csr_num, unsigned long val);
 	} while (0)
 
 /* Get current HART id */
+#ifdef PLAT_MANGO_VHARTID
+
+#include <platform.h>
+
+static inline unsigned int current_hartid(void)
+{
+	unsigned long hartid = csr_read(CSR_MHARTID);
+	unsigned long clusterid = (hartid & MANGO_MHARTID_CLUSTERID_MASK) >>
+					MANGO_MHARTID_CLUSTERID_SHIFT;
+	unsigned long coreid = (hartid & MANGO_MHARTID_COREID_MASK);
+
+	return (clusterid * MANGO_CORES_PER_CLUSTER) + coreid;
+}
+
+#else
+
 #define current_hartid()	((unsigned int)csr_read(CSR_MHARTID))
+
+#endif
 
 /* determine CPU extension, return non-zero support */
 int misa_extension_imp(char ext);
