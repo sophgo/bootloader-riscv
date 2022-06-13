@@ -4,6 +4,7 @@
 
 MANGO_COLD_BOOT = y
 MANGO_C920 = y
+MANGO_DVM = n
 # boot hart
 MANGO_COLD_BOOT_A0 = 0
 # dtb load address
@@ -18,7 +19,13 @@ MANGO_CFLAGS += -DMANGO_COLD_BOOT_A1=$(MANGO_COLD_BOOT_A1)
 endif
 
 ifeq ($(strip $(MANGO_COLD_BOOT)), y)
-MANGO_CFLAGS += -DMANGO_C920 -DMANGO_DVM
+ifeq ($(strip $(MANGO_C920)), y)
+MANGO_CFLAGS += -DMANGO_C920
+endif
+
+ifeq ($(strip $(MANGO_DVM)), y)
+MANGO_CFLAGS += -DMANGO_DVM
+endif
 endif
 
 # Compiler flags
