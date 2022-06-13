@@ -20,6 +20,7 @@
 #define CSR_MHCR         0x7c1
 #define CSR_MCCR2        0x7c3
 #define CSR_MHINT        0x7c5
+#define CSR_MHINT2       0x7cc
 #define CSR_MXSTATUS     0x7c0
 #define CSR_PLIC_BASE    0xfc1
 #define CSR_MRMR         0x7c6
@@ -76,6 +77,7 @@ struct sg2040_regs_struct {
 	u64 mhcr;
 	u64 mccr2;
 	u64 mhint;
+	u64 mhint2;
 	u64 mxstatus;
 	u64 plic_base_addr;
 	u64 msip_base_addr;

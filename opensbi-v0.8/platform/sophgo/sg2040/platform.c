@@ -101,12 +101,16 @@ void setup_cpu(void)
 	/* disable fence.i broadcast */
 	sg2040_regs.mhint    |= 1 << 23;
 #endif
+	/* workaround lr/sc livelock */	
+	sg2040_regs.mhint2    = csr_read(CSR_MHINT2);
+	sg2040_regs.mhint2   |= 3 << 7;
 	/* enable MAEE */
 	sg2040_regs.mxstatus = 0x638000;
 
 	csr_write(CSR_MCOR, sg2040_regs.mcor);
 	csr_write(CSR_MHCR, sg2040_regs.mhcr);
 	csr_write(CSR_MHINT, sg2040_regs.mhint);
+	csr_write(CSR_MHINT2, sg2040_regs.mhint2);
 	csr_write(CSR_MXSTATUS, sg2040_regs.mxstatus);
 	csr_write(CSR_MCCR2, sg2040_regs.mccr2);
 
@@ -130,6 +134,7 @@ static int sg2040_early_init(bool cold_boot)
 
 		setup_pmp();
 		setup_cpu();
+
 	}
 
 	if (!need_set_cpu)
@@ -153,6 +158,7 @@ static int sg2040_early_init(bool cold_boot)
 		sg2040_regs.mhcr     = csr_read(CSR_MHCR);
 		sg2040_regs.mccr2    = csr_read(CSR_MCCR2);
 		sg2040_regs.mhint    = csr_read(CSR_MHINT);
+		sg2040_regs.mhint2   = csr_read(CSR_MHINT2);
 		sg2040_regs.mxstatus = csr_read(CSR_MXSTATUS);
 	} else {
 		/* Store to other core */
@@ -169,6 +175,7 @@ static int sg2040_early_init(bool cold_boot)
 		csr_write(CSR_MCOR, sg2040_regs.mcor);
 		csr_write(CSR_MHCR, sg2040_regs.mhcr);
 		csr_write(CSR_MHINT, sg2040_regs.mhint);
+		csr_write(CSR_MHINT2, sg2040_regs.mhint2);
 		csr_write(CSR_MXSTATUS, sg2040_regs.mxstatus);
 	}
 
