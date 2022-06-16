@@ -145,7 +145,7 @@ function clean_rv_ramfs()
 
 function build_rv_pld()
 {
-    local PLD_MEMGEN=$RV_SCRIPTS_DIR/mb2h/mb2h
+    local PLD_MEMGEN=$SCRIPTS_DIR/mb2h/mb2h
     local PLD_OUT
 
     local RAMFS=$RV_OUTPUT_DIR/initrd.img
@@ -158,8 +158,6 @@ function build_rv_pld()
     else
         PLD_OUT=$1
     fi
-
-    echo $PLD_OUT
 
     gcc -O2 ${PLD_MEMGEN}.c -o ${PLD_MEMGEN}
 
@@ -185,13 +183,13 @@ function build_rv_pld()
 
     mkdir -p $PLD_OUT
 
-    echo 'generate Image memory image'
+    echo 'generate riscv64 Image memory image'
     $PLD_MEMGEN $KERNEL $PLD_OUT/rv-kernel-%d.hex
-    echo 'generate dtb memory image'
+    echo 'generate riscv64 dtb memory image'
     $PLD_MEMGEN $DTB $PLD_OUT/rv-dtb-%d.hex
-    echo 'generate ramfs memory image'
+    echo 'generate riscv64 ramfs memory image'
     $PLD_MEMGEN $RAMFS $PLD_OUT/rv-ramfs-%d.hex
-    echo 'generate opensbi memory image'
+    echo 'generate riscv64 opensbi memory image'
     $PLD_MEMGEN $SBI $PLD_OUT/rv-sbi-%d.hex
 }
 
@@ -224,11 +222,12 @@ RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
 RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-gnu-
 
 # absolute path
-RV_TOP_DIR=${TOP:-$(get_rv_top)}
+RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 
 RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/riscv64
 PLD_INSTALL_DIR=${PLD_INSTALL_DIR:-$RV_OUTPUT_DIR/pld}
 
+SCRIPTS_DIR=${SCRIPTS_DIR:-$RV_TOP_DIR/bootloader-arm64/scripts}
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
 
 RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-sophgo
