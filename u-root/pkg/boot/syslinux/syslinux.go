@@ -35,8 +35,9 @@ func probeIsolinuxFiles() []string {
 		"boot/isolinux",
 		"isolinux",
 		"boot/syslinux",
-		"extlinux",
 		"syslinux",
+		"boot/extlinux",
+		"extlinux",
 		"",
 	}
 	confs := []string{
