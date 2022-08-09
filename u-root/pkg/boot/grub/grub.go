@@ -471,7 +471,7 @@ func (c *parser) append(ctx context.Context, config string) error {
 			c.numEntry++
 			c.labelOrder = append(c.labelOrder, c.curEntry, c.curLabel)
 
-		case "linux", "linux16", "linuxefi":
+		case "linux", "linux16", "linuxefi", "$linux", "$linux16", "$linuxefi":
 			k, err := c.getFile(arg)
 			if err != nil {
 				return err
@@ -485,7 +485,7 @@ func (c *parser) append(ctx context.Context, config string) error {
 			c.linuxEntries[c.curEntry] = entry
 			c.linuxEntries[c.curLabel] = entry
 
-		case "initrd", "initrd16", "initrdefi":
+		case "initrd", "initrd16", "initrdefi", "$initrd", "$initrd16", "$initrdefi":
 			if e, ok := c.linuxEntries[c.curEntry]; ok {
 				i, err := c.getFile(arg)
 				if err != nil {
@@ -494,7 +494,7 @@ func (c *parser) append(ctx context.Context, config string) error {
 				e.Initrd = i
 			}
 
-		case "multiboot":
+		case "multiboot", "$multiboot":
 			// TODO handle --quirk-* arguments ? (change parsing)
 			k, err := c.getFile(arg)
 			if err != nil {
@@ -509,7 +509,7 @@ func (c *parser) append(ctx context.Context, config string) error {
 			c.mbEntries[c.curEntry] = entry
 			c.mbEntries[c.curLabel] = entry
 
-		case "module":
+		case "module", "$module":
 			// TODO handle --nounzip arguments ? (change parsing)
 			if e, ok := c.mbEntries[c.curEntry]; ok {
 				// The only allowed arg

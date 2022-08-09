@@ -132,22 +132,22 @@ func ParseGrubCfg(ver grubVersion, devices block.BlockDevices, grubcfg string, b
 				// surely not a valid linux or initrd directive, skip it
 				continue
 			}
-			if sline[0] == "linux" || sline[0] == "linux16" || sline[0] == "linuxefi" {
+			if sline[0] == "linux" || sline[0] == "linux16" || sline[0] == "linuxefi" || sline[0] == "$linux" || sline[0] == "$linux16" || sline[0] == "$linuxefi" {
 				kernel := sline[1]
 				cmdline := strings.Join(sline[2:], " ")
 				cmdline = unquoteGrubString(cmdline)
 				cfg.Kernel = path.Join(kernelBasedir, kernel)
 				cfg.KernelArgs = cmdline
-			} else if sline[0] == "initrd" || sline[0] == "initrd16" || sline[0] == "initrdefi" {
+			} else if sline[0] == "initrd" || sline[0] == "initrd16" || sline[0] == "initrdefi" || sline[0] == "$initrd" || sline[0] == "$initrd16" || sline[0] == "$initrdefi" {
 				initrd := sline[1]
 				cfg.Initramfs = path.Join(kernelBasedir, initrd)
-			} else if sline[0] == "multiboot" || sline[0] == "multiboot2" {
+			} else if sline[0] == "multiboot" || sline[0] == "multiboot2" || sline[0] == "$multiboot" || sline[0] == "$multiboot2" {
 				multiboot := sline[1]
 				cmdline := strings.Join(sline[2:], " ")
 				cmdline = unquoteGrubString(cmdline)
 				cfg.Multiboot = path.Join(kernelBasedir, multiboot)
 				cfg.MultibootArgs = cmdline
-			} else if sline[0] == "module" || sline[0] == "module2" {
+			} else if sline[0] == "module" || sline[0] == "module2" || sline[0] == "$module" || sline[0] == "$module2" {
 				module := sline[1]
 				cmdline := strings.Join(sline[2:], " ")
 				cmdline = unquoteGrubString(cmdline)
