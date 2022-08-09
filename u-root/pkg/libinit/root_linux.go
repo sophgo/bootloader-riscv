@@ -114,7 +114,7 @@ var (
 		dir{Name: "/lib", Mode: 0o777},
 		dir{Name: "/usr/lib", Mode: 0o777},
 		dir{Name: "/var/log", Mode: 0o777},
-		dir{Name: "/go/pkg/linux_amd64", Mode: 0o777},
+		dir{Name: "/go/pkg/linux_riscv64", Mode: 0o777},
 
 		dir{Name: "/etc", Mode: 0o777},
 
