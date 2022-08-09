@@ -70,11 +70,7 @@ function clean_rv_sbi()
 
 function build_rv_kernel()
 {
-    if [ $CHIP == 'qemu' ]; then
-        local RV_KERNEL_CONFIG=defconfig
-    else
-        local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
-    fi
+    local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
     local err
 
     pushd $RV_KERNEL_SRC_DIR
@@ -217,13 +213,32 @@ function build_rv_all()
     build_rv_sbi
     build_rv_kernel
     build_rv_ramfs
+    build_rv_uroot
 }
 
-function run_rv_kernel()
+function run_rv_ramfs()
 {
     qemu-system-riscv64 -nographic -M virt \
         -kernel $RV_OUTPUT_DIR/Image \
         -initrd $RV_OUTPUT_DIR/initrd.img \
+        -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
+}
+
+function build_rv_uroot()
+{
+    pushd $RV_UROOT_DIR
+    GOARCH=riscv64 go build
+    GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
+        -o $RV_UROOT_DIR/initramfs.cpio core boot
+    popd
+    cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/uroot.cpio
+}
+
+function run_rv_uroot()
+{
+    qemu-system-riscv64 -nographic -M virt \
+        -kernel $RV_OUTPUT_DIR/Image \
+        -initrd $RV_OUTPUT_DIR/uroot.cpio \
         -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
 }
 
@@ -251,4 +266,6 @@ RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
 
 RV_SBI_DIR=$RV_TOP_DIR/bootloader-riscv/opensbi-v0.8
+
+RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
 
