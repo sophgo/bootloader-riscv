@@ -70,7 +70,11 @@ function clean_rv_sbi()
 
 function build_rv_kernel()
 {
-    local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
+    if [ $CHIP == 'qemu' ]; then
+        local RV_KERNEL_CONFIG=defconfig
+    else
+        local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
+    fi
     local err
 
     pushd $RV_KERNEL_SRC_DIR
@@ -96,7 +100,10 @@ function build_rv_kernel()
     mkdir -p $RV_OUTPUT_DIR
     cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_OUTPUT_DIR
     cp $RV_KERNEL_BUILD_DIR/vmlinux $RV_OUTPUT_DIR
-    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_OUTPUT_DIR
+
+    if [ $CHIP != 'qemu' ]; then
+        cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_OUTPUT_DIR
+    fi
 }
 
 function clean_rv_kernel()
@@ -210,6 +217,14 @@ function build_rv_all()
     build_rv_sbi
     build_rv_kernel
     build_rv_ramfs
+}
+
+function run_rv_kernel()
+{
+    qemu-system-riscv64 -nographic -M virt \
+        -kernel $RV_OUTPUT_DIR/Image \
+        -initrd $RV_OUTPUT_DIR/initrd.img \
+        -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
 }
 
 # global variables
