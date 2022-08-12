@@ -68,6 +68,31 @@ function clean_rv_sbi()
     popd
 }
 
+
+function build_rv_ltp()
+{
+    pushd $RV_LTP_SRC_DIR
+    if [ ! -f "configure" ]; then
+        make autotools
+    fi
+
+    ./configure --prefix=$RV_LTP_OUTPUT_DIR --host=riscv64-linux-gnu  --without-tirpc
+    make -j$(nproc) ARCH=riscv CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE}gcc
+    make install -j$(nproc)
+    popd
+}
+
+
+function clean_rv_ltp()
+{
+    pushd $RV_LTP_SRC_DIR
+    make clean
+    rm -rf lib/newlib_tests/test_children_cleanup
+    popd
+    rm -rf $RV_LTP_OUTPUT_DIR
+}
+
+
 function build_rv_kernel()
 {
     local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
@@ -219,6 +244,7 @@ function build_rv_all()
 function run_rv_ramfs()
 {
     qemu-system-riscv64 -nographic -M virt \
+        -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
         -kernel $RV_OUTPUT_DIR/Image \
         -initrd $RV_OUTPUT_DIR/initrd.img \
         -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
@@ -237,6 +263,7 @@ function build_rv_uroot()
 function run_rv_uroot()
 {
     qemu-system-riscv64 -nographic -M virt \
+        -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
         -kernel $RV_OUTPUT_DIR/Image \
         -initrd $RV_OUTPUT_DIR/uroot.cpio \
         -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
@@ -327,6 +354,10 @@ PLD_INSTALL_DIR=${PLD_INSTALL_DIR:-$RV_OUTPUT_DIR/pld}
 
 SCRIPTS_DIR=${SCRIPTS_DIR:-$RV_TOP_DIR/bootloader-arm64/scripts}
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
+
+RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
+RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
+
 
 RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-sophgo
 RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
