@@ -242,6 +242,74 @@ function run_rv_uroot()
         -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
 }
 
+function build_rv_gcc()
+{
+    mkdir -p $RV_GCC_DIR
+
+    pushd $RV_GCC_DIR
+    if [ ! -d riscv-gnu-toolchain ]; then
+        git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
+    fi
+    pushd riscv-gnu-toolchain
+    rm -rf $RV_ELF_GCC_INSTALL_DIR
+    make clean
+    git checkout 2022.08.08
+    ./configure --with-cmodel=medany --with-arch=rv64imafdc --with-abi=lp64d --prefix=$RV_ELF_GCC_INSTALL_DIR
+    make
+    popd
+    popd
+}
+
+function clean_rv_gcc()
+{
+    if [ -d $RV_GCC_DIR/riscv-gnu-toolchain ]; then
+        pushd $RV_GCC_DIR/riscv-gnu-toolchain
+        make clean
+        popd
+    fi
+}
+
+function build_rv_zsbl()
+{
+    local err
+
+    pushd $RV_ZSBL_DIR
+    make CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv defconfig
+    err=$?
+    popd
+
+    if [ $err -ne 0 ]; then
+		echo "making zsbl config failed"
+		return $err
+	fi
+
+    pushd $RV_ZSBL_BUILD_DIR
+    make -j$(nproc) CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE ARCH=riscv
+    err=$?
+    popd
+
+    if [ $err -ne 0 ]; then
+		echo "making zsbl failed"
+		return $err
+	fi
+
+    mkdir -p $RV_OUTPUT_DIR
+
+    cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_OUTPUT_DIR
+}
+
+function clean_rv_zsbl()
+{
+
+    rm -rf $RV_OUTPUT_DIR/zsbl.bin
+    rm -rf $RV_ZSBL_BUILD_DIR
+}
+
+function run_rv_zsbl()
+{
+    qemu-system-riscv64 -nographic -M virt -bios $RV_OUTPUT_DIR/zsbl.bin
+}
+
 # global variables
 CHIP=${CHIP:-mango}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
@@ -249,7 +317,7 @@ VENDOR=${VENDOR:-sophgo}
 
 # riscv specific variables
 RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
-RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-gnu-
+RISCV64_ELF_CROSS_COMPILE=$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-
 
 # absolute path
 RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
@@ -264,8 +332,11 @@ RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-sophgo
 RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 
 RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
-
+RV_ZSBL_DIR=$RV_TOP_DIR/bootloader-riscv/zsbl
 RV_SBI_DIR=$RV_TOP_DIR/bootloader-riscv/opensbi-v0.8
-
 RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
 
+RV_ZSBL_BUILD_DIR=$RV_ZSBL_DIR/build/$CHIP/$KERNEL_VARIANT
+
+RV_GCC_DIR=$RV_TOP_DIR/gcc-riscv
+RV_ELF_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-elf
