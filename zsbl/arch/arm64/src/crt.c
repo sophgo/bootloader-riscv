@@ -10,7 +10,7 @@
 #include <cache.h>
 #include <timer.h>
 #include <sysreg.h>
-
+#include <smp.h>
 #include <framework/module.h>
 #include <framework/common.h>
 

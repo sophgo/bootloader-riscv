@@ -4,6 +4,7 @@
 #include <string.h>
 #include <system.h>
 #include <mmu.h>
+#include <smp.h>
 // #include "common.h"
 
 /******/
@@ -156,7 +157,7 @@ uint64_t get_tcr(int el, uint64_t *pips, uint64_t *pva_bits)
 }
 
 #define MAX_PTE_ENTRIES 512
-#define MAX_TABLE_NUM	2
+#define MAX_TABLE_NUM	10
 
 static int pte_type(uint64_t *pte)
 {

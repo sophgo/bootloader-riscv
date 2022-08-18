@@ -5,7 +5,7 @@
 #include <framework/common.h>
 #include <arch.h>
 #include <memmap.h>
-
+#include <framework/module.h>
 /*
  * GIC driver
  */
@@ -393,3 +393,11 @@ static void gicc_init(void)
 	write_reg(base + GIC_CPU_CTRL, (1 << 0) | (1 << 1) | (1 << 2) |
 		  (1 << 4));
 }
+
+int gic_init(void)
+{
+	irq_init();
+
+	return 0;
+}
+arch_init(gic_init);

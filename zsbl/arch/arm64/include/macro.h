@@ -325,5 +325,9 @@ lr	.req	x30
 .endm
 #endif
 
+.macro	adr_l, dst, sym
+        adrp	\dst, \sym
+        add	\dst, \dst, :lo12:\sym
+.endm
 
 #endif /* __ASM_ARM_MACRO_H__ */

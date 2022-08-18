@@ -9,6 +9,9 @@ config PLAT_QEMU
 config PLAT_BM1686
 	bool "BM1686"
 
+config PLAT_SG2042
+	bool "SG2042"
+
 endchoice
 
 if PLAT_BM1686
@@ -19,6 +22,7 @@ config PLAT
 	string
 	default "BM1686" if PLAT_BM1686
 	default "QEMU" if PLAT_QEMU
+	default "SG2042" if PLAT_SG2042
 	default "unknown-platform"
 
 choice

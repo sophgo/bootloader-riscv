@@ -8,6 +8,12 @@
 #define MPIDR_AFFINITY_BITS	(8)
 #define MPIDR_AFFLVL_MASK	(0xff)
 
+#define SMP_CONTEXT_SIZE_SHIFT 7
+#define SMP_CONTEXT_SP_OFFSET 0
+#define SMP_CONTEXT_FN_OFFSET 8
+#define SMP_CONTEXT_PRIV_OFFSET 16
+#define SMP_CONTEXT_STATCKSIZE_OFFSET 24
+
 #ifndef __ASSEMBLER__
 
 #include <stdint.h>
@@ -20,6 +26,20 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 typedef __uint128_t uint128_t;
+
+#define read128(_addr, _l64, _h64)			\
+	do {						\
+		asm volatile ("ldp %0, %1, [%2]"	\
+			      : "=r"(_l64), "=r"(_h64)	\
+			      : "r"(_addr));		\
+	} while (0)
+
+#define write128(_addr, _l64, _h64)			\
+	do {						\
+		asm volatile ("stp %0, %1, [%2]"	\
+			      : "=r"(_l64), "=r"(_h64)	\
+			      : "r"(_addr));		\
+	} while (0)
 
 #define readl(a)	(*(volatile u32 *)(a))
 

@@ -10,4 +10,4 @@ else
 KBUILD_LDS := arch/arm64/src/target-ram.lds
 endif
 
-KBUILD_CFLAGS += -march=armv8-a+simd+nocrypto
+KBUILD_CFLAGS += -march=armv8-a+simd+nocrypto -DARCH_ARM64

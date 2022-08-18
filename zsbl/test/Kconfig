@@ -8,5 +8,8 @@ source "test/arch_timer/Kconfig"
 source "test/gic/Kconfig"
 source "test/fab/Kconfig"
 source "test/hello/Kconfig"
+source "test/smp/Kconfig"
+source "test/sd/Kconfig"
+source "test/fat32/Kconfig"
 endif
 
