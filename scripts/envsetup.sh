@@ -269,7 +269,25 @@ function run_rv_uroot()
         -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
 }
 
-function build_rv_gcc()
+function build_rv_linux_gcc()
+{
+    mkdir -p $RV_GCC_DIR
+
+    pushd $RV_GCC_DIR
+    if [ ! -d riscv-gnu-toolchain ]; then
+        git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
+    fi
+    pushd riscv-gnu-toolchain
+    rm -rf $RV_LINU_GCC_INSTALL_DIR
+    make clean
+    git checkout 2022.08.08
+    ./configure --prefix=$RV_LINUX_GCC_INSTALL_DIR
+    make linux
+    popd
+    popd
+}
+
+function build_rv_elf_gcc()
 {
     mkdir -p $RV_GCC_DIR
 
@@ -285,6 +303,12 @@ function build_rv_gcc()
     make
     popd
     popd
+}
+
+function build_rv_gcc()
+{
+    build_rv_elf_gcc
+    build_rv_linux_gcc
 }
 
 function clean_rv_gcc()
@@ -343,7 +367,7 @@ KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
 VENDOR=${VENDOR:-sophgo}
 
 # riscv specific variables
-RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
+RISCV64_LINUX_CROSS_COMPILE=$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-
 RISCV64_ELF_CROSS_COMPILE=$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-
 
 # absolute path
@@ -371,3 +395,4 @@ RV_ZSBL_BUILD_DIR=$RV_ZSBL_DIR/build/$CHIP/$KERNEL_VARIANT
 
 RV_GCC_DIR=$RV_TOP_DIR/gcc-riscv
 RV_ELF_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-elf
+RV_LINUX_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-linux-gnu
