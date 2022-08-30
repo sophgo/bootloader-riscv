@@ -366,10 +366,6 @@ CHIP=${CHIP:-mango}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
 VENDOR=${VENDOR:-sophgo}
 
-# riscv specific variables
-RISCV64_LINUX_CROSS_COMPILE=$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-
-RISCV64_ELF_CROSS_COMPILE=$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-
-
 # absolute path
 RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 
@@ -396,3 +392,7 @@ RV_ZSBL_BUILD_DIR=$RV_ZSBL_DIR/build/$CHIP/$KERNEL_VARIANT
 RV_GCC_DIR=$RV_TOP_DIR/gcc-riscv
 RV_ELF_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-elf
 RV_LINUX_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-linux-gnu
+
+# riscv specific variables
+RISCV64_LINUX_CROSS_COMPILE=$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-
+RISCV64_ELF_CROSS_COMPILE=$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-
