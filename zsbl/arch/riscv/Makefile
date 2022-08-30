@@ -10,5 +10,5 @@ else
 KBUILD_LDS := arch/riscv/src/target-ram.lds
 endif
 
-KBUILD_CFLAGS += -g -mcmodel=medany
+KBUILD_CFLAGS += -g -mcmodel=medany -DARCH_RISCV
 KBUILD_LDFLAGS += -g

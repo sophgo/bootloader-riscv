@@ -13,4 +13,5 @@ obj-y += cache.o
 obj-y += memcpy.o
 obj-y += memmove.o
 obj-y += memset.o
+obj-$(CONFIG_SUPPORT_SMP) += smp.o
 

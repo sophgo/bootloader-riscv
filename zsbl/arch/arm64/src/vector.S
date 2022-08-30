@@ -1,5 +1,5 @@
 #include <arch.h>
-
+#include <macro.h>
 	.section .vector, "ax"
 	.global _start
 _start:
@@ -37,16 +37,16 @@ _start:
 	mov     x30, xzr
 	mov     sp,  x0
 
-	bl	smp_core_id
-	cmp	x0, 0
-	beq	1f
-park:
-	b	park
-1:
 	/* select sp, using sp_elx */
 	ldr	x0, =1
 	msr	spsel, x0
 
+	bl	smp_core_id
+	cmp	x0, 0
+	beq	1f
+park:
+	b	smp_wait
+1:
 	/* setup stack */
 	ldr	x0, =__ld_stack_top
 	mov	sp, x0
@@ -267,5 +267,30 @@ smp_core_id:
 	add x0, x1, x0, LSR #6
 	ret
 	.size   smp_core_id, . - smp_core_id
+#ifdef CONFIG_SUPPORT_SMP
+smp_wait:
+	bl	smp_core_id
+	mov x2, x0
+	adr_l x1, smp_context
+	lsr x2, x2, #SMP_CONTEXT_SIZE_SHIFT
+	add x2, x2, x1
+	str xzr, [x2, #SMP_CONTEXT_SP_OFFSET]
+	str xzr, [x2, #SMP_CONTEXT_FN_OFFSET]
+	str xzr, [x2, #SMP_CONTEXT_PRIV_OFFSET]
 
-
+1:
+	wfe
+	ldr	x3, [x2, #SMP_CONTEXT_FN_OFFSET]
+	cmp x3, 0
+	beq 1b
+	ldr x0, [x2, #SMP_CONTEXT_SP_OFFSET]
+	ldr x1, [x2, #SMP_CONTEXT_STATCKSIZE_OFFSET]
+	add x0, x0, x1
+	mov sp, x0
+	ldr x0, [x2, #SMP_CONTEXT_PRIV_OFFSET]
+	blr x3
+	b smp_wait
+#else
+smp_wait:
+	b smp_wait
+#endif

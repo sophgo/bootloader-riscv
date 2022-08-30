@@ -42,4 +42,15 @@ config ARCH_TIMER_FREQ
 		risc-v mtime timer frequency, it is usually 50MHz.
 endif
 
+config SUPPORT_SMP
+	bool "Wther support multiple core"
+	default n
+
+if SUPPORT_SMP
+config SMP_NUM
+	hex "smp num"
+	help
+		the cpu numbers
+endif
+
 endmenu

@@ -39,7 +39,7 @@ static int hello_module_init(void)
 }
 
 module_init(hello_module_init);
-
+#if 0
 static int hello(void)
 {
 	while (1) {
@@ -51,3 +51,4 @@ static int hello(void)
 }
 
 test_case(hello);
+#endif

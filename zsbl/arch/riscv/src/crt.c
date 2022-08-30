@@ -31,7 +31,7 @@ void load_data(void)
 {
 	volatile uint128_t *s, *d, *e;
 
-	if (__ld_data_load_start == __ld_data_start)
+	if ((unsigned long)__ld_data_load_start == (unsigned long)__ld_data_start)
 		return;
 
 	s = (uint128_t *)__ld_data_load_start;

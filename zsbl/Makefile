@@ -411,6 +411,8 @@ LINUXINCLUDE    := \
 		$(if $(building_out_of_srctree),-I$(srctree)/include) \
 		-I$(objtree)/include \
 		-I$(objtree)/include/generated \
+		-I$(objtree)/include/lib/fat32 \
+		-I$(objtree)/include/lib/fdt \
 		--include=autoconf.h
 
 
@@ -568,7 +570,7 @@ LINUXINCLUDE	+= -I$(srctree)/plat/$(PLAT)/include
 ifeq ($(KBUILD_EXTMOD),)
 # Objects we will link into vmlinux / subdirs we need to visit
 init-y		:=
-drivers-y	:= drivers/
+drivers-y	:= drivers/ lib/
 plat-y		:= plat/
 libs-y		:=
 core-y		:= common/
