@@ -37,12 +37,20 @@ _start:
 	add     x30, zero, zero
 	add     sp,  zero, zero
 
-/*
-	csrr	t0, mhartid
-	beq	t0, zero, 1f
-park:
-	beqz	zero, park
-*/
+#ifdef CONFIG_SUPPORT_SMP
+	la	t0, smp_context
+	csrr	t1, mhartid
+	slli	t1, t1, SMP_CONTEXT_SIZE_SHIFT
+	add	t0, t0, t1
+	li	t1, SMP_CONTEXT_SIZE
+clean_smp_context:
+	beqz	t1, clean_smp_context_done
+	add	t2, t0, t1
+	sd	zero, (t2)
+	addi	t1, t1, -8
+	j	clean_smp_context
+#endif
+clean_smp_context_done:
 	la	a0, smp_boot_spin_lock
 	li	t0, MAIN_BOOT_CORE
 again:
