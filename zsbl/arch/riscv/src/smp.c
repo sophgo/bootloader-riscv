@@ -8,18 +8,18 @@
 
 long secondary_core_runtime_address;
 
-typedef void (*jump_fun)(void);
+typedef void (*jump_fun)(long hartid, long dtb_addr);
 
 void release_other_core(long jump_addr)
 {
         secondary_core_runtime_address = jump_addr;
 }
 
-void jump_to(long jump_addr)
+void jump_to(long jump_addr, long hartid, long dtb_addr)
 {
-        jump_fun fun = (jump_fun)jump_addr;
+	jump_fun fun = (jump_fun)jump_addr;
 
-        fun();
+	fun(hartid, dtb_addr);
 }
 
 struct smp_context{

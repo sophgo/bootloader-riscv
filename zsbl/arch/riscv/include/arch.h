@@ -12,7 +12,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <riscv_asm.h>
+#include <sbi/riscv_asm.h>
 
 typedef uint8_t u8;
 typedef uint16_t u16;

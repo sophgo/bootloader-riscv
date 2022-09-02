@@ -48,7 +48,7 @@ config SUPPORT_SMP
 
 if SUPPORT_SMP
 config SMP_NUM
-	hex "smp num"
+	int "smp num"
 	help
 		the cpu numbers
 endif

@@ -180,7 +180,7 @@ void _init(void)
 
 void _exit(int n)
 {
-	printf("a53lite terminated with code %d\n", n);
+	printf("riscv terminated with code %d\n", n);
 	while (true)
 		;
 }

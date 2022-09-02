@@ -1,6 +1,8 @@
 #ifndef __MEMMAP_H__
 #define __MEMMAP_H__
 
+#ifdef BM1686_TEST
+
 #define GICD_BASE       0x50001000
 #define GICC_BASE       0x50002000
 #define REG_BASE_GICD	GICD_BASE
@@ -13,9 +15,44 @@
 #define UART_PCLK	500000000
 #define UART_BAUDRATE	115200
 
+
+#else
+
 #define SYS_CTRL_BASE   0x7030010000
 #define TOP_BASE        SYS_CTRL_BASE
 #define REG_TOP_CONF_INFO	0x4
 #define BOOT_SEL_ADDR	(TOP_BASE + REG_TOP_CONF_INFO)
+
+#define SDIO_BASE	0x704002B000
+#define SPIFLASH_1_BASE	0X7002180000
+#define EFUSE_0_BASE	0x7030000000
+
+#define UART_BASE	0x7040000000
+#define UART_REG_WIDTH  32
+#if defined(CONFIG_TARGET_EMULATOR)
+
+#define UART_PCLK	153600
+#define UART_BAUDRATE	9600
+
+#elif defined(CONFIG_TARGET_PALLADIUM)
+
+#define UART_PCLK	153600
+#define UART_BAUDRATE	9600
+
+#elif defined(CONFIG_TARGET_FPGA)
+
+#define UART_PCLK	25000000
+#define UART_BAUDRATE	115200
+
+#elif defined(CONFIG_TARGET_ASIC)
+
+#define UART_PCLK	500000000
+#define UART_BAUDRATE	115200
+
+#else
+#error "no target specified"
+#endif
+
+#endif
 
 #endif

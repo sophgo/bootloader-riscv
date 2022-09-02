@@ -1,12 +1,3 @@
-/*
- * SPDX-License-Identifier: BSD-2-Clause
- *
- * Copyright (c) 2019 Western Digital Corporation or its affiliates.
- *
- * Authors:
- *   Anup Patel <anup.patel@wdc.com>
- */
-
 #include <sbi/sbi_bitops.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_atomic.h>

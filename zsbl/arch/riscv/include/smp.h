@@ -8,6 +8,7 @@
 
 void wake_up_other_core(int core_id, void (*fn)(void *priv),
 			void *priv, void *sp, int stack_size);
+void jump_to(long jump_addr, long hartid, long dtb_addr);
 
 #endif
 

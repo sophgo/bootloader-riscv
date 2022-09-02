@@ -1,12 +1,3 @@
-/*
- * SPDX-License-Identifier: BSD-2-Clause
- *
- * Copyright (c) 2019 Western Digital Corporation or its affiliates.
- *
- * Authors:
- *   Anup Patel <anup.patel@wdc.com>
- */
-
 #ifndef __SBI_CONST_H__
 #define __SBI_CONST_H__
 
@@ -37,9 +28,9 @@
 #define _BITUL(x)	(_UL(1) << (x))
 #define _BITULL(x)	(_ULL(1) << (x))
 
-#define UL(x)		(_UL(x))
-#define ULL(x)		(_ULL(x))
-
+// #define UL(x)		(_UL(x))
+// #define ULL(x)		(_ULL(x))
+#include <export/lib/utils_def_exp.h>
 #define __STR(s)	#s
 #define STRINGIFY(s)	__STR(s)
 

@@ -1,16 +1,8 @@
-/*
- * SPDX-License-Identifier: BSD-2-Clause
- *
- * Copyright (c) 2019 Western Digital Corporation or its affiliates.
- *
- * Authors:
- *   Anup Patel <anup.patel@wdc.com>
- */
-
 #ifndef __RISCV_ASM_H__
 #define __RISCV_ASM_H__
 
-#include <riscv_encoding.h>
+#include <sbi/riscv_encoding.h>
+#include <platform.h>
 
 /* clang-format off */
 
@@ -148,10 +140,39 @@
 				     : "memory");                  \
 	})
 
+unsigned long csr_read_num(int csr_num);
+
+void csr_write_num(int csr_num, unsigned long val);
+
 #define wfi()                                             \
 	do {                                              \
 		__asm__ __volatile__("wfi" ::: "memory"); \
 	} while (0)
+
+/* Get current HART id */
+#define current_hartid()	((unsigned int)csr_read(CSR_MHARTID))
+
+/* determine CPU extension, return non-zero support */
+int misa_extension_imp(char ext);
+
+#define misa_extension(c)\
+({\
+	_Static_assert(((c >= 'A') && (c <= 'Z')),\
+		"The parameter of misa_extension must be [A-Z]");\
+	misa_extension_imp(c);\
+})
+
+/* Get MXL field of misa, return -1 on error */
+int misa_xlen(void);
+
+/* Get RISC-V ISA string representation */
+void misa_string(int xlen, char *out, unsigned int out_sz);
+
+int pmp_set(unsigned int n, unsigned long prot, unsigned long addr,
+	    unsigned long log2len);
+
+int pmp_get(unsigned int n, unsigned long *prot_out, unsigned long *addr_out,
+	    unsigned long *size);
 
 #endif /* !__ASSEMBLY__ */
 
