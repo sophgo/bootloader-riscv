@@ -27,13 +27,6 @@ enum {
         ID_MAX,
 };
 
-typedef struct boot_file {
-        uint32_t id;
-        char *name;
-        uint64_t addr;
-        int len;
-}BOOT_FILE;
-
 BOOT_FILE boot_file[ID_MAX] = {
 	[ID_OPENSBI] = {
 		.id = ID_OPENSBI,
@@ -63,7 +56,7 @@ int read_all_img(IO_DEV *io_dev)
 	FILINFO info;
 
 	if (io_dev->func.init()) {
-		pr_debug("init sd device failed\n");
+		pr_debug("init %s device failed\n", io_dev->type == IO_DEVICE_SD ? "sd" : "flash");
 		goto umount_dev;
 	}
 
@@ -73,12 +66,12 @@ int read_all_img(IO_DEV *io_dev)
 			goto close_file;
 		}
 
-		if (io_dev->func.get_file_info(boot_file[i].name, &info)) {
+		if (io_dev->func.get_file_info(boot_file, i, &info)) {
 			pr_debug("get %s info failed\n", boot_file[i].name);
 			goto close_file;
 		}
 		g_filelen = info.fsize;
-		if (io_dev->func.read(boot_file[i].addr, info.fsize)) {
+		if (io_dev->func.read(boot_file, i, info.fsize)) {
 			pr_debug("read %s failed\n", boot_file[i].name);
 			goto close_file;
 		}
@@ -146,9 +139,9 @@ int read_boot_file(void)
 				return -1;
 			}
 
+			pr_debug("%s read file ok\n", dev_num == IO_DEVICE_SD ? "sd" : "flash");
 		} else {
-			pr_debug("%s read file failed\n",
-				 dev_num == IO_DEVICE_SD ? "sd" : "flash");
+			pr_debug("%s read file failed\n", dev_num == IO_DEVICE_SD ? "sd" : "flash");
 			return -1;
 		}
 	} else {

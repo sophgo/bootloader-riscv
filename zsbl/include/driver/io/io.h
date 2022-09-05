@@ -4,17 +4,25 @@
 #include <ff.h>
 
 enum {
-        IO_DEVICE_SD = 0,
-        IO_DEVICE_SPIFLASH,
-        IO_DEVICE_MAX,
+		IO_DEVICE_SD = 0,
+		IO_DEVICE_SPIFLASH,
+		IO_DEVICE_MAX,
 };
+
+typedef struct boot_file {
+		uint32_t id;
+		char *name;
+		uint64_t addr;
+		int len;
+		uint32_t offset;
+} BOOT_FILE;
 
 typedef struct {
 	int (*init)(void);
 	int (*open)(char *name, uint8_t flags);
-	int (*read)(uint64_t buf, uint64_t len);
+	int (*read)(BOOT_FILE *boot_file, int id, uint64_t len);
 	int (*close)(void);
-	int (*get_file_info)(char *name, FILINFO *info);
+	int (*get_file_info)(BOOT_FILE *boot_file, int id, FILINFO *info);
 	int (*destroy)(void);
 
 }io_funcs;

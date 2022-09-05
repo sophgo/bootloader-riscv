@@ -7,21 +7,21 @@
 
 static int sd_device_init(void);
 static int sd_device_open(char *name, uint8_t mode);
-static int sd_device_read(uint64_t buf, uint64_t len);
-static int sd_device_get_file_info(char *name, FILINFO *info);
+static int sd_device_read(BOOT_FILE *boot_file, int id, uint64_t len);
+static int sd_device_get_file_info(BOOT_FILE *boot_file, int id, FILINFO *info);
 static int sd_device_close(void);
 static int sd_device_destroy(void);
 
 static IO_DEV sd_io_device = {
-        .type = IO_DEVICE_SD,
-        .func = {
-                .init = sd_device_init,
-                .open = sd_device_open,
-                .read = sd_device_read,
+	.type = IO_DEVICE_SD,
+	.func = {
+		.init = sd_device_init,
+		.open = sd_device_open,
+		.read = sd_device_read,
 		.close = sd_device_close,
 		.get_file_info = sd_device_get_file_info,
 		.destroy = sd_device_destroy,
-        },
+	},
 };
 static int sd_device_init(void)
 {
@@ -69,12 +69,12 @@ static int sd_device_open(char *name, uint8_t mode)
 	}
 }
 
-static int sd_device_read(uint64_t buf, uint64_t len)
+static int sd_device_read(BOOT_FILE *boot_file, int id, uint64_t len)
 {
 	FRESULT ret;
 	unsigned int rd_num;
 
-	ret = f_read(&sd_io_device.fp, (void *)buf, len, &rd_num);
+	ret = f_read(&sd_io_device.fp, (void *)boot_file[id].addr, len, &rd_num);
 	if (ret == FR_OK) {
 		pr_info("read %d bytes\n", rd_num);
 		return 0;
@@ -97,13 +97,13 @@ static int sd_device_close(void)
 	}
 }
 
-static int sd_device_get_file_info(char *name, FILINFO *info)
+static int sd_device_get_file_info(BOOT_FILE *boot_file, int id, FILINFO *info)
 {
 	FRESULT f_ret;
 
-	f_ret = f_stat(name, info);
+	f_ret = f_stat(boot_file[id].name, info);
 	if (f_ret == FR_OK) {
-		pr_debug("%s file size is %d\n", name, info->fsize);
+		pr_debug("%s file size is %d\n", boot_file[id].name, info->fsize);
 		return 0;
 	} else {
 		pr_debug("get file info failed\n");
@@ -114,7 +114,7 @@ static int sd_device_get_file_info(char *name, FILINFO *info)
 int sd_io_device_register(void)
 {
 	if (io_device_register(IO_DEVICE_SD, &sd_io_device)) {
-		pr_debug("sd io register faild\n");
+		pr_debug("sd io register failed\n");
 		return -1;
 	}
 
