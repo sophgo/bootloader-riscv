@@ -119,7 +119,7 @@ function build_rv_kernel()
 	fi
 
     mkdir -p $RV_OUTPUT_DIR
-    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_OUTPUT_DIR
+    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_OUTPUT_DIR/riscv64_Image
     cp $RV_KERNEL_BUILD_DIR/vmlinux $RV_OUTPUT_DIR
 
     if [ $CHIP != 'qemu' ]; then
@@ -325,7 +325,7 @@ function build_rv_zsbl()
     local err
 
     pushd $RV_ZSBL_DIR
-    make CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv defconfig
+    make CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
     err=$?
     popd
 

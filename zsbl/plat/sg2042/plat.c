@@ -43,3 +43,45 @@ struct mm_region default_memory_map[] = {
 	}
 };
 #endif
+
+#if defined ARCH_RISCV
+#include <sbi/sbi_types.h>
+#include <sbi/riscv_asm.h>
+#include <framework/module.h>
+static struct sg2040_regs_struct {
+	u64 pmpaddr0;
+	u64 pmpaddr1;
+	u64 pmpaddr2;
+	u64 pmpaddr3;
+	u64 pmpaddr4;
+	u64 pmpaddr5;
+	u64 pmpaddr6;
+	u64 pmpaddr7;
+	u64 pmpcfg0;
+	u64 msmpr;
+	u64 mcor;
+	u64 mhcr;
+	u64 mccr2;
+	u64 mhint;
+	u64 mhint2;
+	u64 mxstatus;
+	u64 plic_base_addr;
+	u64 msip_base_addr;
+	u64 mtimecmp_base_addr;
+} sg2040_regs;
+
+static struct sg2040_regs_struct sg2040_regs;
+int platform_setup_cpu(void)
+{
+	/* workaround lr/sc livelock */
+	sg2040_regs.mhint2    = csr_read(CSR_MHINT2);
+	sg2040_regs.mhint2   |= 3 << 7;
+
+	csr_write(CSR_MHINT2, sg2040_regs.mhint2);
+
+	return 0;
+}
+
+plat_init(platform_setup_cpu);
+
+#endif

@@ -35,7 +35,7 @@ BOOT_FILE boot_file[ID_MAX] = {
 	},
 	[ID_KERNEL] = {
 		.id = ID_KERNEL,
-		.name = "0:riscv64/Image",
+		.name = "0:riscv64/riscv64_Image",
 		.addr = KERNEL_ADDR,
 	},
 	[ID_RAMFS] = {
@@ -45,7 +45,7 @@ BOOT_FILE boot_file[ID_MAX] = {
 	},
 	[ID_DEVICETREE] = {
 		.id = ID_DEVICETREE,
-		.name = "0:riscv64/mango.dtb",
+		.name = "0:riscv64/sg2042.dtb",
 		.addr = DEVICETREE_ADDR,
 	},
 };
@@ -113,8 +113,10 @@ int read_boot_file(void)
 	if ((mmio_read_32(BOOT_SEL_ADDR) & BOOT_FROM_SD_FIRST)
 	    && bm_sd_card_detect()) {
 		dev_num = IO_DEVICE_SD;
+		pr_debug("rv boot from sd card\n");
 	} else {
 		dev_num = IO_DEVICE_SPIFLASH;
+		pr_debug("rv boot from spi flash\n");
 	}
 	// dev_num = IO_DEVICE_SD;
 

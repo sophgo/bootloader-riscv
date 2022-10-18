@@ -411,6 +411,10 @@ LINUXINCLUDE    := \
 		$(if $(building_out_of_srctree),-I$(srctree)/include) \
 		-I$(objtree)/include \
 		-I$(objtree)/include/generated \
+		$(if $(building_out_of_srctree),-I$(srctree)/include/lib/fat32) \
+		$(if $(building_out_of_srctree),-I$(srctree)/include/lib/fdt) \
+		-I$(objtree)/include/lib/fat32 \
+		-I$(objtree)/include/lib/fdt \
 		--include=autoconf.h
 
 
