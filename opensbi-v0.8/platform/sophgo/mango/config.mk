@@ -1,24 +1,30 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 #
-
+MANGO_PLATFORM_PLD = n
 MANGO_COLD_BOOT = y
 MANGO_C920 = y
 MANGO_DVM = n
+
+
+MANGO_CFLAGS = -DMANGO -Iplatform/sophgo/mango
+
+ifeq ($(strip $(MANGO_PLATFORM_PLD)), y)
+MANGO_CFLAGS += -DMANGO_PLATFORM_PLD
+
 # boot hart
 MANGO_COLD_BOOT_A0 = 0
 # dtb load address
 MANGO_COLD_BOOT_A1 = 0x20000000
 
-MANGO_CFLAGS = -DMANGO_PLATFORM_PLD -DMANGO -Iplatform/sophgo/mango
-
-ifeq ($(strip $(MANGO_COLD_BOOT)), y)
-MANGO_CFLAGS += -DMANGO_COLD_BOOT
 MANGO_CFLAGS += -DMANGO_COLD_BOOT_A0=$(MANGO_COLD_BOOT_A0)
 MANGO_CFLAGS += -DMANGO_COLD_BOOT_A1=$(MANGO_COLD_BOOT_A1)
 endif
 
+
 ifeq ($(strip $(MANGO_COLD_BOOT)), y)
+MANGO_CFLAGS += -DMANGO_COLD_BOOT
+
 ifeq ($(strip $(MANGO_C920)), y)
 MANGO_CFLAGS += -DMANGO_C920
 endif

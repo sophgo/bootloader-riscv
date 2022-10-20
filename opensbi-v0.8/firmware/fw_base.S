@@ -61,7 +61,7 @@ _start:
 	csrw	CSR_MSMPR, t0
 #endif
 
-#ifdef MANGO_COLD_BOOT
+#ifdef MANGO_PLATFORM_PLD
 	/* hartid, maybe unused */
 	li	a0, MANGO_COLD_BOOT_A0
 	/* dtb load address */
