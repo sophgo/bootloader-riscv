@@ -45,7 +45,7 @@ BOOT_FILE boot_file[ID_MAX] = {
 	},
 	[ID_DEVICETREE] = {
 		.id = ID_DEVICETREE,
-		.name = "0:riscv64/sg2042.dtb",
+		.name = "0:riscv64/mango.dtb",
 		.addr = DEVICETREE_ADDR,
 	},
 };
