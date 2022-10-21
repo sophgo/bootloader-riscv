@@ -93,11 +93,8 @@ int uart8250_init(unsigned long base, u32 in_freq, u32 baudrate, u32 reg_shift,
 	uart8250_reg_width = reg_width;
 	uart8250_in_freq   = in_freq;
 	uart8250_baudrate  = baudrate;
-#ifdef MANGO_PLATFORM_PLD
-	bdiv = 1; // uart8250_in_freq / (16 * uart8250_baudrate);
-#else
+
 	bdiv = uart8250_in_freq / (16 * uart8250_baudrate);
-#endif
 
 	/* Disable all interrupts */
 	set_reg(UART_IER_OFFSET, 0x00);
