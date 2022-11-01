@@ -212,7 +212,7 @@ function build_rv_ramfs()
 
 function clean_rv_ramfs()
 {
-    rm -rf $RV_OUTPUT_DIR/initrd.*
+    rm -rf $RV_OUTPUT_DIR/initrd*
 
     rm -rf $RV_BUILDROOT_DIR/output
 }
@@ -315,6 +315,11 @@ function build_rv_uroot()
     cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/uroot.cpio
 }
 
+function clean_rv_uroot()
+{
+	rm $RV_OUTPUT_DIR/uroot.cpio
+}
+
 function run_rv_uroot()
 {
     qemu-system-riscv64 -nographic -M virt \
@@ -413,12 +418,13 @@ function clean_rv_zsbl()
 
 function build_rv_distro()
 {
-	sudo rm -rf $RV_DISTRO_DIR/$RV_DISTRO
 	mkdir -p $RV_DISTRO_DIR/$RV_DISTRO
 
 	pushd $RV_DISTRO_DIR/$RV_DISTRO
-	wget https://cdimage.ubuntu.com/releases/22.04.1/release/"$RV_UBUNTU_IMAGE".xz
-	unxz "$RV_UBUNTU_IMAGE".xz
+	if [ ! -f $RV_UBUNTU_IMAGE ] ; then
+		wget https://cdimage.ubuntu.com/releases/22.04.1/release/"$RV_UBUNTU_IMAGE".xz
+		unxz "$RV_UBUNTU_IMAGE".xz
+	fi
 	popd
 }
 
@@ -573,7 +579,7 @@ RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/riscv64
 PLD_INSTALL_DIR=${PLD_INSTALL_DIR:-$RV_OUTPUT_DIR/pld}
 
-RV_DISTRO_DIR=$TOP_DIR/distro_riscv
+RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
 RV_DISTRO=ubuntu
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_UBUNTU_IMAGE=ubuntu-22.04.1-preinstalled-server-riscv64+unmatched.img
