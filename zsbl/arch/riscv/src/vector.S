@@ -6,6 +6,13 @@
 	.section .vector, "ax"
 	.global _start
 _start:
+	/* disable dvm */
+	li	t0, 0x20
+	csrw	CSR_MHINT4, t0
+
+	li	t0, 1
+	csrw	CSR_MSMPR, t0
+
 	/* for eda simulation */
 	add     x0,  zero, zero
 	add     x1,  zero, zero
