@@ -170,7 +170,6 @@ static core_stack secondary_core_stack[CONFIG_SMP_NUM];
 
 static void secondary_core_fun(void *priv)
 {
-	thread_safe_printf("my core id = %d\n", current_hartid());
 	jump_to(boot_file[ID_OPENSBI].addr, current_hartid(),
 		boot_file[ID_DEVICETREE].addr);
 }
