@@ -131,7 +131,22 @@ release_core_run:
 	jalr	t1
 	j	secondary_core_poll
 mul_core_wake_up:
-	jalr	t5
+	la      t0, smp_context
+	csrr    t1, mhartid
+	slli    t1, t1, SMP_CONTEXT_SIZE_SHIFT
+	add     t1, t0, t1
+	add     t2, t1, SMP_CONTEXT_FN_OFFSET
+	add     t3, t1, SMP_CONTEXT_SP_OFFSET
+	add     t4, t1, SMP_CONTEXT_PRIV_OFFSET
+	ld      a0, (t4)
+	ld      t5, (t3)
+	add     t3, t1, SMP_CONTEXT_STATCKSIZE_OFFSET
+	ld      t6, (t3)
+	add     sp, t6, t5
+	ld      t5, (t2)
+
+	jalr    t5
+
 	la	t0, smp_context
 	csrr	t1, mhartid
 	slli	t1, t1, SMP_CONTEXT_SIZE_SHIFT
