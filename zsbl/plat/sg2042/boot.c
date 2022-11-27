@@ -18,7 +18,64 @@
 #include <of.h>
 #include <smp.h>
 #include <sbi/riscv_asm.h>
-#include <thread_safe_printf.h>
+#include "spinlock.h"
+//#include <thread_safe_printf.h>
+
+//#define ZSBL_BOOT_DEBUG
+//#define ZSBL_BOOT_DEBUG_LOOP
+
+#ifdef ZSBL_BOOT_DEBUG
+void uart_putc(int ch);
+void uart_puts(const char *s)
+{
+	while (*s) {
+		uart_putc(*s++);
+	}
+}
+
+static void hex2asc(const char *pdata, char *pstr, int len)
+{
+	char ch;
+	int i, mylen;
+
+	if(len>16)
+		mylen = 16;
+	else
+		mylen = len;
+
+	for(i=mylen; i>0; i--)
+	{
+		ch = pdata[(i-1)>>1];
+		if( i%2 )
+			ch &= 0xF;
+		else
+			ch >>= 4;
+		if(ch<10)
+			ch += '0';
+		else
+			ch += ('A'-10);
+		pstr[mylen-i] = ch;
+
+	}
+	pstr[mylen] = 0;
+}
+
+void print_u32(unsigned int u32)
+{
+	char str[8+1];
+
+	hex2asc((const char *)&u32, str, 8);
+	uart_puts(str);
+}
+
+void print_u8(unsigned int u32)
+{
+	char str[2+1];
+
+	hex2asc((const char *)&u32, str, 2);
+	uart_puts(str);
+}
+#endif
 
 enum {
         ID_OPENSBI = 0,
@@ -168,8 +225,50 @@ typedef struct {
 } core_stack;
 static core_stack secondary_core_stack[CONFIG_SMP_NUM];
 
+#ifdef ZSBL_BOOT_DEBUG
+static spinlock_t print_lock = SPIN_LOCK_INITIALIZER;
+volatile uint32_t core_stats[CONFIG_SMP_NUM];
+volatile uint32_t *sram_point   = (uint32_t *)(0x70101d2000Ul);
+volatile uint32_t *sram_sp_addr = (uint32_t *)(0x70101d3000Ul);
+#endif
+
 static void secondary_core_fun(void *priv)
 {
+#ifdef ZSBL_BOOT_DEBUG
+	unsigned int cid = current_hartid();
+	register unsigned long sp asm("sp");
+
+	sram_point[cid] = sram_point[cid] + 0x100;
+	core_stats[cid] = 0xbeef;
+	__asm__ volatile("":::"memory");
+	__asm__ volatile("fence rw, rw":::);
+
+	spin_lock(&print_lock);
+
+	sram_point[cid] = sram_point[cid] + 0x10;
+	sram_sp_addr[cid] = sp;
+
+	uart_puts("my core id : "); print_u8(cid); uart_puts("\r\n");
+
+	spin_unlock(&print_lock);
+
+	sram_point[cid] = sram_point[cid] + 0x10;
+	core_stats[cid] = 0xface0000;
+	__asm__ volatile("":::"memory");
+	__asm__ volatile("fence rw, rw":::);
+
+#ifdef ZSBL_BOOT_DEBUG_LOOP
+	while(1) {
+		mdelay(10000);
+		sram_point[cid] = sram_point[cid] + 1;
+		core_stats[cid] = core_stats[cid] + 1;
+		__asm__ volatile("":::"memory");
+		__asm__ volatile("fence rw, rw":::);
+	}
+#endif // ZSBL_BOOT_DEBUG_LOOP
+
+#endif // ZSBL_BOOT_DEBUG
+
 	jump_to(boot_file[ID_OPENSBI].addr, current_hartid(),
 		boot_file[ID_DEVICETREE].addr);
 }
@@ -178,7 +277,11 @@ int boot_next_img(void)
 {
 	unsigned int hartid = current_hartid();
 
-	printf("main core id = %u\n", hartid);
+#ifdef ZSBL_BOOT_DEBUG
+	spin_lock(&print_lock);
+	uart_puts("main core id : "); print_u8(hartid); uart_puts("\r\n");
+	spin_unlock(&print_lock);
+#endif // ZSBL_BOOT_DEBUG
 
 	for (int i = 0; i < CONFIG_SMP_NUM; i++) {
 		if (i == hartid)
@@ -207,7 +310,41 @@ int boottest(void)
 		assert(0);
 	}
 
-	pr_debug("wake up all cores\n");
+#ifdef ZSBL_BOOT_DEBUG
+	//spin_lock(&print_lock);
+	uart_puts("all cores woke up\r\n");
+	//spin_unlock(&print_lock);
+
+	core_stats[current_hartid()] = 0xface0001;
+	sram_point[current_hartid()] = 0x5A5A0001;
+	__asm__ volatile("":::"memory");
+	__asm__ volatile("fence rw, rw":::);
+
+#ifdef ZSBL_BOOT_DEBUG_LOOP
+	while(1) {
+		mdelay(20000);
+
+		//spin_lock(&print_lock);
+		uart_puts(">>>\r\n");
+		for (int i = 0; i < 64; i++) {
+			uart_puts("core_stats[");     print_u8(i); uart_puts("] = ");
+				print_u32(core_stats[i]); uart_puts("\r\n");
+			uart_puts("   sram_point[");  print_u8(i); uart_puts("]   = ");
+				print_u32(sram_point[i]); uart_puts("\r\n");
+			uart_puts("   sram_sp_addr["); print_u8(i); uart_puts("] = ");
+				print_u32(sram_sp_addr[i]); uart_puts("\r\n");
+		}
+		uart_puts("<<<\r\n");
+		//spin_unlock(&print_lock);
+
+		sram_point[current_hartid()] = sram_point[current_hartid()] + 1;
+		core_stats[current_hartid()] = core_stats[current_hartid()] + 1;
+		__asm__ volatile("":::"memory");
+		__asm__ volatile("fence rw, rw":::);
+	}
+#endif // ZSBL_BOOT_DEBUG_LOOP
+
+#endif // ZSBL_BOOT_DEBUG
 
 	jump_to(boot_file[ID_OPENSBI].addr, current_hartid(),
 		boot_file[ID_DEVICETREE].addr);
