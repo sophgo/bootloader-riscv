@@ -20,7 +20,7 @@
 
 /* clang-format on */
 
-#define SBI_TLB_FIFO_NUM_ENTRIES		8
+#define SBI_TLB_FIFO_NUM_ENTRIES		64
 
 enum sbi_tlb_info_types {
 	SBI_TLB_FLUSH_VMA,
