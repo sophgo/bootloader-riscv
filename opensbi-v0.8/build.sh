@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SBI_PATH=$PWD
-PLATFORM=sophgo/sg2040
+PLATFORM=sophgo/mango
 
 function build_sbi()
 {
