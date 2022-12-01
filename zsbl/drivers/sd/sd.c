@@ -41,7 +41,7 @@ static struct mmc_device_info sd_info = {
 static bm_sd_params_t bm_params = {
 	.reg_base	= SDIO_BASE,
 	.clk_rate	= 50 * 1000 * 1000,
-	.bus_width	= MMC_BUS_WIDTH_1,
+	.bus_width	= MMC_BUS_WIDTH_4,
 	.flags		= 0,
 	.card_in	= SDCARD_STATUS_UNKNOWN,
 };
@@ -738,7 +738,7 @@ int bm_sd_init(uint32_t flags)
 
 	bm_sd_phy_init();
 
-	ret = mmc_init(&bm_sd_ops, SDCARD_TRAN_FREQ, bm_params.bus_width,
+	ret = mmc_init(&bm_sd_ops, bm_params.clk_rate, bm_params.bus_width,
 		       bm_params.flags, &sd_info);
 
 	if (ret != 0)
