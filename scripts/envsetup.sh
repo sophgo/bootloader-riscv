@@ -206,8 +206,7 @@ function build_rv_ramfs()
         return $err
     fi
 
-    cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_OUTPUT_DIR/initrd.img
-    cp $RV_BUILDROOT_DIR/output/images/rootfs.tar $RV_OUTPUT_DIR/initrd.tar
+    cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_OUTPUT_DIR/
 }
 
 function clean_rv_ramfs()
@@ -312,7 +311,7 @@ function build_rv_uroot()
     GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
         -o $RV_UROOT_DIR/initramfs.cpio core boot
     popd
-    cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/uroot.cpio
+    cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/initrd.img
 }
 
 function clean_rv_uroot()
