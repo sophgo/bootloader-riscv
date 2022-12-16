@@ -182,6 +182,60 @@ function clean_rv_ubuntu_kernel()
     rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
 }
 
+function build_rv_fedora_kernel()
+{
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_fedora_defconfig
+	local err
+
+	pushd $RV_KERNEL_SRC_DIR
+	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" $RV_KERNEL_CONFIG
+	err=$?
+	popd
+	if [ $err -ne 0 ]; then
+		echo "making kernel config failed"
+		return $err
+	fi
+
+	pushd $RV_KERNEL_BUILD_DIR
+	if [ -e ~/.rpmmacros ]; then
+		mv ~/.rpmmacros ~/.rpmmacros.orig
+	fi
+
+# following lines must not be started with space or tab.
+cat >> ~/.rpmmacros << "EOT"
+%_topdir                /tmp/rpmbuild
+%_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
+EOT
+
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" binrpm-pkg
+	ret=$?
+	rm ~/.rpmmacros
+	if [ -e ~/.rpmmacros.orig ]; then
+		mv ~/.rpmmacros.orig ~/.rpmmacros
+	fi
+	if [ $ret -ne 0 ]; then
+		popd
+		echo "making rpm package failed"
+		return $ret
+	fi
+
+	if [ ! -d $RV_RPM_INSTALL_DIR ]; then
+		mkdir -p $RV_RPM_INSTALL_DIR
+	else
+		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+	fi
+
+	cp /tmp/rpmbuild/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	rm -rf /tmp/rpmbuild
+	popd
+}
+
+function clean_rv_fedora_kernel()
+{
+    rm -rf $RV_KERNEL_BUILD_DIR
+    rm -f $RV_RPM_INSTALL_DIR/*.rpm
+}
+
 function build_rv_ramfs()
 {
     local err
@@ -432,6 +486,23 @@ function clean_rv_distro()
 	rm $RV_DISTRO_DIR/$RV_DISTRO/$RV_UBUNTU_IMAGE
 }
 
+function build_rv_distro_fedora()
+{
+	mkdir -p $RV_DISTRO_DIR/$RV_DISTRO_FEDORA
+
+	pushd $RV_DISTRO_DIR/$RV_DISTRO_FEDORA
+	if [ ! -f $RV_FEDORA_IMAGE ] ; then
+		wget https://openkoji.iscas.ac.cn/pub/dl/riscv/qemu/images/"$RV_FEDORA_IMAGE".zst
+		zstd -d "$RV_FEDORA_IMAGE".zst
+	fi
+	popd
+}
+
+function clean_rv_distro_fedora()
+{
+	rm $RV_DISTRO_DIR/$RV_DISTRO_FEDORA/$RV_FEDORA_IMAGE
+}
+
 function build_rv_sdimage()
 {
 	echo build_rv_sdimage
@@ -562,6 +633,141 @@ function clean_rv_sdimage()
 	rm -f $RV_OUTPUT_DIR/sd.img
 }
 
+
+function build_rv_sdimage_fedora()
+{
+	echo build_rv_sdimage_fedora
+	echo create an image file...
+	rm -f $RV_OUTPUT_DIR/sd_fedora.img
+	dd if=/dev/zero of=$RV_OUTPUT_DIR/sd_fedora.img bs=1GiB count=15
+
+	echo create partitions...
+	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mktable msdos
+	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p fat32 0% 128MiB
+	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p ext4 128MiB 640MiB
+	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p ext4 640MiB 100%
+
+	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/sd_fedora.img | cut -d ' ' -f 3)
+	fat32part=$(echo $loops | cut -d ' ' -f 1)
+	ext4part1=$(echo $loops | cut -d ' ' -f 2)
+	ext4part2=$(echo $loops | cut -d ' ' -f 3)
+	echo EFI: $fat32part
+	echo boot: $ext4part1
+	echo rootfs: $ext4part2
+	sleep 3
+	sudo mkfs.vfat /dev/mapper/$fat32part -n EFI
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		return $ret
+	fi
+	sudo mkfs.ext4 /dev/mapper/$ext4part1 -L boot
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		return $ret
+	fi
+	sudo mkfs.ext4 /dev/mapper/$ext4part2 -L rootfs
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		return $ret
+	fi
+
+	echo copy fedora boot and rootfs to sd ext4 part...
+	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_DISTRO_FEDORA/$RV_FEDORA_IMAGE | cut -d ' ' -f 3)
+	fedora_boot_part=$(echo $loops | cut -d ' ' -f 1)
+	fedora_rootfs_part=$(echo $loops | cut -d ' ' -f 2)
+	sudo dd if=/dev/mapper/$fedora_boot_part of=/dev/mapper/$ext4part1
+	sudo dd if=/dev/mapper/$fedora_rootfs_part of=/dev/mapper/$ext4part2
+	echo mount rootfs partition...
+	mkdir $RV_OUTPUT_DIR/rootfs
+	sudo mount /dev/mapper/$ext4part2 $RV_OUTPUT_DIR/rootfs
+
+# following lines must not be started with space or tab.
+sudo chroot $RV_OUTPUT_DIR/rootfs /bin/bash << "EOT"
+adduser -m fedora
+echo "fedora:fedora" | chpasswd
+
+sed -i -e '
+/\%sudo/ c \
+%sudo	ALL=(ALL) NOPASSWD: ALL
+' /etc/sudoers
+
+exit
+EOT
+
+	echo copy bsp debs...
+	cp -r $RV_RPM_INSTALL_DIR $RV_OUTPUT_DIR/rootfs/home/fedora/
+
+	echo mount EFI partition...
+	mkdir $RV_OUTPUT_DIR/efi
+	sudo mount /dev/mapper/$fat32part $RV_OUTPUT_DIR/efi
+
+	echo copy bootloader...
+	sudo mkdir $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/mango.dtb $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/uroot.cpio $RV_OUTPUT_DIR/efi/riscv64/initrd.img
+	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo touch $RV_OUTPUT_DIR/efi/BOOT
+
+	echo mount system special filesystem to target...
+	sudo mount --bind /dev $RV_OUTPUT_DIR/rootfs/dev
+	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/rootfs/dev/pts
+	sudo mount --bind /proc $RV_OUTPUT_DIR/rootfs/proc
+	sudo mount --bind /sys $RV_OUTPUT_DIR/rootfs/sys
+
+
+	echo install linux image...
+	pushd $RV_OUTPUT_DIR/rootfs
+# following lines must not be started with space or tab.
+#sudo chroot . qemu-riscv64-static /bin/bash << "EOT"
+sudo chroot . /bin/env BOOT_PART="$fedora_boot_part" /bin/bash << "EOT"
+mount /dev/mapper/$BOOT_PART /boot
+rpm -ivh --force /home/fedora/bsp-rpms/kernel-[0-9]*.riscv64.rpm
+umount /boot
+exit
+EOT
+	popd
+
+	echo cleanup...
+	sync
+	sudo umount $RV_OUTPUT_DIR/rootfs/dev/pts
+	sudo umount $RV_OUTPUT_DIR/rootfs/dev
+	sudo umount $RV_OUTPUT_DIR/rootfs/proc
+	sudo umount $RV_OUTPUT_DIR/rootfs/sys
+	sudo umount /dev/mapper/$fat32part
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		return $ret
+	fi
+	echo $PWD
+	sudo umount /dev/mapper/$ext4part2
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		return $ret
+	fi
+	sudo kpartx -d $RV_OUTPUT_DIR/sd_fedora.img
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		return $ret
+	fi
+
+	sudo kpartx -d $RV_DISTRO_DIR/$RV_DISTRO_FEDORA/$RV_FEDORA_IMAGE
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		return $ret
+	fi
+
+	rm -r $RV_OUTPUT_DIR/efi
+	rm -r $RV_OUTPUT_DIR/rootfs
+}
+
+function clean_rv_sdimage_fedora()
+{
+	rm -f $RV_OUTPUT_DIR/sd_fedora.img
+}
+
 function run_rv_zsbl()
 {
     qemu-system-riscv64 -nographic -M virt -bios $RV_OUTPUT_DIR/zsbl.bin
@@ -580,8 +786,11 @@ PLD_INSTALL_DIR=${PLD_INSTALL_DIR:-$RV_OUTPUT_DIR/pld}
 
 RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
 RV_DISTRO=ubuntu
+RV_DISTRO_FEDORA=fedora
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
+RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
 RV_UBUNTU_IMAGE=ubuntu-22.04.1-preinstalled-server-riscv64+unmatched.img
+RV_FEDORA_IMAGE=fedora-disk-developer-gnome-desktop-test-Rawhide-20220515-040634.n.0-sda.raw
 
 SCRIPTS_DIR=${SCRIPTS_DIR:-$RV_TOP_DIR/bootloader-arm64/scripts}
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
