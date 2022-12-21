@@ -37,6 +37,22 @@ void __bitmap_or(unsigned long *dst, const unsigned long *bitmap1,
 void __bitmap_xor(unsigned long *dst, const unsigned long *bitmap1,
 		  const unsigned long *bitmap2, int bits);
 
+static inline bool bitmap_equal(const unsigned long *bmap1,
+				const unsigned long *bmap2, unsigned int bits)
+{
+	unsigned int k, lim = bits/BITS_PER_LONG;
+
+	for (k = 0; k < lim; ++k)
+		if (bmap1[k] != bmap2[k])
+			return false;
+
+	if (bits % BITS_PER_LONG)
+		if ((bmap1[k] ^ bmap2[k]) & BITMAP_LAST_WORD_MASK(bits))
+			return false;
+
+	return true;
+}
+
 static inline void bitmap_set(unsigned long *bmap, int start, int len)
 {
 	int bit;

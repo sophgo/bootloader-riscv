@@ -93,6 +93,17 @@ static inline void sbi_hartmask_clear_all(struct sbi_hartmask *dstp)
 }
 
 /**
+ * @param src1p the first input
+ * @param src2p the second input
+ * @param bits  the bit count
+ */
+static inline bool sbi_hartmask_equal(const struct sbi_hartmask *src1p,
+				    const struct sbi_hartmask *src2p, unsigned int bits)
+{
+	return bitmap_equal(sbi_hartmask_bits(src1p), sbi_hartmask_bits(src2p), bits);
+}
+
+/**
  * *dstp = *src1p & *src2p
  * @param dstp the hartmask result
  * @param src1p the first input

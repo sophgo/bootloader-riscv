@@ -5,6 +5,7 @@ MANGO_PLATFORM_PLD = n
 MANGO_COLD_BOOT = y
 MANGO_C920 = y
 MANGO_DVM = n
+MANGO_IPI_EVENT_OPS = y
 
 
 MANGO_CFLAGS = -DMANGO -Iplatform/sophgo/mango
@@ -32,6 +33,10 @@ endif
 ifeq ($(strip $(MANGO_DVM)), y)
 MANGO_CFLAGS += -DMANGO_DVM
 endif
+endif
+
+ifeq ($(strip $(MANGO_IPI_EVENT_OPS)), y)
+MANGO_CFLAGS += -DMANGO_IPI_EVENT_OPS
 endif
 
 # Compiler flags

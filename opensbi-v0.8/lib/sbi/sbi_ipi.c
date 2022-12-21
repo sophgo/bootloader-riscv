@@ -63,7 +63,7 @@ static int sbi_ipi_send(struct sbi_scratch *scratch, u32 remote_hartid,
 	smp_wmb();
 	sbi_platform_ipi_send(plat, remote_hartid);
 
-#ifndef CONFIG_SOPHGO_FEATURE
+#ifndef MANGO_IPI_EVENT_OPS
 	if (ipi_ops->sync)
 		ipi_ops->sync(scratch);
 #endif
@@ -80,9 +80,6 @@ int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data)
 {
 	int rc;
 	ulong i, m;
-#ifdef CONFIG_SOPHGO_FEATURE
-	ulong m_saved; //todo: 128 core
-#endif
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 
 	if (hbase != -1UL) {
@@ -90,9 +87,6 @@ int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data)
 		if (rc)
 			return rc;
 		m &= hmask;
-#ifdef CONFIG_SOPHGO_FEATURE
-		m_saved = (m << hbase);
-#endif
 
 		/* Send IPIs */
 		for (i = hbase; m; i++, m >>= 1) {
@@ -102,9 +96,6 @@ int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data)
 	} else {
 		hbase = 0;
 		while (!sbi_hsm_hart_started_mask(hbase, &m)) {
-#ifdef CONFIG_SOPHGO_FEATURE
-			m_saved = (m << hbase);
-#endif
 			/* Send IPIs */
 			for (i = hbase; m; i++, m >>= 1) {
 				if (m & 1UL)
@@ -114,18 +105,54 @@ int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data)
 		}
 	}
 
-#ifdef CONFIG_SOPHGO_FEATURE
-	{
-		const struct sbi_ipi_event_ops *ipi_ops;
-
-		ipi_ops = ipi_ops_array[event];
-		if (ipi_ops && ipi_ops->sync_sophgo) {
-			ipi_ops->sync_sophgo(scratch, m_saved);
-		}
-	}
-#endif
 	return 0;
 }
+
+#ifdef MANGO_IPI_EVENT_OPS
+int sbi_ipi_send_many_mango(ulong hmask, ulong hbase, u32 event, void *data)
+{
+	int rc;
+	ulong i, m;
+	struct sbi_hartmask m_sync = {.bits = {0}};
+	const struct sbi_ipi_event_ops *ipi_ops = ipi_ops_array[event];
+	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
+
+	if (hbase != -1UL) {
+		rc = sbi_hsm_hart_started_mask(hbase, &m);
+		if (rc)
+			return rc;
+		m &= hmask;
+
+		/* Send IPIs */
+		for (i = hbase; m; i++, m >>= 1) {
+			if (m & 1UL) {
+				rc = sbi_ipi_send(scratch, i, event, data);
+				if (!rc)
+					sbi_hartmask_set_hart(i, &m_sync);
+			}
+		}
+	} else {
+		hbase = 0;
+		while (!sbi_hsm_hart_started_mask(hbase, &m)) {
+			/* Send IPIs */
+			for (i = hbase; m; i++, m >>= 1) {
+				if (m & 1UL) {
+					rc = sbi_ipi_send(scratch, i, event, data);
+					if (!rc)
+						sbi_hartmask_set_hart(i, &m_sync);
+				}
+			}
+			hbase += BITS_PER_LONG;
+		}
+	}
+
+	if (ipi_ops && ipi_ops->sync_mango) {
+		ipi_ops->sync_mango(scratch, m_sync);
+	}
+
+	return 0;
+}
+#endif
 
 int sbi_ipi_event_create(const struct sbi_ipi_event_ops *ops)
 {
@@ -212,9 +239,9 @@ void sbi_ipi_process(void)
 			goto skip;
 
 		ipi_ops = ipi_ops_array[ipi_event];
-#ifdef CONFIG_SOPHGO_FEATURE
-		if (ipi_ops && ipi_ops->process_sophgo)
-			ipi_ops->process_sophgo(scratch);
+#ifdef MANGO_IPI_EVENT_OPS
+		if (ipi_ops && ipi_ops->process_mango)
+			ipi_ops->process_mango(scratch);
 		else {
 			if (ipi_ops && ipi_ops->process)
 				ipi_ops->process(scratch);

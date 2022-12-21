@@ -11,7 +11,7 @@
 #define __SBI_IPI_H__
 
 #include <sbi/sbi_types.h>
-
+#include <sbi/sbi_hartmask.h>
 /* clang-format off */
 
 #define SBI_IPI_EVENT_MAX			__riscv_xlen
@@ -40,8 +40,8 @@ struct sbi_ipi_event_ops {
 	 * triggering IPI to remote HART.
 	 */
 	void (* sync)(struct sbi_scratch *scratch);
-#ifdef CONFIG_SOPHGO_FEATURE
-	void (* sync_sophgo)(struct sbi_scratch *scratch, unsigned long hart_mask);
+#ifdef MANGO_IPI_EVENT_OPS
+	void (* sync_mango)(struct sbi_scratch *scratch, struct sbi_hartmask hmask);
 #endif
 
 	/**
@@ -50,12 +50,15 @@ struct sbi_ipi_event_ops {
 	 * remote HART after IPI is triggered.
 	 */
 	void (* process)(struct sbi_scratch *scratch);
-#ifdef CONFIG_SOPHGO_FEATURE
-	void (* process_sophgo)(struct sbi_scratch *scratch);
+#ifdef MANGO_IPI_EVENT_OPS
+	void (* process_mango)(struct sbi_scratch *scratch);
 #endif
 };
 
 int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data);
+#ifdef MANGO_IPI_EVENT_OPS
+int sbi_ipi_send_many_mango(ulong hmask, ulong hbase, u32 event, void *data);
+#endif
 
 int sbi_ipi_event_create(const struct sbi_ipi_event_ops *ops);
 
