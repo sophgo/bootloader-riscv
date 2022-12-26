@@ -265,9 +265,8 @@ function build_rv_ramfs()
 
 function clean_rv_ramfs()
 {
-    rm -rf $RV_OUTPUT_DIR/initrd*
-
-    rm -rf $RV_BUILDROOT_DIR/output
+	rm -rf $RV_OUTPUT_DIR/rootfs.cpio
+	rm -rf $RV_BUILDROOT_DIR/output
 }
 
 function build_rv_pld()
@@ -370,7 +369,7 @@ function build_rv_uroot()
 
 function clean_rv_uroot()
 {
-	rm $RV_OUTPUT_DIR/uroot.cpio
+	rm $RV_OUTPUT_DIR/initrd.img
 }
 
 function run_rv_uroot()
