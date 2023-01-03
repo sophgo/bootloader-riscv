@@ -76,8 +76,8 @@ function build_rv_ltp()
         make autotools
     fi
 
-    ./configure --prefix=$RV_LTP_OUTPUT_DIR --host=riscv64-linux-gnu  --without-tirpc
-    make -j$(nproc) ARCH=riscv CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE}gcc
+    ./configure CC=${RISCV64_LINUX_CROSS_COMPILE}gcc --prefix=$RV_LTP_OUTPUT_DIR --host=riscv64-linux-gnu  --without-tirpc
+    make -j$(nproc) ARCH=riscv CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE}
     make install -j$(nproc)
     popd
 }
