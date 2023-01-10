@@ -109,7 +109,7 @@ function build_rv_kernel()
 	fi
 
     pushd $RV_KERNEL_BUILD_DIR
-    make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE Image dtbs modules
+    make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
     err=$?
     popd
 
@@ -155,8 +155,8 @@ function build_rv_ubuntu_kernel()
 	rm -f ../linux-*
 	rm -rf ./debs
 
-	local KERNELRELEASE=$(make ARCH=riscv kernelrelease)
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE bindeb-pkg
+	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg
 	ret=$?
 	if [ $ret -ne 0 ]; then
 		popd
@@ -188,7 +188,7 @@ function build_rv_fedora_kernel()
 	local err
 
 	pushd $RV_KERNEL_SRC_DIR
-	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" $RV_KERNEL_CONFIG
+	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
 	err=$?
 	popd
 	if [ $err -ne 0 ]; then
