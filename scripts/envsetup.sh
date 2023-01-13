@@ -362,7 +362,7 @@ function build_rv_uroot()
     pushd $RV_UROOT_DIR
     GOARCH=riscv64 go build
     GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
-        -o $RV_UROOT_DIR/initramfs.cpio core boot
+        -uinitcmd="boot" -o $RV_UROOT_DIR/initramfs.cpio core boot
     popd
     cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/initrd.img
 }
