@@ -569,8 +569,14 @@ EOT
 	sudo mount /dev/mapper/$fat32part $RV_OUTPUT_DIR/ext4/boot/efi
 
 	echo copy bootloader...
-	sudo mkdir $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/ext4/boot/efi/
+	sudo mkdir -p $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
+
+	if [ -f $RV_OUTPUT_DIR/../fip.bin ] ; then
+		sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/ext4/boot/efi/
+	else
+		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/ext4/boot/efi/
+	fi
+
 	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/ext4/boot/efi/
 	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/mango.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
@@ -805,6 +811,7 @@ RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
 RV_ZSBL_DIR=$RV_TOP_DIR/bootloader-riscv/zsbl
 RV_SBI_DIR=$RV_TOP_DIR/bootloader-riscv/opensbi-v0.8
 RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
+RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
 
 RV_ZSBL_BUILD_DIR=$RV_ZSBL_DIR/build/$CHIP/$KERNEL_VARIANT
 
