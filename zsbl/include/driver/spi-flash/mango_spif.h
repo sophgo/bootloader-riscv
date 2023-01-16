@@ -129,5 +129,6 @@ int bm_spi_flash_program_sector(unsigned long spi_base, uint32_t addr);
 int mango_get_part_info_by_name(uint32_t addr, const char *name, struct part_info *info);
 int mango_load_from_sf(uint64_t lma, uint32_t start, int size);
 int mango_load_image(uint32_t addr, const char *name, struct part_info *info);
+int sp_flash_enable_dmmr(void);
 
 #endif		/* __BM_SPI_H__ */

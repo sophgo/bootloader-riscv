@@ -110,6 +110,20 @@ BOOT_FILE boot_file[ID_MAX] = {
 	},
 };
 
+char *sd_img_name[ID_MAX] = {
+	"0:riscv64/fw_jump.bin",
+	"0:riscv64/riscv64_Image",
+	"0:riscv64/initrd.img",
+	"0:riscv64/mango.dtb",
+};
+
+char *spflash_img_name[ID_MAX] = {
+	"fw_jump.bin",
+	"riscv64_Image",
+	"initrd.img",
+	"mango.dtb",
+};
+
 char *ddr_node_name[SG2042_MAX_CHIP_NUM] = {
 	"/memory@0/",
 	"/memory@8000000000/",
@@ -148,6 +162,8 @@ int read_all_img(IO_DEV *io_dev)
 		}
 	}
 
+	io_dev->func.destroy();
+
 	return 0;
 
 close_file:
@@ -166,6 +182,21 @@ int boot_device_register()
 
 	return 0;
 }
+
+int build_bootfile_info(int dev_num)
+{
+	if (dev_num == IO_DEVICE_SD)
+		for (int i = 0; i < ID_MAX; i++)
+			boot_file[i].name = sd_img_name[i];
+	else if (dev_num == IO_DEVICE_SPIFLASH)
+		for (int i = 0; i < ID_MAX; i++)
+			boot_file[i].name = spflash_img_name[i];
+	else
+		return -1;
+
+	return 0;
+}
+
 int read_boot_file(void)
 {
 	IO_DEV *io_dev;
@@ -182,8 +213,8 @@ int read_boot_file(void)
 		dev_num = IO_DEVICE_SPIFLASH;
 		pr_debug("rv boot from spi flash\n");
 	}
-	// dev_num = IO_DEVICE_SD;
-
+	// dev_num = IO_DEVICE_SPIFLASH;
+	build_bootfile_info(dev_num);
 	io_dev = set_current_io_device(dev_num);
 	if (io_dev == NULL) {
 		pr_debug("set current io device failed\n");
@@ -193,6 +224,7 @@ int read_boot_file(void)
 	if (read_all_img(io_dev)) {
 		if (dev_num == IO_DEVICE_SD) {
 			dev_num = IO_DEVICE_SPIFLASH;
+			build_bootfile_info(dev_num);
 			io_dev = set_current_io_device(dev_num);
 			if (io_dev == NULL) {
 				pr_debug("set current device to flash failed\n");

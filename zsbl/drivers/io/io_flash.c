@@ -80,6 +80,8 @@ int flash_device_close(void)
 
 int flash_device_destroy(void)
 {
+	sp_flash_enable_dmmr();
+
 	return 0;
 }
 

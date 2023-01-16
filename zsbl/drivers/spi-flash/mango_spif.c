@@ -90,19 +90,23 @@ static int spi_data_in_tran(unsigned long spi_base, uint8_t *dst_buf, uint8_t *c
 
 int spi_data_read(unsigned long spi_base, uint8_t *dst_buf, int addr, int size)
 {
-	uint8_t cmd_buf[4];
+	uint8_t cmd_buf[5];
 
-	pr_debug("disable DMMR before read\n");
-	mmio_write_32(ctrl_base + REG_SPI_DMMR, 0);
+	if (addr & ((uint32_t)0xff << 24)) {
+		cmd_buf[0] = 0x13;
+		cmd_buf[1] = ((addr) >> 24) & 0xff;
+		cmd_buf[2] = ((addr) >> 16) & 0xFF;
+		cmd_buf[3] = ((addr) >> 8) & 0xFF;
+		cmd_buf[4] = (addr) & 0xFF;
+		spi_data_in_tran(spi_base, dst_buf, cmd_buf, 1, 4, size);
+	} else {
+		cmd_buf[0] = SPI_CMD_READ;
+		cmd_buf[1] = ((addr) >> 16) & 0xFF;
+		cmd_buf[2] = ((addr) >> 8) & 0xFF;
+		cmd_buf[3] = (addr) & 0xFF;
+		spi_data_in_tran(spi_base, dst_buf, cmd_buf, 1, 3, size);
+	}
 
-	cmd_buf[0] = SPI_CMD_READ;
-	cmd_buf[1] = ((addr) >> 16) & 0xFF;
-	cmd_buf[2] = ((addr) >> 8) & 0xFF;
-	cmd_buf[3] = (addr) & 0xFF;
-	spi_data_in_tran(spi_base, dst_buf, cmd_buf, 1, 3, size);
-
-	pr_debug("enable DMMR after read\n");
-	mmio_write_32(ctrl_base + REG_SPI_DMMR, 1);
 	return 0;
 }
 
@@ -140,8 +144,7 @@ void bm_spi_init(unsigned long base)
 	/* with cmd */
 	tran_csr |= BIT_SPI_TRAN_CSR_WITH_CMD;
 	mmio_write_32(ctrl_base + REG_SPI_TRAN_CSR, tran_csr);
-	pr_debug("spif init enable DMMR\n");
-	mmio_write_32(ctrl_base + REG_SPI_DMMR, 1);
+
 }
 
 /* here are APIs for SPI flash programming */
@@ -634,10 +637,7 @@ int plat_spif_read(uint64_t addr, uint32_t offset, uint32_t size)
 {
 	int ret;
 
-	bm_spi_init(FLASH1_BASE);
 	ret = bm_spi_flash_read((uint8_t *)addr, offset, size);
-	// back to DMMR mode
-	mmio_write_32(FLASH1_BASE + REG_SPI_DMMR, 1);
 
 	return ret;
 }
@@ -661,17 +661,13 @@ static int mango_get_part_info(uint32_t addr, struct part_info *info)
 int mango_get_part_info_by_name(uint32_t addr, const char *name, struct part_info *info)
 {
 	int ret;
-	char filename[30] = {0};
-
-	/* strncpy(filename, name + 10, (strlen(name) - 10)); */
-	strlcpy(filename, name + 10, (strlen(name) - 10));
 
 	do {
 		ret = mango_get_part_info(addr, info);
 
 		addr += sizeof(struct part_info);
 
-	} while (!ret && memcmp(info->name, filename, strlen(filename)));
+	} while (!ret && strcmp(info->name, name));
 
 	return ret;
 }
@@ -699,6 +695,14 @@ int mango_load_image(uint32_t addr, const char *name, struct part_info *info)
 		pr_debug("failed to load %s image form spi flash\n", name);
 		return ret;
 	}
+
+	return 0;
+}
+
+int sp_flash_enable_dmmr(void)
+{
+	pr_debug("spif enable DMMR\n");
+	mmio_write_32(ctrl_base + REG_SPI_DMMR, 1);
 
 	return 0;
 }
