@@ -1,4 +1,3 @@
-#define DEBUG
 #include <stdio.h>
 #include <framework/common.h>
 
@@ -27,13 +26,13 @@ static int sd_device_init(void)
 {
 	FRESULT f_ret;
 	if (!bm_sd_init(SD_USE_PIO)) {
-		pr_debug("sd card init ok\n");
+		pr_err("sd card init ok\n");
 
 		f_ret = f_mount(&sd_io_device.SDC_FS, "0:", 1);
 		if (f_ret == FR_OK) {
 			pr_debug("sd card mount ok\n");
 		} else {
-			pr_debug("sd card mount failed\n");
+			pr_err("sd card mount failed\n");
 			return -1;
 		}
 
@@ -64,7 +63,7 @@ static int sd_device_open(char *name, uint8_t mode)
 		pr_debug("open %s ok\n", name);
 		return 0;
 	} else {
-		pr_debug("open %s failed\n", name);
+		pr_err("open %s failed\n", name);
 		return -1;
 	}
 }
@@ -76,10 +75,10 @@ static int sd_device_read(BOOT_FILE *boot_file, int id, uint64_t len)
 
 	ret = f_read(&sd_io_device.fp, (void *)boot_file[id].addr, len, &rd_num);
 	if (ret == FR_OK) {
-		pr_info("read %d bytes\n", rd_num);
+		pr_debug("read %d bytes\n", rd_num);
 		return 0;
 	} else {
-		pr_info("read failed %d\n", ret);
+		pr_err("read failed %d\n", ret);
 		return -1;
 	}
 }
@@ -92,7 +91,7 @@ static int sd_device_close(void)
 		pr_debug("close file ok\n");
 		return 0;
 	} else {
-		pr_debug("close file failed\n");
+		pr_err("close file failed\n");
 		return -1;
 	}
 }
@@ -103,10 +102,10 @@ static int sd_device_get_file_info(BOOT_FILE *boot_file, int id, FILINFO *info)
 
 	f_ret = f_stat(boot_file[id].name, info);
 	if (f_ret == FR_OK) {
-		pr_debug("%s file size is %d\n", boot_file[id].name, info->fsize);
+		pr_info("%s file size is %d\n", boot_file[id].name, info->fsize);
 		return 0;
 	} else {
-		pr_debug("get file info failed\n");
+		pr_err("get file info failed\n");
 		return -1;
 	}
 }
@@ -114,7 +113,7 @@ static int sd_device_get_file_info(BOOT_FILE *boot_file, int id, FILINFO *info)
 int sd_io_device_register(void)
 {
 	if (io_device_register(IO_DEVICE_SD, &sd_io_device)) {
-		pr_debug("sd io register failed\n");
+		pr_err("sd io register failed\n");
 		return -1;
 	}
 

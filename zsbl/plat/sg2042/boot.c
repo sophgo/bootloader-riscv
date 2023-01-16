@@ -19,6 +19,8 @@
 #include <smp.h>
 #include <sbi/riscv_asm.h>
 #include "spinlock.h"
+#include "board.h"
+#include <libfdt.h>
 //#include <thread_safe_printf.h>
 
 //#define ZSBL_BOOT_DEBUG
@@ -107,37 +109,41 @@ BOOT_FILE boot_file[ID_MAX] = {
 		.addr = DEVICETREE_ADDR,
 	},
 };
-uint8_t temp_buf[1024];
-int32_t g_filelen;
+
+char *ddr_node_name[SG2042_MAX_CHIP_NUM] = {
+	"/memory@0/",
+	"/memory@8000000000/",
+};
+
+board_info sg2042_board_info;
+
 int read_all_img(IO_DEV *io_dev)
 {
 	FILINFO info;
 
 	if (io_dev->func.init()) {
-		pr_debug("init %s device failed\n", io_dev->type == IO_DEVICE_SD ? "sd" : "flash");
+		pr_err("init %s device failed\n", io_dev->type == IO_DEVICE_SD ? "sd" : "flash");
 		goto umount_dev;
 	}
 
 	for (int i = 0; i < ID_MAX; i++) {
 		if (io_dev->func.open(boot_file[i].name, FA_READ)) {
-			pr_debug("open %s failed\n", boot_file[i].name);
+			pr_err("open %s failed\n", boot_file[i].name);
 			goto close_file;
 		}
 
 		if (io_dev->func.get_file_info(boot_file, i, &info)) {
-			pr_debug("get %s info failed\n", boot_file[i].name);
+			pr_err("get %s info failed\n", boot_file[i].name);
 			goto close_file;
 		}
-		g_filelen = info.fsize;
+		boot_file[i].len = info.fsize;
 		if (io_dev->func.read(boot_file, i, info.fsize)) {
-			pr_debug("read %s failed\n", boot_file[i].name);
+			pr_err("read %s failed\n", boot_file[i].name);
 			goto close_file;
 		}
-
-		// pr_debug("%s:%s\n", boot_file[i].name, temp_buf);
 
 		if (io_dev->func.close()) {
-			pr_debug("close %s failed\n", boot_file[i].name);
+			pr_err("close %s failed\n", boot_file[i].name);
 			goto umount_dev;
 		}
 	}
@@ -212,8 +218,106 @@ int read_boot_file(void)
         return 0;
 }
 
+int show_ddr_node(char *path)
+{
+	int len;
+	int node;
+	const uint64_t *p_value = NULL;
+
+	node = fdt_path_offset((void *)boot_file[ID_DEVICETREE].addr, path);
+	if (node < 0) {
+		pr_err("can not find %s\n", path);
+		return -1;
+	}
+	p_value = fdt_getprop((void *)boot_file[ID_DEVICETREE].addr, node, "reg", &len);
+	if (!p_value) {
+		pr_err("can not get reg\n");
+		return -1;
+	}
+	if (len != 16) {
+		pr_err("the size is error\n");
+		return -1;
+	}
+
+	pr_debug("    base:0x%lx, len:0x%lx\n", fdt64_ld(&p_value[0]), fdt64_ld(&p_value[1]));
+
+	return 0;
+}
+
+int modify_ddr_node(void)
+{
+	uint64_t ddr_total_size = 0;
+	uint64_t value[2];
+	int chip_num = 1;
+
+	if (sg2042_board_info.multi_sockt_mode)
+		chip_num = SG2042_MAX_CHIP_NUM;
+
+	for (int i = 0; i < chip_num; i++) {
+		pr_debug("chip%d ddr node in dtb:\n", i);
+		ddr_total_size = 0;
+		// show_ddr_node(sg2042_board_info.ddr_node_name[i]);
+
+		for (int i = 0; i < DDR_CHANLE_NUM; i++)
+			ddr_total_size += sg2042_board_info.ddr_info[0].chip_ddr_size[i];
+
+		value[0] = sg2042_board_info.ddr_start_base[i];
+		value[1] = ddr_total_size - value[0];
+		of_modify_prop((void *)boot_file[ID_DEVICETREE].addr, boot_file[ID_DEVICETREE].len,
+				sg2042_board_info.ddr_node_name[i],"reg", (void *)value, sizeof(value),
+				PROP_TYPE_U64);
+
+		show_ddr_node(sg2042_board_info.ddr_node_name[i]);
+	}
+
+	return 0;
+}
+
+int modify_chip_node(int chip_num)
+{
+	uint64_t mp0_status_base = chip_num * SG2040_CHIP_ADDR_SPACE + MP0_STATUS_ADDR;
+	uint64_t mp0_control_base = chip_num * SG2040_CHIP_ADDR_SPACE + MP0_CONTROL_ADDR;
+	uint32_t cluster_id;
+	uint32_t cluster_status;
+	uint32_t cpu_id;
+	char cpu_node[16];
+
+	for (int i = 0; i < SG2042_CLUSTER_PER_CHIP; i++) {
+		cluster_id = mmio_read_32(mp0_status_base + (i << 3));
+		cluster_status = mmio_read_32(mp0_control_base + (i << 3));
+		if (cluster_status == 0) {
+			for (int j = 0; j < MANGO_CORES_PER_CLUSTER; j++) {
+				cpu_id = cluster_id * MANGO_CORES_PER_CLUSTER + j;
+				memset(cpu_node, 0, sizeof(cpu_node));
+				sprintf(cpu_node, "/cpus/cpu@%d/", cpu_id);
+				of_modify_prop((void *)boot_file[ID_DEVICETREE].addr, boot_file[ID_DEVICETREE].len,
+						cpu_node, "status", (void *)"dis", sizeof("dis"), PROP_TYPE_STR);
+
+			}
+		}
+	}
+
+	return 0;
+}
+
+int modify_cpu_node(void)
+{
+	int chip_num = 1;
+
+	if (sg2042_board_info.multi_sockt_mode)
+		chip_num = SG2042_MAX_CHIP_NUM;
+
+	for (int i = 0; i < chip_num; i++) {
+		modify_chip_node(i);
+	}
+
+	return 0;
+}
+
 int modify_dtb(void)
 {
+	modify_ddr_node();
+	modify_cpu_node();
 
 	return 0;
 }
@@ -293,8 +397,71 @@ int boot_next_img(void)
 	return 0;
 }
 
-int boottest(void)
+uint64_t get_ddr_size(uint64_t ddr_reg_size, int ddr_chanle)
 {
+	uint64_t ddr_size = 0xffUL << (ddr_chanle << 3);
+	ddr_size = (ddr_size & ddr_reg_size) >> (ddr_chanle << 3);
+	if (ddr_size == DDR_SIZE_ZERO)
+		return 0;
+
+	ddr_size = 1UL << (SG2042_MAX_PHY_ADDR_WIDTH - ddr_size);
+
+	return ddr_size;
+}
+
+
+int build_ddr_info (int chip_num)
+{
+	uint64_t reg_ddr_size_base = chip_num * 0x8000000000 + DDR_SIZE_ADDR;
+	uint32_t sg2042_ddr_reg_size = mmio_read_32(reg_ddr_size_base);
+
+	pr_debug("chip%d ddr info: raw data=0x%x, \n", chip_num, sg2042_ddr_reg_size);
+
+	for (int i = 0; i < DDR_CHANLE_NUM; i++) {
+		sg2042_board_info.ddr_info[chip_num].chip_ddr_size[i] = get_ddr_size(sg2042_ddr_reg_size, i);
+		pr_info("    ddr%d size:0x%lx\n", i, sg2042_board_info.ddr_info[chip_num].chip_ddr_size[i]);
+	}
+
+	return 0;
+}
+
+int build_board_info(void)
+{
+	if (mmio_read_32(BOOT_SEL_ADDR) & MULTI_SOCKET_MODE) {
+		pr_info("sg2042 work in multi socket mode\n");
+		sg2042_board_info.multi_sockt_mode = 1;
+	} else {
+		pr_info("sg2042 work in single socket mode\n");
+	}
+
+	for (int i = 0; i < SG2042_MAX_CHIP_NUM; i++)
+		sg2042_board_info.ddr_node_name[i] = ddr_node_name[i];
+
+	sg2042_board_info.ddr_start_base[0] = 0x200000;
+	sg2042_board_info.ddr_start_base[1] = 0x800000000;
+
+	if (sg2042_board_info.multi_sockt_mode) {
+		for (int i = 0; i < SG2042_MAX_CHIP_NUM; i++)
+			build_ddr_info(i);
+	} else {
+		build_ddr_info(0);
+	}
+
+	return 0;
+}
+
+int print_banner(void)
+{
+	pr_info("\n\nSOPHGO ZSBL\nsg2042:v%s\n\n", ZSBL_VERSION);
+
+	return 0;
+}
+
+int boot(void)
+{
+	print_banner();
+	build_board_info();
+
 	if (read_boot_file()) {
 		pr_err("read boot file faile\n");
 		assert(0);
@@ -351,4 +518,4 @@ int boottest(void)
 
 	return 0;
 }
-test_case(boottest);
+test_case(boot);
