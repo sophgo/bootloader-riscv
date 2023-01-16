@@ -334,13 +334,13 @@ static int delete_node(char *blob, const char *node_name)
 char *utilfdt_read(const char *original_fdt, size_t len)
 {
 	char *buf;
-	pr_err("utilfdt read len %lu\n", len);
+	// pr_err("utilfdt read len %lu\n", len);
 	buf = malloc(len);
 	if (!buf) {
 		pr_err("%s malloc failed\n", __FUNCTION__);
 	}
 	memcpy(buf, original_fdt, len);
-	pr_err("utilfdt copy ok\n");
+	// pr_err("utilfdt copy ok\n");
 
 	return buf;
 }
@@ -368,10 +368,12 @@ int of_modify_prop(void *original_fdt, int len, char *node_name,
 	if (!blob)
 		return -1;
 
-	store_buf = malloc(prop_size);
-	if (!store_buf) {
-		pr_err("%s malloc failed\n", __FUNCTION__);
-		return -1;
+	if (prop_type != PROP_TYPE_STR) {
+		store_buf = malloc(prop_size);
+		if (!store_buf) {
+			pr_err("%s malloc failed\n", __FUNCTION__);
+			return -1;
+		}
 	}
 
 	if (prop_type == PROP_TYPE_U32) {
@@ -396,6 +398,8 @@ int of_modify_prop(void *original_fdt, int len, char *node_name,
 
 	fdt_pack(blob);
 	utilfdt_write(original_fdt, blob);
+
+	free(blob);
 
 	if (prop_type != PROP_TYPE_STR) {
 		free(store_buf);
