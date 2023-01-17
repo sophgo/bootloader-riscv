@@ -549,7 +549,7 @@ function build_rv_sdimage()
 
 # following lines must not be started with space or tab.
 sudo chroot $RV_OUTPUT_DIR/ext4 /bin/bash << "EOT"
-adduser --gecos ubuntu --disabled-login ubuntu
+useradd -m -s /bin/bash ubuntu
 echo "ubuntu:ubuntu" | chpasswd
 usermod -a -G sudo ubuntu
 
@@ -565,7 +565,6 @@ EOT
 	cp -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/ext4/home/ubuntu/
 
 	echo mount EFI partition...
-	sudo mkdir $RV_OUTPUT_DIR/ext4/boot/efi
 	sudo mount /dev/mapper/$fat32part $RV_OUTPUT_DIR/ext4/boot/efi
 
 	echo copy bootloader...
@@ -598,6 +597,7 @@ EOT
 sudo chroot . /bin/bash << "EOT"
 sed -i '/UEFI/d' /etc/fstab
 dpkg -i /home/ubuntu/bsp-debs/linux-image-*.deb
+sed -i -e '/append/ s/$/ nvme.use_threaded_interrupts=1/' /boot/extlinux/extlinux.conf
 exit
 EOT
 	popd
