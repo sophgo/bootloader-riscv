@@ -14,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 	"os/exec"
 
 	"github.com/u-root/u-root/pkg/libinit"
@@ -32,6 +33,9 @@ var (
 )
 
 func main() {
+	//waiting for sd card to be detected.
+	time.Sleep(3 * time.Second)
+
 	flag.Parse()
 
 	log.Printf("Welcome to u-root!")
