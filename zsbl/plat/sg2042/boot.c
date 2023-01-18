@@ -23,6 +23,7 @@
 #include <libfdt.h>
 //#include <thread_safe_printf.h>
 
+#define FILE_NUM	5
 //#define ZSBL_BOOT_DEBUG
 //#define ZSBL_BOOT_DEBUG_LOOP
 
@@ -110,18 +111,20 @@ BOOT_FILE boot_file[ID_MAX] = {
 	},
 };
 
-char *sd_img_name[ID_MAX] = {
+char *sd_img_name[FILE_NUM] = {
 	"0:riscv64/fw_jump.bin",
 	"0:riscv64/riscv64_Image",
 	"0:riscv64/initrd.img",
 	"0:riscv64/mango.dtb",
+	"0:riscv64/mango_evb_v0.1.dtb",
 };
 
-char *spflash_img_name[ID_MAX] = {
+char *spflash_img_name[FILE_NUM] = {
 	"fw_jump.bin",
 	"riscv64_Image",
 	"initrd.img",
 	"mango.dtb",
+	"mango_evb_v0.1.dtb",
 };
 
 char *ddr_node_name[SG2042_MAX_CHIP_NUM] = {
@@ -185,12 +188,18 @@ int boot_device_register()
 
 int build_bootfile_info(int dev_num)
 {
-	if (dev_num == IO_DEVICE_SD)
+	if (dev_num == IO_DEVICE_SD) {
 		for (int i = 0; i < ID_MAX; i++)
 			boot_file[i].name = sd_img_name[i];
-	else if (dev_num == IO_DEVICE_SPIFLASH)
+		if (mmio_read_32(BOARD_TYPE_REG) == 0x02)
+			boot_file[3].name = sd_img_name[4];
+	}
+	else if (dev_num == IO_DEVICE_SPIFLASH) {
 		for (int i = 0; i < ID_MAX; i++)
 			boot_file[i].name = spflash_img_name[i];
+		if (mmio_read_32(BOARD_TYPE_REG) == 0x02)
+			boot_file[3].name = spflash_img_name[4];
+	}
 	else
 		return -1;
 

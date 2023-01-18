@@ -580,6 +580,7 @@ EOT
 	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/ext4/boot/efi/
 	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/mango.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/mango_evb_v0.1.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/initrd.img $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo touch $RV_OUTPUT_DIR/ext4/boot/efi/BOOT
