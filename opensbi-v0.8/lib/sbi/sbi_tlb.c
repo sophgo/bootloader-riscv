@@ -21,13 +21,11 @@
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_console.h>
 #include <sbi/sbi_platform.h>
-#include <sbi/sbi_bitops.h>
 
 static unsigned long tlb_sync_off;
 static unsigned long tlb_fifo_off;
 static unsigned long tlb_fifo_mem_off;
 static unsigned long tlb_range_flush_limit;
-
 
 static void sbi_tlb_flush_all(void)
 {
@@ -200,7 +198,6 @@ static void sbi_tlb_local_flush(struct sbi_tlb_info *tinfo)
 		sbi_printf("Invalid tlb flush request type [%lu]\n",
 			   tinfo->type);
 	}
-
 	return;
 }
 
@@ -232,8 +229,9 @@ static void sbi_tlb_process_count(struct sbi_scratch *scratch, int count)
 	while (!sbi_fifo_dequeue(tlb_fifo, &tinfo)) {
 		sbi_tlb_entry_process(&tinfo);
 		deq_count++;
-		if (deq_count >= count)
+		if (deq_count > count)
 			break;
+
 	}
 }
 
@@ -262,70 +260,6 @@ static void sbi_tlb_sync(struct sbi_scratch *scratch)
 
 	return;
 }
-
-#ifdef MANGO_IPI_EVENT_OPS
-static void sbi_tlb_entry_process_mango(struct sbi_tlb_info *tinfo)
-{
-	u32 rhartid, lhartid = current_hartid();
-	struct sbi_scratch *rscratch = NULL;
-	struct sbi_hartmask *rtlb_sync = NULL;
-
-	sbi_tlb_local_flush(tinfo);
-
-	sbi_hartmask_for_each_hart(rhartid, &tinfo->smask) {
-		rscratch = sbi_hartid_to_scratch(rhartid);
-		if (!rscratch)
-			continue;
-
-		rtlb_sync = sbi_scratch_offset_ptr(rscratch, tlb_sync_off);
-		atomic_raw_set_bit(lhartid%BITS_PER_LONG,
-				(unsigned long *)rtlb_sync + (lhartid/BITS_PER_LONG));
-	}
-}
-
-static void sbi_tlb_process_count_mango(struct sbi_scratch *scratch, int count)
-{
-	struct sbi_tlb_info tinfo;
-	u32 deq_count = 0;
-	struct sbi_fifo *tlb_fifo =
-			sbi_scratch_offset_ptr(scratch, tlb_fifo_off);
-
-	while (!sbi_fifo_dequeue(tlb_fifo, &tinfo)) {
-		sbi_tlb_entry_process_mango(&tinfo);
-		deq_count++;
-		if (deq_count >= count)
-			break;
-	}
-}
-
-static void sbi_tlb_process_mango(struct sbi_scratch *scratch)
-{
-	struct sbi_tlb_info tinfo;
-	struct sbi_fifo *tlb_fifo =
-			sbi_scratch_offset_ptr(scratch, tlb_fifo_off);
-
-	while (!sbi_fifo_dequeue(tlb_fifo, &tinfo))
-		sbi_tlb_entry_process_mango(&tinfo);
-}
-
-static void sbi_tlb_sync_mango(struct sbi_scratch *scratch, struct sbi_hartmask hmask)
-{
-	struct sbi_hartmask *tlb_sync =
-			sbi_scratch_offset_ptr(scratch, tlb_sync_off);
-
-	while (!sbi_hartmask_equal(tlb_sync, &hmask, SBI_HARTMASK_MAX_BITS)) {
-		/*
-		 * While we are waiting for remote hart to set the sync,
-		 * consume fifo requests to avoid deadlock.
-		 */
-		sbi_tlb_process_count_mango(scratch, 1);
-	}
-
-	sbi_hartmask_clear_all(tlb_sync);
-
-	return;
-}
-#endif
 
 static inline int __sbi_tlb_range_check(struct sbi_tlb_info *curr,
 					struct sbi_tlb_info *next)
@@ -451,28 +385,20 @@ static struct sbi_ipi_event_ops tlb_ops = {
 	.update = sbi_tlb_update,
 	.sync = sbi_tlb_sync,
 	.process = sbi_tlb_process,
-#ifdef MANGO_IPI_EVENT_OPS
-	.sync_mango = sbi_tlb_sync_mango,
-	.process_mango = sbi_tlb_process_mango,
-#endif
 };
 
 static u32 tlb_event = SBI_IPI_EVENT_MAX;
 
 int sbi_tlb_request(ulong hmask, ulong hbase, struct sbi_tlb_info *tinfo)
 {
-#ifdef MANGO_IPI_EVENT_OPS
-	return sbi_ipi_send_many_mango(hmask, hbase, tlb_event, tinfo);
-#else
 	return sbi_ipi_send_many(hmask, hbase, tlb_event, tinfo);
-#endif
 }
 
 int sbi_tlb_init(struct sbi_scratch *scratch, bool cold_boot)
 {
 	int ret;
 	void *tlb_mem;
-	struct sbi_hartmask *tlb_sync;
+	unsigned long *tlb_sync;
 	struct sbi_fifo *tlb_q;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
 
@@ -517,7 +443,7 @@ int sbi_tlb_init(struct sbi_scratch *scratch, bool cold_boot)
 	tlb_q = sbi_scratch_offset_ptr(scratch, tlb_fifo_off);
 	tlb_mem = sbi_scratch_offset_ptr(scratch, tlb_fifo_mem_off);
 
-	sbi_hartmask_clear_all(tlb_sync);
+	*tlb_sync = 0;
 
 	sbi_fifo_init(tlb_q, tlb_mem,
 		      SBI_TLB_FIFO_NUM_ENTRIES, SBI_TLB_INFO_SIZE);
