@@ -201,11 +201,11 @@ static void sbi_tlb_local_flush(struct sbi_tlb_info *tinfo)
 	return;
 }
 
-static void sbi_tlb_entry_process(struct sbi_tlb_info *tinfo)
+static void sbi_tlb_process_helper(struct sbi_tlb_info *tinfo)
 {
 	u32 rhartid;
 	struct sbi_scratch *rscratch = NULL;
-	unsigned long *rtlb_sync = NULL;
+	atomic_t *rtlb_sync = NULL;
 
 	sbi_tlb_local_flush(tinfo);
 
@@ -215,47 +215,40 @@ static void sbi_tlb_entry_process(struct sbi_tlb_info *tinfo)
 			continue;
 
 		rtlb_sync = sbi_scratch_offset_ptr(rscratch, tlb_sync_off);
-		while (atomic_raw_xchg_ulong(rtlb_sync, 1)) ;
+		atomic_sub_return(rtlb_sync, 1);
 	}
 }
 
-static void sbi_tlb_process_count(struct sbi_scratch *scratch, int count)
+static int sbi_tlb_process_once(struct sbi_scratch *scratch)
 {
 	struct sbi_tlb_info tinfo;
-	u32 deq_count = 0;
 	struct sbi_fifo *tlb_fifo =
 			sbi_scratch_offset_ptr(scratch, tlb_fifo_off);
 
-	while (!sbi_fifo_dequeue(tlb_fifo, &tinfo)) {
-		sbi_tlb_entry_process(&tinfo);
-		deq_count++;
-		if (deq_count > count)
-			break;
-
+	if (!sbi_fifo_dequeue(tlb_fifo, &tinfo)) {
+		sbi_tlb_process_helper(&tinfo);
+		return 0;
 	}
+
+	return -1;
 }
 
 static void sbi_tlb_process(struct sbi_scratch *scratch)
 {
-	struct sbi_tlb_info tinfo;
-	struct sbi_fifo *tlb_fifo =
-			sbi_scratch_offset_ptr(scratch, tlb_fifo_off);
-
-	while (!sbi_fifo_dequeue(tlb_fifo, &tinfo))
-		sbi_tlb_entry_process(&tinfo);
+	while (!sbi_tlb_process_once(scratch));
 }
 
 static void sbi_tlb_sync(struct sbi_scratch *scratch)
 {
-	unsigned long *tlb_sync =
+	atomic_t  *tlb_sync =
 			sbi_scratch_offset_ptr(scratch, tlb_sync_off);
 
-	while (!atomic_raw_xchg_ulong(tlb_sync, 0)) {
+	while (atomic_read(tlb_sync) > 0) {
 		/*
 		 * While we are waiting for remote hart to set the sync,
 		 * consume fifo requests to avoid deadlock.
 		 */
-		sbi_tlb_process_count(scratch, 1);
+		sbi_tlb_process_once(scratch);
 	}
 
 	return;
@@ -333,6 +326,7 @@ static int sbi_tlb_update(struct sbi_scratch *scratch,
 			  u32 remote_hartid, void *data)
 {
 	int ret;
+	atomic_t *tlb_sync;
 	struct sbi_fifo *tlb_fifo_r;
 	struct sbi_tlb_info *tinfo = data;
 	u32 curr_hartid = current_hartid();
@@ -359,11 +353,8 @@ static int sbi_tlb_update(struct sbi_scratch *scratch,
 	tlb_fifo_r = sbi_scratch_offset_ptr(remote_scratch, tlb_fifo_off);
 
 	ret = sbi_fifo_inplace_update(tlb_fifo_r, data, sbi_tlb_update_cb);
-	if (ret != SBI_FIFO_UNCHANGED) {
-		return 1;
-	}
 
-	while (sbi_fifo_enqueue(tlb_fifo_r, data) < 0) {
+	if (ret == SBI_FIFO_UNCHANGED && sbi_fifo_enqueue(tlb_fifo_r, data) < 0) {
 		/**
 		 * For now, Busy loop until there is space in the fifo.
 		 * There may be case where target hart is also
@@ -372,10 +363,14 @@ static int sbi_tlb_update(struct sbi_scratch *scratch,
 		 * TODO: Introduce a wait/wakeup event mechanism to handle
 		 * this properly.
 		 */
-		sbi_tlb_process_count(scratch, 1);
+		sbi_tlb_process_once(scratch);
 		sbi_dprintf("hart%d: hart%d tlb fifo full\n",
 			    curr_hartid, remote_hartid);
+		return -2;
 	}
+
+	tlb_sync = sbi_scratch_offset_ptr(scratch, tlb_sync_off);
+	atomic_add_return(tlb_sync, 1);
 
 	return 0;
 }
@@ -398,7 +393,7 @@ int sbi_tlb_init(struct sbi_scratch *scratch, bool cold_boot)
 {
 	int ret;
 	void *tlb_mem;
-	unsigned long *tlb_sync;
+	atomic_t *tlb_sync;
 	struct sbi_fifo *tlb_q;
 	const struct sbi_platform *plat = sbi_platform_ptr(scratch);
 
@@ -443,7 +438,7 @@ int sbi_tlb_init(struct sbi_scratch *scratch, bool cold_boot)
 	tlb_q = sbi_scratch_offset_ptr(scratch, tlb_fifo_off);
 	tlb_mem = sbi_scratch_offset_ptr(scratch, tlb_fifo_mem_off);
 
-	*tlb_sync = 0;
+	tlb_sync->counter = 0;
 
 	sbi_fifo_init(tlb_q, tlb_mem,
 		      SBI_TLB_FIFO_NUM_ENTRIES, SBI_TLB_INFO_SIZE);
