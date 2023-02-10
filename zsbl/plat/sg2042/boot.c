@@ -127,9 +127,19 @@ char *spflash_img_name[FILE_NUM] = {
 	"mango_evb_v0.1.dtb",
 };
 
-char *ddr_node_name[SG2042_MAX_CHIP_NUM] = {
-	"/memory@0/",
-	"/memory@8000000000/",
+char *ddr_node_name[SG2042_MAX_CHIP_NUM][DDR_CHANLE_NUM] = {
+	{
+		"/memory@0/",
+		"/memory@1/",
+		"/memory@2/",
+		"/memory@3/",
+	}, {
+		"/memory@4/",
+		"/memory@5/",
+		"/memory@6/",
+		"/memory@7/",
+	}
+
 };
 
 board_info sg2042_board_info;
@@ -287,7 +297,6 @@ int show_ddr_node(char *path)
 
 int modify_ddr_node(void)
 {
-	uint64_t ddr_total_size = 0;
 	uint64_t value[2];
 	int chip_num = 1;
 
@@ -296,19 +305,19 @@ int modify_ddr_node(void)
 
 	for (int i = 0; i < chip_num; i++) {
 		pr_debug("chip%d ddr node in dtb:\n", i);
-		ddr_total_size = 0;
-		// show_ddr_node(sg2042_board_info.ddr_node_name[i]);
+		for (int j = 0; j < DDR_CHANLE_NUM; j++) {
+			value[0] = sg2042_board_info.ddr_info[i].ddr_start_base[j];
+			value[1] = sg2042_board_info.ddr_info[i].chip_ddr_size[j];
+			if (i == 0 && j == 0) {
+				value[0] += DDR0_RESERVED;
+				value[1] -= DDR0_RESERVED;
+			}
+			of_modify_prop((void *)boot_file[ID_DEVICETREE].addr, boot_file[ID_DEVICETREE].len,
+				       sg2042_board_info.ddr_info[i].ddr_node_name[j], "reg", (void *)value,
+				       sizeof(value), PROP_TYPE_U64);
 
-		for (int i = 0; i < DDR_CHANLE_NUM; i++)
-			ddr_total_size += sg2042_board_info.ddr_info[0].chip_ddr_size[i];
-
-		value[0] = sg2042_board_info.ddr_start_base[i];
-		value[1] = ddr_total_size - value[0];
-		of_modify_prop((void *)boot_file[ID_DEVICETREE].addr, boot_file[ID_DEVICETREE].len,
-				sg2042_board_info.ddr_node_name[i],"reg", (void *)value, sizeof(value),
-				PROP_TYPE_U64);
-
-		show_ddr_node(sg2042_board_info.ddr_node_name[i]);
+			show_ddr_node(sg2042_board_info.ddr_info[i].ddr_node_name[j]);
+		}
 	}
 
 	return 0;
@@ -455,11 +464,15 @@ int build_ddr_info (int chip_num)
 {
 	uint64_t reg_ddr_size_base = chip_num * 0x8000000000 + DDR_SIZE_ADDR;
 	uint32_t sg2042_ddr_reg_size = mmio_read_32(reg_ddr_size_base);
+	uint64_t ddr_start_base = sg2042_board_info.ddr_info[chip_num].ddr_start_base[0];
 
 	pr_debug("chip%d ddr info: raw data=0x%x, \n", chip_num, sg2042_ddr_reg_size);
 
 	for (int i = 0; i < DDR_CHANLE_NUM; i++) {
+		sg2042_board_info.ddr_info[chip_num].ddr_start_base[i] = ddr_start_base;
 		sg2042_board_info.ddr_info[chip_num].chip_ddr_size[i] = get_ddr_size(sg2042_ddr_reg_size, i);
+		ddr_start_base += sg2042_board_info.ddr_info[chip_num].chip_ddr_size[i];
+
 		pr_info("    ddr%d size:0x%lx\n", i, sg2042_board_info.ddr_info[chip_num].chip_ddr_size[i]);
 	}
 
@@ -476,10 +489,11 @@ int build_board_info(void)
 	}
 
 	for (int i = 0; i < SG2042_MAX_CHIP_NUM; i++)
-		sg2042_board_info.ddr_node_name[i] = ddr_node_name[i];
+		for (int j = 0; j < DDR_CHANLE_NUM; j++)
+			sg2042_board_info.ddr_info[i].ddr_node_name[j] = ddr_node_name[i][j];
 
-	sg2042_board_info.ddr_start_base[0] = 0x200000;
-	sg2042_board_info.ddr_start_base[1] = 0x800000000;
+	sg2042_board_info.ddr_info[0].ddr_start_base[0] = 0;
+	sg2042_board_info.ddr_info[1].ddr_start_base[0] = 0x800000000;
 
 	if (sg2042_board_info.multi_sockt_mode) {
 		for (int i = 0; i < SG2042_MAX_CHIP_NUM; i++)
