@@ -76,8 +76,8 @@ function build_rv_ltp()
         make autotools
     fi
 
-    ./configure --prefix=$RV_LTP_OUTPUT_DIR --host=riscv64-linux-gnu  --without-tirpc
-    make -j$(nproc) ARCH=riscv CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE}gcc
+    ./configure CC=${RISCV64_LINUX_CROSS_COMPILE}gcc --prefix=$RV_LTP_OUTPUT_DIR --host=riscv64-linux-gnu  --without-tirpc
+    make -j$(nproc) ARCH=riscv CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE}
     make install -j$(nproc)
     popd
 }
@@ -579,6 +579,7 @@ EOT
 	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/ext4/boot/efi/
 	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/mango.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/mango_evb_v0.1.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/initrd.img $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo touch $RV_OUTPUT_DIR/ext4/boot/efi/BOOT

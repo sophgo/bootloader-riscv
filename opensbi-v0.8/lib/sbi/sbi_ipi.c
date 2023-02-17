@@ -14,11 +14,11 @@
 #include <sbi/sbi_bitops.h>
 #include <sbi/sbi_error.h>
 #include <sbi/sbi_hart.h>
+#include <sbi/sbi_hartmask.h>
 #include <sbi/sbi_hsm.h>
 #include <sbi/sbi_init.h>
 #include <sbi/sbi_ipi.h>
 #include <sbi/sbi_platform.h>
-#include <sbi/sbi_console.h>
 
 struct sbi_ipi_data {
 	unsigned long ipi_type;
@@ -28,7 +28,7 @@ static unsigned long ipi_data_off;
 
 static const struct sbi_ipi_event_ops *ipi_ops_array[SBI_IPI_EVENT_MAX];
 
-static int sbi_ipi_send(struct sbi_scratch *scratch, u32 remote_hartid,
+static int sbi_ipi_update(struct sbi_scratch *scratch, u32 remote_hartid,
 			u32 event, void *data)
 {
 	int ret;
@@ -63,10 +63,20 @@ static int sbi_ipi_send(struct sbi_scratch *scratch, u32 remote_hartid,
 	smp_wmb();
 	sbi_platform_ipi_send(plat, remote_hartid);
 
-#ifndef MANGO_IPI_EVENT_OPS
+	return 0;
+}
+
+static int sbi_ipi_sync(struct sbi_scratch *scratch, u32 event)
+{
+	const struct sbi_ipi_event_ops *ipi_ops;
+
+	if ((SBI_IPI_EVENT_MAX <= event) ||
+	    !ipi_ops_array[event])
+		return SBI_EINVAL;
+	ipi_ops = ipi_ops_array[event];
+
 	if (ipi_ops->sync)
 		ipi_ops->sync(scratch);
-#endif
 
 	return 0;
 }
@@ -78,8 +88,10 @@ static int sbi_ipi_send(struct sbi_scratch *scratch, u32 remote_hartid,
  */
 int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data)
 {
-	int rc;
+	int rc, done;
 	ulong i, m;
+	struct sbi_hartmask target_mask = {0};
+	struct sbi_hartmask retry_mask = {0};
 	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
 
 	if (hbase != -1UL) {
@@ -88,71 +100,38 @@ int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data)
 			return rc;
 		m &= hmask;
 
-		/* Send IPIs */
 		for (i = hbase; m; i++, m >>= 1) {
 			if (m & 1UL)
-				sbi_ipi_send(scratch, i, event, data);
+				sbi_hartmask_set_hart(i, &target_mask);
 		}
 	} else {
 		hbase = 0;
 		while (!sbi_hsm_hart_started_mask(hbase, &m)) {
-			/* Send IPIs */
 			for (i = hbase; m; i++, m >>= 1) {
 				if (m & 1UL)
-					sbi_ipi_send(scratch, i, event, data);
+					sbi_hartmask_set_hart(i, &target_mask);
 			}
 			hbase += BITS_PER_LONG;
 		}
 	}
 
-	return 0;
-}
-
-#ifdef MANGO_IPI_EVENT_OPS
-int sbi_ipi_send_many_mango(ulong hmask, ulong hbase, u32 event, void *data)
-{
-	int rc;
-	ulong i, m;
-	struct sbi_hartmask m_sync = {.bits = {0}};
-	const struct sbi_ipi_event_ops *ipi_ops = ipi_ops_array[event];
-	struct sbi_scratch *scratch = sbi_scratch_thishart_ptr();
-
-	if (hbase != -1UL) {
-		rc = sbi_hsm_hart_started_mask(hbase, &m);
-		if (rc)
-			return rc;
-		m &= hmask;
-
-		/* Send IPIs */
-		for (i = hbase; m; i++, m >>= 1) {
-			if (m & 1UL) {
-				rc = sbi_ipi_send(scratch, i, event, data);
-				if (!rc)
-					sbi_hartmask_set_hart(i, &m_sync);
-			}
+	retry_mask = target_mask;
+	do {
+		done = true;
+		sbi_hartmask_for_each_hart(i, &retry_mask) {
+			rc = sbi_ipi_update(scratch, i, event, data);
+			if (rc == -2)
+				done = false;
+			else
+				sbi_hartmask_clear_hart(i, &retry_mask);
 		}
-	} else {
-		hbase = 0;
-		while (!sbi_hsm_hart_started_mask(hbase, &m)) {
-			/* Send IPIs */
-			for (i = hbase; m; i++, m >>= 1) {
-				if (m & 1UL) {
-					rc = sbi_ipi_send(scratch, i, event, data);
-					if (!rc)
-						sbi_hartmask_set_hart(i, &m_sync);
-				}
-			}
-			hbase += BITS_PER_LONG;
-		}
-	}
+	} while (!done);
 
-	if (ipi_ops && ipi_ops->sync_mango) {
-		ipi_ops->sync_mango(scratch, m_sync);
-	}
+	/* sync IPIs */
+	sbi_ipi_sync(scratch, event);
 
 	return 0;
 }
-#endif
 
 int sbi_ipi_event_create(const struct sbi_ipi_event_ops *ops)
 {
@@ -239,17 +218,8 @@ void sbi_ipi_process(void)
 			goto skip;
 
 		ipi_ops = ipi_ops_array[ipi_event];
-#ifdef MANGO_IPI_EVENT_OPS
-		if (ipi_ops && ipi_ops->process_mango)
-			ipi_ops->process_mango(scratch);
-		else {
-			if (ipi_ops && ipi_ops->process)
-				ipi_ops->process(scratch);
-		}
-#else
 		if (ipi_ops && ipi_ops->process)
 			ipi_ops->process(scratch);
-#endif
 
 skip:
 		ipi_type = ipi_type >> 1;

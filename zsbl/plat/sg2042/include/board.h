@@ -10,14 +10,16 @@
 #define DDR_CHANLE_NUM	4
 #define DDR_SIZE_ZERO	41
 
+#define DDR0_RESERVED	0x200000
+
 typedef struct {
 	uint64_t chip_ddr_size[DDR_CHANLE_NUM];
+	uint64_t ddr_start_base[DDR_CHANLE_NUM];
+	char *ddr_node_name[DDR_CHANLE_NUM];
 } ddr_info;
 
 typedef struct {
 	ddr_info ddr_info[SG2042_MAX_CHIP_NUM];
-	uint64_t ddr_start_base[SG2042_MAX_CHIP_NUM];
-	char *ddr_node_name[SG2042_MAX_CHIP_NUM];
 
 	uint8_t multi_sockt_mode;
 } board_info;

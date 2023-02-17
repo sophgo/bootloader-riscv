@@ -11,7 +11,7 @@
 #define __SBI_IPI_H__
 
 #include <sbi/sbi_types.h>
-#include <sbi/sbi_hartmask.h>
+
 /* clang-format off */
 
 #define SBI_IPI_EVENT_MAX			__riscv_xlen
@@ -29,6 +29,9 @@ struct sbi_ipi_event_ops {
 	 * Update callback to save/enqueue data for remote HART
 	 * Note: This is an optional callback and it is called just before
 	 * triggering IPI to remote HART.
+	 * @return 0  success
+	 * @return -1 break IPI, done on local hart
+	 * @return -2 need retry
 	 */
 	int (* update)(struct sbi_scratch *scratch,
 			struct sbi_scratch *remote_scratch,
@@ -40,9 +43,6 @@ struct sbi_ipi_event_ops {
 	 * triggering IPI to remote HART.
 	 */
 	void (* sync)(struct sbi_scratch *scratch);
-#ifdef MANGO_IPI_EVENT_OPS
-	void (* sync_mango)(struct sbi_scratch *scratch, struct sbi_hartmask hmask);
-#endif
 
 	/**
 	 * Process callback to handle IPI event
@@ -50,15 +50,9 @@ struct sbi_ipi_event_ops {
 	 * remote HART after IPI is triggered.
 	 */
 	void (* process)(struct sbi_scratch *scratch);
-#ifdef MANGO_IPI_EVENT_OPS
-	void (* process_mango)(struct sbi_scratch *scratch);
-#endif
 };
 
 int sbi_ipi_send_many(ulong hmask, ulong hbase, u32 event, void *data);
-#ifdef MANGO_IPI_EVENT_OPS
-int sbi_ipi_send_many_mango(ulong hmask, ulong hbase, u32 event, void *data);
-#endif
 
 int sbi_ipi_event_create(const struct sbi_ipi_event_ops *ops);
 
