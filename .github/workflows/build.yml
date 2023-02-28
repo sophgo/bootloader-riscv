@@ -1,0 +1,129 @@
+name: sophgo-bootloader
+
+on:
+  push:
+ 
+  schedule:
+    - cron: "0 2 * * *"
+
+jobs:
+  build-bootloader:
+    runs-on: ubuntu-22.04
+    env:
+      elf_newlib_toolchain: https://mirror.iscas.ac.cn/deepin-riscv/tools
+      toolchain_file_name: elf-gcc-2022.08.08.tar.gz
+      wget_alias: 'wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0'
+      ARCH: riscv
+      KBUILD_BUILD_USER: riscv
+      KBUILD_BUILD_HOST: riscv-builder
+      KDEB_COMPRESS: xz
+
+    steps:
+      - name: Checkout bootloader-riscv
+        uses: actions/checkout@v3
+        with:
+          path: bootloader-riscv
+
+      - name: Checkout linux-sophgo
+        uses: actions/checkout@v3
+        with:
+          repository: sophgo/linux-sophgo
+          path: linux-sophgo
+
+      - name: Install software
+        run: |
+              sudo apt update && \
+              sudo apt install -y gdisk dosfstools g++-riscv64-linux-gnu build-essential \
+                                  libncurses-dev gawk flex bison openssl libssl-dev tree \
+                                  dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf \
+                                  device-tree-compiler xz-utils \
+                                  qemu binfmt-support qemu-user-static curl wget
+              update-binfmts --display
+              ${wget_alias} ${elf_newlib_toolchain}/${toolchain_file_name}
+              sudo mkdir -p /opt/riscv/elf-gcc-2022.08.08/
+              sudo tar -xvf ${toolchain_file_name} -C /opt/riscv/elf-gcc-2022.08.08/
+
+      - name: prepare
+        run: mkdir -p artifact
+
+      - name: Compile zsbl & sbi
+        run: |
+              pushd bootloader-riscv
+                source scripts/envsetup.sh
+                # fix build variable in github action
+                export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
+                export RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-
+                export RV_KERNEL_SRC_DIR=$GITHUB_WORKSPACE/linux-sophgo
+                export PATH=/opt/riscv/elf-gcc-2022.08.08/bin:$PATH
+                # build_rv_gcc
+                # build_rv_all
+
+                build_rv_zsbl
+                build_rv_sbi
+              popd
+
+      - name: Compile kernel
+        run: |
+              pushd bootloader-riscv
+                source scripts/envsetup.sh
+                # fix build variable in github action
+                export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
+                export RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-
+                export RV_KERNEL_SRC_DIR=$GITHUB_WORKSPACE/linux-sophgo
+                export PATH=/opt/riscv/elf-gcc-2022.08.08/bin:$PATH
+                build_rv_kernel
+              popd
+
+      - name: Compile ramfs
+        run: |
+              pushd bootloader-riscv
+                source scripts/envsetup.sh
+                # fix build variable in github action
+                export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
+                export RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-
+                export RV_KERNEL_SRC_DIR=$GITHUB_WORKSPACE/linux-sophgo
+                export PATH=/opt/riscv/elf-gcc-2022.08.08/bin:$PATH
+
+                build_rv_ramfs
+              popd
+
+      - name: Compile uboot
+        run: |
+              pushd bootloader-riscv
+                source scripts/envsetup.sh
+                # fix build variable in github action
+                export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
+                export RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-
+                export RV_KERNEL_SRC_DIR=$GITHUB_WORKSPACE/linux-sophgo
+                export PATH=/opt/riscv/elf-gcc-2022.08.08/bin:$PATH
+
+                build_rv_uroot
+              popd
+
+      - name: Compress Artifact
+        run: |
+              pushd bootloader-riscv
+                source scripts/envsetup.sh
+                pushd $RV_OUTPUT_DIR
+                  # Copy efi directory
+                  mkdir -p ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/zsbl.bin ~/efi/
+                  cp $GITHUB_WORKSPACE/bootloader-riscv/firmware/fip.bin ~/efi/
+                  cp $RV_OUTPUT_DIR/riscv64_Image ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/mango_evb_v0.1.dtb ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/initrd.img ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/fw_jump.bin ~/efi/riscv64
+
+                  # Compress
+                  pushd ~/efi/
+                    tar -zcvf $GITHUB_WORKSPACE/sophgo-bootloader-`date "+%y%m%d%H%M%S"`.tar.gz .
+                  popd
+                popd
+              popd
+
+      - name: 'Upload Build Artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sophgo-bootloader
+          path: sophgo-bootloader-*.tar.gz
+          retention-days: 10
