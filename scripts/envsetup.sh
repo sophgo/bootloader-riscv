@@ -474,7 +474,7 @@ function build_rv_distro()
 
 	pushd $RV_DISTRO_DIR/$RV_DISTRO
 	if [ ! -f $RV_UBUNTU_IMAGE ] ; then
-		wget https://cdimage.ubuntu.com/releases/22.04.1/release/"$RV_UBUNTU_IMAGE".xz
+		wget https://cdimage.ubuntu.com/releases/22.10/release/"$RV_UBUNTU_IMAGE".xz
 		unxz "$RV_UBUNTU_IMAGE".xz
 	fi
 	popd
@@ -513,7 +513,7 @@ function build_rv_sdimage()
 	sudo parted $RV_OUTPUT_DIR/sd.img mktable msdos
 	sudo parted $RV_OUTPUT_DIR/sd.img mkpart p fat32 0% 128MiB
 	sudo parted $RV_OUTPUT_DIR/sd.img mkpart p fat32 128MiB 256MiB
-	sudo parted $RV_OUTPUT_DIR/sd.img mkpart p ext4 256MiBMiB 100%
+	sudo parted $RV_OUTPUT_DIR/sd.img mkpart p ext4 256MiB 100%
 	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/sd.img | cut -d ' ' -f 3)
 	fat32part=$(echo $loops | cut -d ' ' -f 1)
 	fat32part2=$(echo $loops | cut -d ' ' -f 2)
@@ -578,7 +578,6 @@ EOT
 
 	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/ext4/boot/efi/
 	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/mango.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/mango_evb_v0.1.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/initrd.img $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
@@ -597,7 +596,7 @@ EOT
 #sudo chroot . qemu-riscv64-static /bin/bash << "EOT"
 sudo chroot . /bin/bash << "EOT"
 sed -i '/UEFI/d' /etc/fstab
-dpkg -i /home/ubuntu/bsp-debs/linux-image-*.deb
+dpkg -i /home/ubuntu/bsp-debs/linux-image-*[0-9].deb
 sed -i -e '/append/ s/$/ nvme.use_threaded_interrupts=1/' /boot/extlinux/extlinux.conf
 exit
 EOT
@@ -795,7 +794,7 @@ RV_DISTRO=ubuntu
 RV_DISTRO_FEDORA=fedora
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
-RV_UBUNTU_IMAGE=ubuntu-22.04.1-preinstalled-server-riscv64+unmatched.img
+RV_UBUNTU_IMAGE=ubuntu-22.10-preinstalled-server-riscv64+unmatched.img
 RV_FEDORA_IMAGE=fedora-disk-developer-gnome-desktop-test-Rawhide-20220515-040634.n.0-sda.raw
 
 SCRIPTS_DIR=${SCRIPTS_DIR:-$RV_TOP_DIR/bootloader-arm64/scripts}
