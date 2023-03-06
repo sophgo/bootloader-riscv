@@ -624,7 +624,7 @@ EOT
 	if [ $ret -ne 0 ]; then
 		return $ret
 	fi
-	rm -r $RV_OUTPUT_DIR/ext4
+	sudo rm -r $RV_OUTPUT_DIR/ext4
 
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_DISTRO/$RV_UBUNTU_IMAGE
 	ret=$?
