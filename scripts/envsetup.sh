@@ -804,12 +804,12 @@ RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
 RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
 
 
-RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-sophgo
+RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-riscv
 RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 
 RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
 RV_ZSBL_DIR=$RV_TOP_DIR/bootloader-riscv/zsbl
-RV_SBI_DIR=$RV_TOP_DIR/bootloader-riscv/opensbi-v0.8
+RV_SBI_DIR=$RV_TOP_DIR/opensbi
 RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
 RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
 
