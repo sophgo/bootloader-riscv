@@ -562,7 +562,7 @@ exit
 EOT
 
 	echo copy bsp debs...
-	cp -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/ext4/home/ubuntu/
+	sudo cp -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/ext4/home/ubuntu/
 
 	echo mount EFI partition...
 	sudo mount /dev/mapper/$fat32part $RV_OUTPUT_DIR/ext4/boot/efi
