@@ -103,7 +103,8 @@ jobs:
                   cp $RV_OUTPUT_DIR/zsbl.bin ~/efi/
                   cp $GITHUB_WORKSPACE/bootloader-riscv/firmware/fip.bin ~/efi/
                   cp $RV_OUTPUT_DIR/riscv64_Image ~/efi/riscv64
-                  cp $RV_OUTPUT_DIR/mango_evb_v0.1.dtb ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/mango-sophgo-x8evb.dtb ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/mango-milkv-pioneer.dtb ~/efi/riscv64
                   cp $RV_OUTPUT_DIR/initrd.img ~/efi/riscv64
                   cp $RV_OUTPUT_DIR/fw_jump.bin ~/efi/riscv64
 
