@@ -599,6 +599,7 @@ sudo chroot . /bin/bash << "EOT"
 sed -i '/UEFI/d' /etc/fstab
 dpkg -i /home/ubuntu/bsp-debs/linux-image-*[0-9].deb
 sed -i -e '/append/ s/$/ nvme.use_threaded_interrupts=1/' /boot/extlinux/extlinux.conf
+sed -i -e '/append/ s/$/ nvme_core.io_timeout=3000/' /boot/extlinux/extlinux.conf
 exit
 EOT
 	popd
