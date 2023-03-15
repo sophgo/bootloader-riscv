@@ -6,12 +6,56 @@
 	.section .vector, "ax"
 	.global _start
 _start:
+	li	t0, 0x70013
+	csrw	CSR_MCOR, t0
+
+	li	t0, 0x11ff
+	csrw	CSR_MHCR, t0
+
+	li	t0, 0xe0410009
+	csrw	CSR_MCCR2, t0
+
+	li	t0, 0xe6e30c
+
+#ifndef MANGO_DVM
+	/* disable sfence.vma broadcast */
+	li	t1, 1
+	slli	t1, t1, 21
+	or	t0, t0, t1
+	/* disable fence broadcast */
+	li	t1, 1
+	slli	t1, t1, 22
+	or	t0, t0, t1
+	; /* disable fence.i broadcast */
+	li	t1, 1
+	slli	t1, t1, 23
+	or	t0, t0, t1
+#endif
+	csrw	CSR_MHINT, t0
+
+	csrr	t0, CSR_MHINT2
+	li	t1, 3
+	slli	t1, t1, 7
+	or	t0, t0, t1
+	csrw	CSR_MHINT2, t0
+
+	li	t0, 0x638000
+	csrw	CSR_MXSTATUS, t0
+
 	/* disable dvm */
 	li	t0, 0x20
 	csrw	CSR_MHINT4, t0
 
 	li	t0, 1
 	csrw	CSR_MSMPR, t0
+
+	/* delegate 0-7 exceptions to S-mode */
+	csrr	t0, CSR_MEDELEG
+	ori	t0, t0, 0xff
+	csrw	CSR_MEDELEG, t0
+
+	fence.i
+	fence iorw, iorw
 
 	/* for eda simulation */
 	add     x0,  zero, zero
@@ -66,20 +110,9 @@ clean_smp_context:
 #endif
 clean_smp_context_done:
 	la	a0, smp_boot_spin_lock
-	li	t0, MAIN_BOOT_CORE
-again:
-	ld	t1, (a0)
-	bnez	t1, again
-	amoswap.w.aq	t1, t0, (a0)
-	bnez	t1, again
-
-	la	a1, main_boot_core
-	ld	t1, (a1)
-	bnez	t1, poll_core
-	sd	t0, (a1)
-
-	amoswap.w.rl	x0, x0, (a0)
-
+	li	t1, 1
+	amoadd.w	a0, t1, (a0)
+	bnez	a0, 2f
 
 1:
 	/* setup stack */
@@ -107,6 +140,7 @@ not_support_smp:
 	wfi
 	beqz	zero, not_support_smp
 #else
+2:
 secondary_core_poll:
 	la	t0, secondary_core_runtime_address
 	ld	t1, (t0)
