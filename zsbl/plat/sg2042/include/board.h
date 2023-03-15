@@ -10,7 +10,7 @@
 #define DDR_CHANLE_NUM	4
 #define DDR_SIZE_ZERO	41
 
-#define DDR0_RESERVED	0x200000
+#define DDR0_RESERVED	KERNEL_ADDR
 
 typedef struct {
 	uint64_t chip_ddr_size[DDR_CHANLE_NUM];
