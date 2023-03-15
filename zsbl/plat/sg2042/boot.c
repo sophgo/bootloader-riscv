@@ -80,6 +80,23 @@ void print_u8(unsigned int u32)
 }
 #endif
 
+#define L1_CACHE_BYTES 64
+
+static inline void sync_is(void)
+{
+	asm volatile (".long 0x01b0000b");
+}
+
+void wbinv_va_range(unsigned long start, unsigned long end)
+{
+	register unsigned long i asm("a0") = start & ~(L1_CACHE_BYTES - 1);
+
+	for (; i < end; i += L1_CACHE_BYTES)
+		asm volatile (".long 0x0275000b"); /* dcache.civa a0 */
+
+	sync_is();
+}
+
 enum {
         ID_OPENSBI = 0,
         ID_KERNEL,
@@ -175,6 +192,9 @@ int read_all_img(IO_DEV *io_dev)
 			pr_err("close %s failed\n", boot_file[i].name);
 			goto umount_dev;
 		}
+
+		wbinv_va_range(boot_file[i].addr, boot_file[i].addr + info.fsize);
+		__asm__ __volatile__ ("fence.i"::);
 	}
 
 	io_dev->func.destroy();
@@ -429,6 +449,7 @@ static void secondary_core_fun(void *priv)
 
 #endif // ZSBL_BOOT_DEBUG
 
+	__asm__ __volatile__ ("fence.i"::);
 	jump_to(boot_file[ID_OPENSBI].addr, current_hartid(),
 		boot_file[ID_DEVICETREE].addr);
 }
@@ -499,7 +520,7 @@ int build_board_info(void)
 			sg2042_board_info.ddr_info[i].ddr_node_name[j] = ddr_node_name[i][j];
 
 	sg2042_board_info.ddr_info[0].ddr_start_base[0] = 0;
-	sg2042_board_info.ddr_info[1].ddr_start_base[0] = 0x800000000;
+	sg2042_board_info.ddr_info[1].ddr_start_base[0] = 0x8000000000;
 
 	if (sg2042_board_info.multi_sockt_mode) {
 		for (int i = 0; i < SG2042_MAX_CHIP_NUM; i++)
@@ -574,6 +595,7 @@ int boot(void)
 
 #endif // ZSBL_BOOT_DEBUG
 
+	__asm__ __volatile__ ("fence.i"::);
 	jump_to(boot_file[ID_OPENSBI].addr, current_hartid(),
 		boot_file[ID_DEVICETREE].addr);
 
