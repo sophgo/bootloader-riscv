@@ -47,16 +47,16 @@ function show_rv_env()
 
 function build_rv_sbi()
 {
-    local SBI_PLAT=$VENDOR/$CHIP
+	PLATFORM=generic
 
-    pushd $RV_SBI_DIR
-    make -j$(nproc) PLATFORM=$SBI_PLAT CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE FW_TEXT_START=0x0 FW_JUMP_ADDR=0x00200000
-    popd
+	pushd $RV_SBI_DIR
+	make -j$(nproc) PLATFORM=$PLATFORM CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE FW_TEXT_START=0x0 FW_JUMP_ADDR=0x2000000 FW_JUMP_FDT_ADDR=0x20000000
+	popd
 
-    mkdir -p $RV_OUTPUT_DIR
+	mkdir -p $RV_OUTPUT_DIR
 
-    cp $RV_SBI_DIR/build/platform/$SBI_PLAT/firmware/fw_jump.bin $RV_OUTPUT_DIR
-    cp $RV_SBI_DIR/build/platform/$SBI_PLAT/firmware/fw_jump.elf $RV_OUTPUT_DIR
+	cp $RV_SBI_DIR/build/platform/$PLATFORM/firmware/fw_jump.bin $RV_OUTPUT_DIR
+	cp $RV_SBI_DIR/build/platform/$PLATFORM/firmware/fw_jump.elf $RV_OUTPUT_DIR
 }
 
 function clean_rv_sbi()
