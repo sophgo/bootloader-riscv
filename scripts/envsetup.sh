@@ -188,15 +188,14 @@ function build_rv_fedora_kernel()
 	local err
 
 	pushd $RV_KERNEL_SRC_DIR
-	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
+	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
 	err=$?
-	popd
 	if [ $err -ne 0 ]; then
 		echo "making kernel config failed"
+		popd
 		return $err
 	fi
 
-	pushd $RV_KERNEL_BUILD_DIR
 	if [ -e ~/.rpmmacros ]; then
 		mv ~/.rpmmacros ~/.rpmmacros.orig
 	fi
@@ -207,15 +206,18 @@ cat >> ~/.rpmmacros << "EOT"
 %_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
 EOT
 
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" binrpm-pkg
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
 	ret=$?
 	rm ~/.rpmmacros
 	if [ -e ~/.rpmmacros.orig ]; then
 		mv ~/.rpmmacros.orig ~/.rpmmacros
 	fi
 	if [ $ret -ne 0 ]; then
-		popd
 		echo "making rpm package failed"
+		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
+		rm kernel-[0-9]*.tar.gz
+		rm -rf /tmp/rpmbuild
+		popd
 		return $ret
 	fi
 
@@ -226,14 +228,15 @@ EOT
 	fi
 
 	cp /tmp/rpmbuild/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
+	rm kernel-[0-9]*.tar.gz
 	rm -rf /tmp/rpmbuild
 	popd
 }
 
 function clean_rv_fedora_kernel()
 {
-    rm -rf $RV_KERNEL_BUILD_DIR
-    rm -f $RV_RPM_INSTALL_DIR/*.rpm
+    rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
 }
 
 function build_rv_ramfs()
@@ -491,8 +494,8 @@ function build_rv_distro_fedora()
 
 	pushd $RV_DISTRO_DIR/$RV_DISTRO_FEDORA
 	if [ ! -f $RV_FEDORA_IMAGE ] ; then
-		wget https://openkoji.iscas.ac.cn/pub/dl/riscv/qemu/images/"$RV_FEDORA_IMAGE".zst
-		zstd -d "$RV_FEDORA_IMAGE".zst
+		wget https://dl.fedoraproject.org/pub/alt/risc-v/disk_images/Fedora-Developer-37-20221130.n.0.SiFive.Unmatched/"$RV_FEDORA_IMAGE".xz
+		unxz "$RV_FEDORA_IMAGE".xz
 	fi
 	popd
 }
@@ -650,8 +653,8 @@ function build_rv_sdimage_fedora()
 	echo create partitions...
 	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mktable msdos
 	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p fat32 0% 128MiB
-	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p ext4 128MiB 640MiB
-	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p ext4 640MiB 100%
+	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p ext4 128MiB 1152MiB
+	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p ext4 1152MiB 100%
 
 	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/sd_fedora.img | cut -d ' ' -f 3)
 	fat32part=$(echo $loops | cut -d ' ' -f 1)
@@ -712,7 +715,7 @@ EOT
 	sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/mango.dtb $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/uroot.cpio $RV_OUTPUT_DIR/efi/riscv64/initrd.img
 	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo touch $RV_OUTPUT_DIR/efi/BOOT
@@ -796,7 +799,7 @@ RV_DISTRO_FEDORA=fedora
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
 RV_UBUNTU_IMAGE=ubuntu-22.10-preinstalled-server-riscv64+unmatched.img
-RV_FEDORA_IMAGE=fedora-disk-developer-gnome-desktop-test-Rawhide-20220515-040634.n.0-sda.raw
+RV_FEDORA_IMAGE=Fedora-Developer-37-20221130.n.0-mmc.raw.img
 
 SCRIPTS_DIR=${SCRIPTS_DIR:-$RV_TOP_DIR/bootloader-arm64/scripts}
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
