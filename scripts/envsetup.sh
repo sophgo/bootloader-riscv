@@ -133,7 +133,7 @@ function clean_rv_kernel()
     rm -rf $RV_OUTPUT_DIR/vmlinux
     rm -rf $RV_OUTPUT_DIR/*.dtb
 
-	rm -rf $RV_KERNEL_BUILD_DIR
+    rm -rf $RV_KERNEL_BUILD_DIR
 }
 
 function build_rv_ubuntu_kernel()
@@ -176,9 +176,6 @@ function build_rv_ubuntu_kernel()
 
 function clean_rv_ubuntu_kernel()
 {
-    rm -rf $RV_OUTPUT_DIR/Image
-    rm -rf $RV_OUTPUT_DIR/vmlinux
-    rm -rf $RV_OUTPUT_DIR/*.dtb
     rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
 }
 
@@ -510,7 +507,7 @@ function build_rv_sdimage()
 	echo build_rv_sdimage
 	echo create an image file...
 	rm -f $RV_OUTPUT_DIR/sd.img
-	dd if=/dev/zero of=$RV_OUTPUT_DIR/sd.img bs=1GiB count=5
+	dd if=/dev/zero of=$RV_OUTPUT_DIR/sd.img bs=1GiB count=15
 
 	echo create partitions...
 	sudo parted $RV_OUTPUT_DIR/sd.img mktable msdos
@@ -545,6 +542,8 @@ function build_rv_sdimage()
 	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_DISTRO/$RV_UBUNTU_IMAGE | cut -d ' ' -f 3)
 	ubuntu_ext4_part=$(echo $loops | cut -d ' ' -f 1)
 	sudo dd if=/dev/mapper/$ubuntu_ext4_part of=/dev/mapper/$ext4part
+	sudo e2fsck -f /dev/mapper/$ext4part
+	sudo resize2fs /dev/mapper/$ext4part
 
 	echo mount rootfs partition...
 	mkdir $RV_OUTPUT_DIR/ext4
@@ -564,7 +563,7 @@ sed -i -e '
 exit
 EOT
 
-	echo copy bsp debs...
+	echo copy bsp package...
 	sudo cp -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/ext4/home/ubuntu/
 
 	echo mount EFI partition...
@@ -592,7 +591,6 @@ EOT
 	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/ext4/dev/pts
 	sudo mount --bind /proc $RV_OUTPUT_DIR/ext4/proc
 	sudo mount --bind /sys $RV_OUTPUT_DIR/ext4/sys
-
 
 	echo install linux image...
 	pushd $RV_OUTPUT_DIR/ext4
@@ -685,7 +683,12 @@ function build_rv_sdimage_fedora()
 	fedora_boot_part=$(echo $loops | cut -d ' ' -f 1)
 	fedora_rootfs_part=$(echo $loops | cut -d ' ' -f 2)
 	sudo dd if=/dev/mapper/$fedora_boot_part of=/dev/mapper/$ext4part1
+	sudo e2fsck -f /dev/mapper/$ext4part1
+	sudo resize2fs /dev/mapper/$ext4part1
 	sudo dd if=/dev/mapper/$fedora_rootfs_part of=/dev/mapper/$ext4part2
+	sudo e2fsck -f /dev/mapper/$ext4part2
+	sudo resize2fs /dev/mapper/$ext4part2
+
 	echo mount rootfs partition...
 	mkdir $RV_OUTPUT_DIR/rootfs
 	sudo mount /dev/mapper/$ext4part2 $RV_OUTPUT_DIR/rootfs
@@ -703,7 +706,7 @@ sed -i -e '
 exit
 EOT
 
-	echo copy bsp debs...
+	echo copy bsp package...
 	cp -r $RV_RPM_INSTALL_DIR $RV_OUTPUT_DIR/rootfs/home/fedora/
 
 	echo mount EFI partition...
