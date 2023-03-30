@@ -326,26 +326,28 @@ function clean_rv_pld()
 
 function build_rv_all()
 {
-    build_rv_zsbl
-    build_rv_sbi
-    build_rv_kernel
-    build_rv_ramfs
-    build_rv_uroot
-    build_rv_ubuntu_kernel
-    build_rv_distro
-    build_rv_sdimage
+	build_rv_zsbl
+	build_rv_sbi
+	build_rv_kernel
+	build_rv_ramfs
+	build_rv_uroot
+	build_rv_ubuntu_kernel
+	build_rv_ubuntu_perf_tool
+	build_rv_distro
+	build_rv_sdimage
 }
 
 function clean_rv_all()
 {
-    clean_rv_zsbl
-    clean_rv_sbi
-    clean_rv_kernel
-    clean_rv_ramfs
-    clean_rv_uroot
-    clean_rv_ubuntu_kernel
-    clean_rv_distro
-    clean_rv_sdimage
+	clean_rv_zsbl
+	clean_rv_sbi
+	clean_rv_kernel
+	clean_rv_ramfs
+	clean_rv_uroot
+	clean_rv_ubuntu_kernel
+	clean_rv_ubuntu_perf_tool
+	clean_rv_distro
+	clean_rv_sdimage
 }
 
 function run_rv_ramfs()
@@ -566,6 +568,9 @@ EOT
 	echo copy bsp package...
 	sudo cp -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/ext4/home/ubuntu/
 
+	echo copy tools package...
+	sudo cp -r $RV_TOOLS_DST_DIR $RV_OUTPUT_DIR/ext4/home/ubuntu
+
 	echo mount EFI partition...
 	sudo mount /dev/mapper/$fat32part $RV_OUTPUT_DIR/ext4/boot/efi
 
@@ -785,6 +790,45 @@ function run_rv_zsbl()
     qemu-system-riscv64 -nographic -M virt -bios $RV_OUTPUT_DIR/zsbl.bin
 }
 
+function build_rv_ubuntu_perf_tool()
+{
+	echo make perf package and script...
+	pushd $RV_KERNEL_SRC_DIR
+	make perf-tar-src-pkg
+	popd
+
+	if [ ! -d $RV_TOOLS_DST_DIR/perf ]; then
+		mkdir -p $RV_TOOLS_DST_DIR/perf
+	fi
+
+	sudo mv $RV_KERNEL_SRC_DIR/perf-*.tar $RV_TOOLS_DST_DIR/perf
+
+	pushd $RV_TOOLS_DST_DIR/perf
+	tar -xvf perf-*.tar
+	echo -e "#! /bin/bash\n" > build-perf.sh
+	echo -e "echo install dependencies..." >> build-perf.sh
+	echo -e "sudo apt update" >> build-perf.sh
+	echo -e "sudo apt install make gcc flex bison libdwarf-dev libbfd-dev libcap-dev" >> build-perf.sh
+	echo -e "sudo apt install libelf-dev libnuma-dev libperl-dev liblzma-dev python2" >> build-perf.sh
+	echo -e "sudo apt install python2-dev python-dev-is-python3 python-setuptools" >> build-perf.sh
+	echo -e "sudo apt install libssl-dev libunwind-dev zlib1g-dev libaio-dev" >> build-perf.sh
+	echo -e "sudo apt install libdw-dev binutils-dev binutils-multiarch-dev elfutils" >> build-perf.sh
+	echo -e "sudo apt install libiberty-dev libzstd-dev libaudit-dev libslang2-dev" >> build-perf.sh
+	echo -e "sudo apt install systemtap-sdt-dev libbabeltrace-dev libbabeltrace-ctf-dev\n" >> build-perf.sh
+	echo -e "echo make perf tool..." >> build-perf.sh
+	echo -e "pushd perf-*/tools/perf" >> build-perf.sh
+	echo -e "sudo make clean" >> build-perf.sh
+	echo -e "sudo make" >> build-perf.sh
+	echo -e "sudo make install prefix=/usr/local" >> build-perf.sh
+	echo -e "popd\n" >> build-perf.sh
+	popd
+}
+
+function clean_rv_ubuntu_perf_tool()
+{
+	rm -rf $RV_TOOLS_DST_DIR/perf
+}
+
 # global variables
 CHIP=${CHIP:-mango}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
@@ -803,6 +847,7 @@ RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
 RV_UBUNTU_IMAGE=ubuntu-22.10-preinstalled-server-riscv64+unmatched.img
 RV_FEDORA_IMAGE=Fedora-Developer-37-20221130.n.0-mmc.raw.img
+RV_TOOLS_DST_DIR=$RV_OUTPUT_DIR/tools
 
 SCRIPTS_DIR=${SCRIPTS_DIR:-$RV_TOP_DIR/bootloader-arm64/scripts}
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
