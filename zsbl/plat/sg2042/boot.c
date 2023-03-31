@@ -127,24 +127,40 @@ BOOT_FILE boot_file[ID_MAX] = {
 	},
 };
 
-char *sd_img_name[] = {
+static char *img_name_sd[] = {
 	"0:riscv64/fw_jump.bin",
 	"0:riscv64/riscv64_Image",
 	"0:riscv64/initrd.img",
 	"0:riscv64/mango.dtb",
+};
+
+static char *img_name_spi[] = {
+	"fw_jump.bin",
+	"riscv64_Image",
+	"initrd.img",
+	"mango.dtb",
+};
+
+char **img_name[] = {
+	[IO_DEVICE_SD] = img_name_sd,
+	[IO_DEVICE_SPIFLASH] = img_name_spi,
+};
+
+static char *dtb_name_sd[] = {
 	"0:riscv64/mango-sophgo-x8evb.dtb",
 	"0:riscv64/mango-milkv-pioneer.dtb",
 	"0:riscv64/mango-sophgo-pisces.dtb",
 };
 
-char *spflash_img_name[] = {
-	"fw_jump.bin",
-	"riscv64_Image",
-	"initrd.img",
-	"mango.dtb",
+static char *dtb_name_spi[] = {
 	"mango-sophgo-x8evb.dtb",
 	"mango-milkv-pioneer.dtb",
 	"mango-sophgo-pisces.dtb",
+};
+
+char **dtb_name[] = {
+	[IO_DEVICE_SD] = dtb_name_sd,
+	[IO_DEVICE_SPIFLASH] = dtb_name_spi,
 };
 
 char *ddr_node_name[SG2042_MAX_CHIP_NUM][DDR_CHANLE_NUM] = {
@@ -219,30 +235,28 @@ int boot_device_register()
 	return 0;
 }
 
+static inline char** get_bootfile_list(int dev_num, char** bootfile[])
+{
+	if (dev_num < IO_DEVICE_MAX)
+		return bootfile[dev_num];
+	return NULL;
+}
+
 int build_bootfile_info(int dev_num)
 {
-	if (dev_num == IO_DEVICE_SD) {
-		for (int i = 0; i < ID_MAX; i++)
-			boot_file[i].name = sd_img_name[i];
-		if (mmio_read_32(BOARD_TYPE_REG) == 0x02)
-			boot_file[3].name = sd_img_name[4];
-		else if (mmio_read_32(BOARD_TYPE_REG) == 0x03)
-			boot_file[3].name = sd_img_name[5];
-		else if (mmio_read_32(BOARD_TYPE_REG) == 0x04)
-			boot_file[3].name = sd_img_name[6];
-	}
-	else if (dev_num == IO_DEVICE_SPIFLASH) {
-		for (int i = 0; i < ID_MAX; i++)
-			boot_file[i].name = spflash_img_name[i];
-		if (mmio_read_32(BOARD_TYPE_REG) == 0x02)
-			boot_file[3].name = spflash_img_name[4];
-		else if (mmio_read_32(BOARD_TYPE_REG) == 0x03)
-			boot_file[3].name = spflash_img_name[5];
-		else if (mmio_read_32(BOARD_TYPE_REG) == 0x04)
-			boot_file[3].name = spflash_img_name[6];
-	}
-	else
+	uint32_t reg;
+	char** imgs = get_bootfile_list(dev_num, img_name);
+	char** dtbs = get_bootfile_list(dev_num, dtb_name);
+
+	if (!imgs || !dtbs)
 		return -1;
+
+	for (int i = 0; i < ID_MAX; i++)
+		boot_file[i].name = imgs[i];
+
+	reg = mmio_read_32(BOARD_TYPE_REG);
+	if (reg >= 0x02 && reg <= 0x04)
+		boot_file[ID_DEVICETREE].name = dtbs[reg - 0x02];
 
 	return 0;
 }
