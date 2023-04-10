@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#######################################################################
+# global variables
+#######################################################################
 function get_rv_top()
 {
 	local TOPFILE=bootloader-riscv/scripts/envsetup.sh
@@ -28,112 +31,285 @@ function get_rv_top()
 	fi
 }
 
+CHIP=${CHIP:-mango}
+KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
+VENDOR=${VENDOR:-sophgo}
+
+# absolute path
+RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
+
+RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
+RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/riscv64
+
+RV_ZSBL_SRC_DIR=$RV_TOP_DIR/bootloader-riscv/zsbl
+RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
+RV_SBI_SRC_DIR=$RV_TOP_DIR/opensbi
+
+RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-riscv
+RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
+
+RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
+RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
+
+RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
+RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
+
+RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
+RV_UBUNTU_DISTRO=ubuntu
+RV_FEDORA_DISTRO=fedora
+
+RV_UBUNTU_OFFICIAL_IMAGE=ubuntu-22.10-preinstalled-server-riscv64+unmatched.img
+DOWNLOAD_RV_UBUNTU_OFFICIAL_IMAGE="wget https://cdimage.ubuntu.com/releases/22.10/release/$RV_UBUNTU_OFFICIAL_IMAGE.xz"
+UNCOMPRESS_RV_UBUNTU_OFFICIAL_IMAGE="unxz $RV_UBUNTU_OFFICIAL_IMAGE.xz"
+
+RV_FEDORA_OFFICIAL_IMAGE=fedora-disk-developer-gnome-desktop-test-Rawhide-20220515-040634.n.0-sda.raw
+DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE="wget https://openkoji.iscas.ac.cn/pub/dl/riscv/qemu/images/$RV_FEDORA_OFFICIAL_IMAGE.zst"
+UNCOMPRESS_RV_FEDORA_OFFICIAL_IMAGE="zstd -d $RV_FEDORA_OFFICIAL_IMAGE.zst"
+
+RV_UBUNTU_SOPHGO_IMAGE=ubuntu-sophgo.img
+RV_FEDORA_SOPHGO_IMAGE=fedora-sophgo.img
+
+RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
+RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
+
+RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
+RV_TOOLS_DIR=$RV_OUTPUT_DIR/tools
+
+RV_GCC_DIR=$RV_TOP_DIR/gcc-riscv
+RV_ELF_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-elf
+RV_LINUX_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-linux-gnu
+
+# riscv specific variables
+RISCV64_LINUX_CROSS_COMPILE=$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-
+RISCV64_ELF_CROSS_COMPILE=$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-
+
+#######################################################################
+# common function
+#######################################################################
+
 function show_rv_env()
 {
-    echo "CHIP: $CHIP"
-    echo "KERNEL_VARIANT: $KERNEL_VARIANT"
-    echo "PLD_INSTALL_DIR: $PLD_INSTALL_DIR"
-    echo "VENDOR: $VENDOR"
-    echo "RISCV64_LINUX_CROSS_COMPILE: $RISCV64_LINUX_CROSS_COMPILE"
-    echo "RISCV64_ELF_CROSS_COMPILE: $RISCV64_ELF_CROSS_COMPILE"
-    echo "RV_TOP_DIR: $RV_TOP_DIR"
-    echo "RV_OUTPUT_DIR: $RV_OUTPUT_DIR"
-    echo "RV_SCRIPTS_DIR: $RV_SCRIPTS_DIR"
-    echo "RV_KERNEL_SRC_DIR: $RV_KERNEL_SRC_DIR"
-    echo "RV_KERNEL_BUILD_DIR: $RV_KERNEL_BUILD_DIR"
-    echo "RV_BUILDROOT_DIR: $RV_BUILDROOT_DIR"
-    echo "RV_SBI_DIR: $RV_SBI_DIR"
+	echo "CHIP: $CHIP"
+	echo "KERNEL_VARIANT: $KERNEL_VARIANT"
+	echo "VENDOR: $VENDOR"
+	echo "RISCV64_LINUX_CROSS_COMPILE: $RISCV64_LINUX_CROSS_COMPILE"
+	echo "RISCV64_ELF_CROSS_COMPILE: $RISCV64_ELF_CROSS_COMPILE"
+	echo "RV_TOP_DIR: $RV_TOP_DIR"
+	echo "RV_OUTPUT_DIR: $RV_OUTPUT_DIR"
+	echo "RV_SCRIPTS_DIR: $RV_SCRIPTS_DIR"
+	echo "RV_ZSBL_SRC_DIR: $RV_ZSBL_SRC_DIR"
+	echo "RV_ZSBL_BUILD_DIR: $RV_ZSBL_BUILD_DIR"
+	echo "RV_SBI_SRC_DIR: $RV_SBI_SRC_DIR"
+	echo "RV_KERNEL_SRC_DIR: $RV_KERNEL_SRC_DIR"
+	echo "RV_KERNEL_BUILD_DIR: $RV_KERNEL_BUILD_DIR"
+}
+
+function show_rv_functions()
+{
+	echo "show_rv_env			-print build environment"
+	echo "show_rv_functions     		-print all funtions "
+	echo ""
+	echo "build_rv_gcc			-build gcc from source"
+	echo "build_rv_zsbl			-build zsbl bin"
+	echo "build_rv_sbi			-build sbi bin"
+	echo "build_rv_kernel			-build linuxboot kernel"
+	echo "build_rv_ubuntu_kernel		-build ubuntu kernel, [\$1=vector] with CONFIG_VECTOR=y"
+	echo "build_rv_fedora_kernel		-build fedora kernel, [\$1=vector] with CONFIG_VECTOR=y"
+	echo "build_rv_ramfs			-build buildroot"
+	echo "build_rv_uroot			-build u-root for linuxboot"
+	echo "build_rv_ltp			-build ltp"
+	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
+	echo "build_rv_fedora_perf_tool     	-build fedora perf tool source package"
+	echo "build_rv_ubuntu_distro		-dowload ubuntu image from offical"
+	echo "build_rv_fedora_distro		-download fedora image from offical"
+	echo "build_rv_ubuntu_image		-only build sophgo ubuntu image"
+	echo "build_rv_fedora_image		-only build sophgo fedora image"
+	echo "build_rv_ubuntu			-build sophgo ubuntu image"
+	echo "build_rv_fedora			-build sophgo fedora image"
+	echo "build_rv_all			-build all bin and image(default: ubuntu)"
+	echo ""
+	echo "clean_rv_gcc			-clean gcc obj files"
+	echo "clean_rv_zsbl			-clean zsbl obj files"
+	echo "clean_rv_sbi			-clean sbi obj files"
+	echo "clean_rv_kernel			-clean linuxboot kernel obj files"
+	echo "clean_rv_ubuntu_kernel		-clean ubuntu kernel obj files"
+	echo "clean_rv_fedora_kernel		-clean fedora kernel obj files"
+	echo "clean_rv_ramfs			-clean buildroot obj files"
+	echo "clean_rv_uroot			-clean uroot obj files"
+	echo "clean_rv_ltp			-clean ltp obj files"
+	echo "clean_rv_ubuntu_perf_tool     	-clean ubuntu perf tool files"
+	echo "clean_rv_fedora_perf_tool     	-clean fedora perf tool files"
+	echo "clean_rv_ubuntu_distro		-clean ubuntu image"
+	echo "clean_rv_fedora_distro		-clean fedora image"
+	echo "clean_rv_ubuntu_image		-clean ubuntu image"
+	echo "clean_rv_fedora_image		-clean fedora image"
+	echo "clean_rv_ubuntu			-clean ubuntu image"
+	echo "clean_rv_fedora			-clean feodra image"
+	echo "clean_rv_all			-clean all bin and image(default: ubuntu)"
+	echo ""
+	echo "run_rv_zsbl			-run zsbl on qemu"
+	echo "run_rv_ramfs			-run ramfs on qemu"
+	echo "run_rv_uroot			-run uroot on qemu"
+}
+
+#######################################################################
+# build toolchain
+#######################################################################
+
+function build_rv_linux_gcc()
+{
+	mkdir -p $RV_GCC_DIR
+
+	pushd $RV_GCC_DIR
+	if [ ! -d riscv-gnu-toolchain ]; then
+	    git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
+	fi
+	pushd riscv-gnu-toolchain
+	rm -rf $RV_LINU_GCC_INSTALL_DIR
+	make clean
+	git checkout 2022.08.08
+	./configure --prefix=$RV_LINUX_GCC_INSTALL_DIR
+	make linux
+	popd
+	popd
+}
+
+function build_rv_elf_gcc()
+{
+	mkdir -p $RV_GCC_DIR
+
+	pushd $RV_GCC_DIR
+	if [ ! -d riscv-gnu-toolchain ]; then
+	    git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
+	fi
+	pushd riscv-gnu-toolchain
+	rm -rf $RV_ELF_GCC_INSTALL_DIR
+	make clean
+	git checkout 2022.08.08
+	./configure --with-cmodel=medany --with-arch=rv64imafdc --with-abi=lp64d --prefix=$RV_ELF_GCC_INSTALL_DIR
+	make
+	popd
+	popd
+}
+
+function build_rv_gcc()
+{
+	build_rv_elf_gcc
+	build_rv_linux_gcc
+}
+
+function clean_rv_gcc()
+{
+	if [ -d $RV_GCC_DIR/riscv-gnu-toolchain ]; then
+	    pushd $RV_GCC_DIR/riscv-gnu-toolchain
+	    make clean
+	    popd
+	fi
+}
+
+#######################################################################
+# build bin and image
+#######################################################################
+
+function build_rv_zsbl()
+{
+	local err
+
+	pushd $RV_ZSBL_SRC_DIR
+	make CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making zsbl config failed"
+		return $err
+	    fi
+
+	pushd $RV_ZSBL_BUILD_DIR
+	make -j$(nproc) CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE ARCH=riscv
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making zsbl failed"
+		return $err
+	    fi
+
+	mkdir -p $RV_OUTPUT_DIR
+
+	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_OUTPUT_DIR
+}
+
+function clean_rv_zsbl()
+{
+	rm -rf $RV_OUTPUT_DIR/zsbl.bin
+	rm -rf $RV_ZSBL_BUILD_DIR
 }
 
 function build_rv_sbi()
 {
 	PLATFORM=generic
 
-	pushd $RV_SBI_DIR
+	pushd $RV_SBI_SRC_DIR
 	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE PLATFORM=$PLATFORM FW_TEXT_START=0x0 FW_JUMP_ADDR=0x02000000 FW_JUMP_FDT_ADDR=0x20000000 FW_PIC=y BUILD_INFO=y DEBUG=1
 	popd
 
 	mkdir -p $RV_OUTPUT_DIR
 
-	cp $RV_SBI_DIR/build/platform/$PLATFORM/firmware/fw_jump.bin $RV_OUTPUT_DIR
-	cp $RV_SBI_DIR/build/platform/$PLATFORM/firmware/fw_jump.elf $RV_OUTPUT_DIR
+	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_jump.bin $RV_OUTPUT_DIR
+	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_jump.elf $RV_OUTPUT_DIR
 }
 
 function clean_rv_sbi()
 {
-    rm -rf $RV_OUTPUT_DIR/fw_jump.*
+	rm -rf $RV_OUTPUT_DIR/fw_jump.*
 
-    pushd $RV_SBI_DIR
-    make distclean
-    popd
+	pushd $RV_SBI_SRC_DIR
+	make distclean
+	popd
 }
-
-
-function build_rv_ltp()
-{
-    pushd $RV_LTP_SRC_DIR
-    if [ ! -f "configure" ]; then
-        make autotools
-    fi
-
-    ./configure CC=${RISCV64_LINUX_CROSS_COMPILE}gcc --prefix=$RV_LTP_OUTPUT_DIR --host=riscv64-linux-gnu  --without-tirpc
-    make -j$(nproc) ARCH=riscv CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE}
-    make install -j$(nproc)
-    popd
-}
-
-
-function clean_rv_ltp()
-{
-    pushd $RV_LTP_SRC_DIR
-    make clean
-    rm -rf lib/newlib_tests/test_children_cleanup
-    popd
-    rm -rf $RV_LTP_OUTPUT_DIR
-}
-
 
 function build_rv_kernel()
 {
-    local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
-    local err
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
+	local err
 
-    pushd $RV_KERNEL_SRC_DIR
-    make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
-    err=$?
-    popd
+	pushd $RV_KERNEL_SRC_DIR
+	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
+	err=$?
+	popd
 
 	if [ $err -ne 0 ]; then
 		echo "making kernel config failed"
 		return $err
 	fi
 
-    pushd $RV_KERNEL_BUILD_DIR
-    make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
-    err=$?
-    popd
+	pushd $RV_KERNEL_BUILD_DIR
+	make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
+	err=$?
+	popd
 
-    if [ $err -ne 0 ]; then
+	if [ $err -ne 0 ]; then
 		echo "making kernel modules failed"
 		return $err
 	fi
 
-    mkdir -p $RV_OUTPUT_DIR
-    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_OUTPUT_DIR/riscv64_Image
-    cp $RV_KERNEL_BUILD_DIR/vmlinux $RV_OUTPUT_DIR
+	mkdir -p $RV_OUTPUT_DIR
+	cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_OUTPUT_DIR/riscv64_Image
+	cp $RV_KERNEL_BUILD_DIR/vmlinux $RV_OUTPUT_DIR
 
-    if [ $CHIP != 'qemu' ]; then
-        cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_OUTPUT_DIR
-    fi
+	if [ $CHIP != 'qemu' ]; then
+	    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_OUTPUT_DIR
+	fi
 }
 
 function clean_rv_kernel()
 {
-    rm -rf $RV_OUTPUT_DIR/riscv64_Image
-    rm -rf $RV_OUTPUT_DIR/vmlinux
-    rm -rf $RV_OUTPUT_DIR/*.dtb
+	rm -rf $RV_OUTPUT_DIR/riscv64_Image
+	rm -rf $RV_OUTPUT_DIR/vmlinux
+	rm -rf $RV_OUTPUT_DIR/*.dtb
 
-    rm -rf $RV_KERNEL_BUILD_DIR
+	rm -rf $RV_KERNEL_BUILD_DIR
 }
 
 function build_rv_ubuntu_kernel()
@@ -155,6 +331,10 @@ function build_rv_ubuntu_kernel()
 	rm -f ../linux-*
 	rm -rf ./debs
 
+	if [ $1 == 'vector' ]; then
+		sed -i 's/# CONFIG_VECTOR is not set/CONFIG_VECTOR=y/' .config
+	fi
+
 	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg
 	ret=$?
@@ -171,12 +351,14 @@ function build_rv_ubuntu_kernel()
 	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
 	mv ../linux-image-${KERNELRELEASE}-dbg_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}-dbg.deb
 	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
+	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
 	popd
 }
 
 function clean_rv_ubuntu_kernel()
 {
-    rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
+	rm -rf $RV_KERNEL_BUILD_DIR
+	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
 }
 
 function build_rv_fedora_kernel()
@@ -191,6 +373,10 @@ function build_rv_fedora_kernel()
 		echo "making kernel config failed"
 		popd
 		return $err
+	fi
+
+	if [ $1 == 'vector' ]; then
+		sed -i 's/# CONFIG_VECTOR is not set/CONFIG_VECTOR=y/' .config
 	fi
 
 	if [ -e ~/.rpmmacros ]; then
@@ -233,34 +419,37 @@ EOT
 
 function clean_rv_fedora_kernel()
 {
-    rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+	pushd $RV_KERNEL_SRC_DIR
+	make distclean
+	popd
+	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
 }
 
 function build_rv_ramfs()
 {
-    local err
+	local err
 
-    pushd $RV_BUILDROOT_DIR
-    make mango_riscv64_mini_defconfig
-    err=$?
-    popd
+	pushd $RV_BUILDROOT_DIR
+	make mango_riscv64_mini_defconfig
+	err=$?
+	popd
 
-    if [ $err -ne 0 ]; then
-        echo 'config buildroot failed'
-        return $err
-    fi
+	if [ $err -ne 0 ]; then
+	    echo 'config buildroot failed'
+	    return $err
+	fi
 
-    pushd $RV_BUILDROOT_DIR
-    make
-    err=$?
-    popd
+	pushd $RV_BUILDROOT_DIR
+	make
+	err=$?
+	popd
 
-    if [ $err -ne 0 ]; then
-        echo 'build buildroot failed'
-        return $err
-    fi
+	if [ $err -ne 0 ]; then
+	    echo 'build buildroot failed'
+	    return $err
+	fi
 
-    cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_OUTPUT_DIR/
+	cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_OUTPUT_DIR/
 }
 
 function clean_rv_ramfs()
@@ -269,104 +458,14 @@ function clean_rv_ramfs()
 	rm -rf $RV_BUILDROOT_DIR/output
 }
 
-function build_rv_pld()
-{
-    local PLD_MEMGEN=$SCRIPTS_DIR/mb2h/mb2h
-    local PLD_OUT
-
-    local RAMFS=$RV_OUTPUT_DIR/initrd.img
-    local KERNEL=$RV_OUTPUT_DIR/Image
-    local SBI=$RV_OUTPUT_DIR/fw_jump.bin
-    local DTB=$RV_OUTPUT_DIR/mango.dtb
-
-    if [ $# -lt 1 ]; then
-        PLD_OUT=$PLD_INSTALL_DIR/out_$(date "+%Y%m%d_%H%M%S")
-    else
-        PLD_OUT=$1
-    fi
-
-    gcc -O2 ${PLD_MEMGEN}.c -o ${PLD_MEMGEN}
-
-    if [ ! -f $KERNEL ]; then
-        echo "$KERNEL not found"
-        return
-    fi
-
-    if [ ! -f $DTB ]; then
-        echo "$DTB not found"
-        return
-    fi
-
-    if [ ! -f $RAMFS ]; then
-        echo "$RAMFS not found"
-        return
-    fi
-
-    if [ ! -f $SBI ]; then
-        echo "$SBI not found"
-        return
-    fi
-
-    mkdir -p $PLD_OUT
-
-    echo 'generate riscv64 Image memory image'
-    $PLD_MEMGEN $KERNEL $PLD_OUT/rv-kernel-%d.hex
-    echo 'generate riscv64 dtb memory image'
-    $PLD_MEMGEN $DTB $PLD_OUT/rv-dtb-%d.hex
-    echo 'generate riscv64 ramfs memory image'
-    $PLD_MEMGEN $RAMFS $PLD_OUT/rv-ramfs-%d.hex
-    echo 'generate riscv64 opensbi memory image'
-    $PLD_MEMGEN $SBI $PLD_OUT/rv-sbi-%d.hex
-}
-
-function clean_rv_pld()
-{
-    rm -rf $PLD_INSTALL_DIR
-}
-
-function build_rv_all()
-{
-	build_rv_zsbl
-	build_rv_sbi
-	build_rv_kernel
-	build_rv_ramfs
-	build_rv_uroot
-	build_rv_ubuntu_kernel
-	build_rv_ubuntu_perf_tool
-	build_rv_distro
-	build_rv_sdimage
-}
-
-function clean_rv_all()
-{
-	clean_rv_zsbl
-	clean_rv_sbi
-	clean_rv_kernel
-	clean_rv_ramfs
-	clean_rv_uroot
-	clean_rv_ubuntu_kernel
-	clean_rv_ubuntu_perf_tool
-	clean_rv_distro
-	clean_rv_sdimage
-}
-
-function run_rv_ramfs()
-{
-    qemu-system-riscv64 -nographic -M virt \
-        -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
-        -kernel $RV_OUTPUT_DIR/Image \
-        -initrd $RV_OUTPUT_DIR/initrd.img \
-        -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
-}
-
 function build_rv_uroot()
 {
-    pushd $RV_UROOT_DIR
-    GOARCH=riscv64 go build
-    GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
-        -uinitcmd="boot" -o $RV_UROOT_DIR/initramfs.cpio core boot
-    popd
-    cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/initrd.img
+	pushd $RV_UROOT_DIR
+	GOARCH=riscv64 go build
+	GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
+	    -uinitcmd="boot" -o $RV_UROOT_DIR/initramfs.cpio core boot
+	popd
+	cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/initrd.img
 }
 
 function clean_rv_uroot()
@@ -374,185 +473,94 @@ function clean_rv_uroot()
 	rm $RV_OUTPUT_DIR/initrd.img
 }
 
-function run_rv_uroot()
+function build_rv_ubuntu_distro()
 {
-    qemu-system-riscv64 -nographic -M virt \
-        -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
-        -kernel $RV_OUTPUT_DIR/Image \
-        -initrd $RV_OUTPUT_DIR/uroot.cpio \
-        -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
-}
+	mkdir -p $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO
 
-function build_rv_linux_gcc()
-{
-    mkdir -p $RV_GCC_DIR
-
-    pushd $RV_GCC_DIR
-    if [ ! -d riscv-gnu-toolchain ]; then
-        git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
-    fi
-    pushd riscv-gnu-toolchain
-    rm -rf $RV_LINU_GCC_INSTALL_DIR
-    make clean
-    git checkout 2022.08.08
-    ./configure --prefix=$RV_LINUX_GCC_INSTALL_DIR
-    make linux
-    popd
-    popd
-}
-
-function build_rv_elf_gcc()
-{
-    mkdir -p $RV_GCC_DIR
-
-    pushd $RV_GCC_DIR
-    if [ ! -d riscv-gnu-toolchain ]; then
-        git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
-    fi
-    pushd riscv-gnu-toolchain
-    rm -rf $RV_ELF_GCC_INSTALL_DIR
-    make clean
-    git checkout 2022.08.08
-    ./configure --with-cmodel=medany --with-arch=rv64imafdc --with-abi=lp64d --prefix=$RV_ELF_GCC_INSTALL_DIR
-    make
-    popd
-    popd
-}
-
-function build_rv_gcc()
-{
-    build_rv_elf_gcc
-    build_rv_linux_gcc
-}
-
-function clean_rv_gcc()
-{
-    if [ -d $RV_GCC_DIR/riscv-gnu-toolchain ]; then
-        pushd $RV_GCC_DIR/riscv-gnu-toolchain
-        make clean
-        popd
-    fi
-}
-
-function build_rv_zsbl()
-{
-    local err
-
-    pushd $RV_ZSBL_DIR
-    make CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
-    err=$?
-    popd
-
-    if [ $err -ne 0 ]; then
-		echo "making zsbl config failed"
-		return $err
-	fi
-
-    pushd $RV_ZSBL_BUILD_DIR
-    make -j$(nproc) CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE ARCH=riscv
-    err=$?
-    popd
-
-    if [ $err -ne 0 ]; then
-		echo "making zsbl failed"
-		return $err
-	fi
-
-    mkdir -p $RV_OUTPUT_DIR
-
-    cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_OUTPUT_DIR
-}
-
-function clean_rv_zsbl()
-{
-
-    rm -rf $RV_OUTPUT_DIR/zsbl.bin
-    rm -rf $RV_ZSBL_BUILD_DIR
-}
-
-function build_rv_distro()
-{
-	mkdir -p $RV_DISTRO_DIR/$RV_DISTRO
-
-	pushd $RV_DISTRO_DIR/$RV_DISTRO
-	if [ ! -f $RV_UBUNTU_IMAGE ] ; then
-		wget https://cdimage.ubuntu.com/releases/22.10/release/"$RV_UBUNTU_IMAGE".xz
-		unxz "$RV_UBUNTU_IMAGE".xz
+	pushd $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO
+	if [ ! -f $RV_UBUNTU_OFFICIAL_IMAGE ] ; then
+		$DOWNLOAD_RV_UBUNTU_OFFICIAL_IMAGE
+		$UNCOMPRESS_RV_UBUNTU_OFFICIAL_IMAGE
 	fi
 	popd
 }
 
-function clean_rv_distro()
+function clean_rv_ubuntu_distro()
 {
-	rm $RV_DISTRO_DIR/$RV_DISTRO/$RV_UBUNTU_IMAGE
+	rm $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE
 }
 
-function build_rv_distro_fedora()
+function build_rv_fedora_distro()
 {
-	mkdir -p $RV_DISTRO_DIR/$RV_DISTRO_FEDORA
+	mkdir -p $RV_DISTRO_DIR/$RV_FEDORA_DISTRO
 
-	pushd $RV_DISTRO_DIR/$RV_DISTRO_FEDORA
-	if [ ! -f $RV_FEDORA_IMAGE ] ; then
-		wget https://dl.fedoraproject.org/pub/alt/risc-v/disk_images/Fedora-Developer-37-20221130.n.0.SiFive.Unmatched/"$RV_FEDORA_IMAGE".xz
-		unxz "$RV_FEDORA_IMAGE".xz
+	pushd $RV_DISTRO_DIR/$RV_FEDORA_DISTRO
+	if [ ! -f $RV_FEDORA_OFFICIAL_IMAGE ] ; then
+		$DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE
+		$UNCOMPRESS_RV_FEDORA_OFFICIAL_IMAGE
 	fi
 	popd
 }
 
-function clean_rv_distro_fedora()
+function clean_rv_fedora_distro()
 {
-	rm $RV_DISTRO_DIR/$RV_DISTRO_FEDORA/$RV_FEDORA_IMAGE
+	rm $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE
 }
 
-function build_rv_sdimage()
+function build_rv_ubuntu_image()
 {
-	echo build_rv_sdimage
+	echo build_rv_ubuntu_image
 	echo create an image file...
-	rm -f $RV_OUTPUT_DIR/sd.img
-	dd if=/dev/zero of=$RV_OUTPUT_DIR/sd.img bs=1GiB count=15
+	rm -f $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
+	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE bs=1GiB count=10
 
 	echo create partitions...
-	sudo parted $RV_OUTPUT_DIR/sd.img mktable msdos
-	sudo parted $RV_OUTPUT_DIR/sd.img mkpart p fat32 0% 128MiB
-	sudo parted $RV_OUTPUT_DIR/sd.img mkpart p fat32 128MiB 256MiB
-	sudo parted $RV_OUTPUT_DIR/sd.img mkpart p ext4 256MiB 100%
-	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/sd.img | cut -d ' ' -f 3)
-	fat32part=$(echo $loops | cut -d ' ' -f 1)
-	fat32part2=$(echo $loops | cut -d ' ' -f 2)
-	ext4part=$(echo $loops | cut -d ' ' -f 3)
-	echo EFI: $fat32part
-	echo recovery: $fat32part2
-	echo root: $ext4part
+	sudo parted $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE mktable msdos
+	sudo parted $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE mkpart p fat32 0% 128MiB
+	sudo parted $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE mkpart p ext4 128MiB 100%
+	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE | cut -d ' ' -f 3)
+	efi_part=$(echo $loops | cut -d ' ' -f 1)
+	root_part=$(echo $loops | cut -d ' ' -f 2)
 	sleep 3
-	sudo mkfs.vfat /dev/mapper/$fat32part -n EFI
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	sudo mkfs.vfat /dev/mapper/$fat32part2 -n RECOVERY
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	sudo mkfs.ext4 /dev/mapper/$ext4part -L rootfs
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
+	sudo mkfs.vfat /dev/mapper/$efi_part -n EFI
+	sudo mkfs.ext4 /dev/mapper/$root_part
+
+	echo copy bootloader...
+	mkdir $RV_OUTPUT_DIR/efi
+	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
+	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
+
+	if [ -f $RV_OUTPUT_DIR/../fip.bin ] ; then
+		sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/efi/
+	else
+		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
 	fi
 
-	echo copy ubuntu rootfs to sd ext4 part...
-	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_DISTRO/$RV_UBUNTU_IMAGE | cut -d ' ' -f 3)
-	ubuntu_ext4_part=$(echo $loops | cut -d ' ' -f 1)
-	sudo dd if=/dev/mapper/$ubuntu_ext4_part of=/dev/mapper/$ext4part
-	sudo e2fsck -f /dev/mapper/$ext4part
-	sudo resize2fs /dev/mapper/$ext4part
+	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
+	sudo touch $RV_OUTPUT_DIR/efi/BOOT
 
-	echo mount rootfs partition...
-	mkdir $RV_OUTPUT_DIR/ext4
-	sudo mount /dev/mapper/$ext4part $RV_OUTPUT_DIR/ext4
+	echo copy ubuntu...
+	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE | cut -d ' ' -f 3)
+	ubuntu_root_part=$(echo $loops | cut -d ' ' -f 1)
+	sudo dd if=/dev/mapper/$ubuntu_root_part of=/dev/mapper/$root_part bs=256M
+	sudo e2fsck -f /dev/mapper/$root_part
+	sudo resize2fs /dev/mapper/$root_part
+
+	echo mount root partition...
+	mkdir $RV_OUTPUT_DIR/root
+	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
+
+	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
+	sudo mount --bind /sys $RV_OUTPUT_DIR/root/sys
+	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
+	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/root/dev/pts
 
 # following lines must not be started with space or tab.
-sudo chroot $RV_OUTPUT_DIR/ext4 /bin/bash << "EOT"
+sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
 useradd -m -s /bin/bash ubuntu
 echo "ubuntu:ubuntu" | chpasswd
 usermod -a -G sudo ubuntu
@@ -566,41 +574,14 @@ exit
 EOT
 
 	echo copy bsp package...
-	sudo cp -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/ext4/home/ubuntu/
+	sudo cp -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/root/home/ubuntu/
 
 	echo copy tools package...
-	sudo cp -r $RV_TOOLS_DST_DIR $RV_OUTPUT_DIR/ext4/home/ubuntu
-
-	echo mount EFI partition...
-	sudo mount /dev/mapper/$fat32part $RV_OUTPUT_DIR/ext4/boot/efi
-
-	echo copy bootloader...
-	sudo mkdir -p $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
-
-	if [ -f $RV_OUTPUT_DIR/../fip.bin ] ; then
-		sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/ext4/boot/efi/
-	else
-		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/ext4/boot/efi/
-	fi
-
-	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/ext4/boot/efi/
-	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/mango-sophgo-x8evb.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/mango-milkv-pioneer.dtb $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/initrd.img $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/ext4/boot/efi/riscv64
-	sudo touch $RV_OUTPUT_DIR/ext4/boot/efi/BOOT
-
-	echo mount system nodes to target...
-	sudo mount --bind /dev $RV_OUTPUT_DIR/ext4/dev
-	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/ext4/dev/pts
-	sudo mount --bind /proc $RV_OUTPUT_DIR/ext4/proc
-	sudo mount --bind /sys $RV_OUTPUT_DIR/ext4/sys
+	sudo cp -r $RV_TOOLS_DIR $RV_OUTPUT_DIR/root/home/ubuntu
 
 	echo install linux image...
-	pushd $RV_OUTPUT_DIR/ext4
+	pushd $RV_OUTPUT_DIR/root
 # following lines must not be started with space or tab.
-#sudo chroot . qemu-riscv64-static /bin/bash << "EOT"
 sudo chroot . /bin/bash << "EOT"
 sed -i '/UEFI/d' /etc/fstab
 echo 'U_BOOT_PARAMETERS="nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000"' >> /etc/default/u-boot
@@ -611,183 +592,130 @@ EOT
 
 	echo cleanup...
 	sync
-	sudo umount $RV_OUTPUT_DIR/ext4/dev/pts
-	sudo umount $RV_OUTPUT_DIR/ext4/dev
-	sudo umount $RV_OUTPUT_DIR/ext4/proc
-	sudo umount $RV_OUTPUT_DIR/ext4/sys
-	sudo umount /dev/mapper/$fat32part
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	echo $PWD
-	sudo umount /dev/mapper/$ext4part
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	sudo kpartx -d $RV_OUTPUT_DIR/sd.img
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	sudo rm -r $RV_OUTPUT_DIR/ext4
-
-	sudo kpartx -d $RV_DISTRO_DIR/$RV_DISTRO/$RV_UBUNTU_IMAGE
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
+	sudo umount $RV_OUTPUT_DIR/root/proc
+	sudo umount $RV_OUTPUT_DIR/root/sys
+	sudo umount $RV_OUTPUT_DIR/root/dev/pts
+	sudo umount $RV_OUTPUT_DIR/root/dev
+	sudo umount /dev/mapper/$efi_part
+	sudo umount /dev/mapper/$root_part
+	sudo kpartx -d $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
+	sudo kpartx -d $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE
+	sudo rm -r $RV_OUTPUT_DIR/efi
+	sudo rm -r $RV_OUTPUT_DIR/root
 }
 
-function clean_rv_sdimage()
+function clean_rv_ubuntu_image()
 {
-	rm -f $RV_OUTPUT_DIR/sd.img
+	rm -f $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
 }
 
-
-function build_rv_sdimage_fedora()
+function build_rv_fedora_image()
 {
-	echo build_rv_sdimage_fedora
+	echo build_rv_fedora_image
 	echo create an image file...
-	rm -f $RV_OUTPUT_DIR/sd_fedora.img
-	dd if=/dev/zero of=$RV_OUTPUT_DIR/sd_fedora.img bs=1GiB count=15
+	rm -f $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE
+	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE bs=1GiB count=20
 
 	echo create partitions...
-	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mktable msdos
-	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p fat32 0% 128MiB
-	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p ext4 128MiB 1152MiB
-	sudo parted $RV_OUTPUT_DIR/sd_fedora.img mkpart p ext4 1152MiB 100%
+	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mktable msdos 
+	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p fat32 0% 128MiB
+	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p ext4 128MiB 1152MiB
+	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p ext4 1152MiB 100%
 
-	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/sd_fedora.img | cut -d ' ' -f 3)
-	fat32part=$(echo $loops | cut -d ' ' -f 1)
-	ext4part1=$(echo $loops | cut -d ' ' -f 2)
-	ext4part2=$(echo $loops | cut -d ' ' -f 3)
-	echo EFI: $fat32part
-	echo boot: $ext4part1
-	echo rootfs: $ext4part2
+	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE | cut -d ' ' -f 3)
+	efi_part=$(echo $loops | cut -d ' ' -f 1)
+	boot_part=$(echo $loops | cut -d ' ' -f 2)
+	root_part=$(echo $loops | cut -d ' ' -f 3)
 	sleep 3
-	sudo mkfs.vfat /dev/mapper/$fat32part -n EFI
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	sudo mkfs.ext4 /dev/mapper/$ext4part1 -L boot
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	sudo mkfs.ext4 /dev/mapper/$ext4part2 -L rootfs
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
+	sudo mkfs.vfat /dev/mapper/$efi_part -n EFI
+	sudo mkfs.ext4 /dev/mapper/$boot_part
+	sudo mkfs.ext4 /dev/mapper/$root_part
 
-	echo copy fedora boot and rootfs to sd ext4 part...
-	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_DISTRO_FEDORA/$RV_FEDORA_IMAGE | cut -d ' ' -f 3)
+	echo copy bootloader...
+	mkdir $RV_OUTPUT_DIR/efi
+	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
+	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
+	if [ -f $RV_OUTPUT_DIR/../fip.bin ] ; then
+		sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/efi
+	else
+		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi
+	fi
+	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi
+	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_OUTPUT_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
+
+	echo copy fedora ...
+	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE | cut -d ' ' -f 3)
 	fedora_boot_part=$(echo $loops | cut -d ' ' -f 1)
-	fedora_rootfs_part=$(echo $loops | cut -d ' ' -f 2)
-	sudo dd if=/dev/mapper/$fedora_boot_part of=/dev/mapper/$ext4part1
-	sudo e2fsck -f /dev/mapper/$ext4part1
-	sudo resize2fs /dev/mapper/$ext4part1
-	sudo dd if=/dev/mapper/$fedora_rootfs_part of=/dev/mapper/$ext4part2
-	sudo e2fsck -f /dev/mapper/$ext4part2
-	sudo resize2fs /dev/mapper/$ext4part2
+	fedora_root_part=$(echo $loops | cut -d ' ' -f 2)
+	sudo dd if=/dev/mapper/$fedora_boot_part of=/dev/mapper/$boot_part bs=256M
+	sudo e2fsck -f /dev/mapper/$boot_part
+	sudo resize2fs /dev/mapper/$boot_part
+	sudo e2label /dev/mapper/$boot_part BOOT
+	sudo dd if=/dev/mapper/$fedora_root_part of=/dev/mapper/$root_part bs=256M
+	sudo e2fsck -f /dev/mapper/$root_part
+	sudo resize2fs /dev/mapper/$root_part
+	sudo e2label /dev/mapper/$root_part ROOT
 
-	echo mount rootfs partition...
-	mkdir $RV_OUTPUT_DIR/rootfs
-	sudo mount /dev/mapper/$ext4part2 $RV_OUTPUT_DIR/rootfs
+	mkdir $RV_OUTPUT_DIR/root
+	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
+	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
+	sudo mount --bind /sys $RV_OUTPUT_DIR/root/sys
+	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
+	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/root/dev/pts
+
+	echo add user fedora:fedora
 # following lines must not be started with space or tab.
-sudo chroot $RV_OUTPUT_DIR/rootfs /bin/bash << "EOT"
-adduser -m fedora
+sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
+useradd -m -s /bin/bash fedora
 echo "fedora:fedora" | chpasswd
+sed -i -e '/NOPASSWD/a\%fedora   ALL=(ALL) NOPASSWD: ALL' /etc/sudoers
 
-sed -i -e '
-/\%sudo/ c \
-%sudo	ALL=(ALL) NOPASSWD: ALL
-' /etc/sudoers
+mv /etc/yum.repos.d /etc/yum.repos.d-backup
+mkdir /etc/yum.repos.d/
+cat > /etc/yum.repos.d/fedora-riscv-koji.repo << EOF
+[fedora-riscv-koji]
+name=Fedora RISC-V Koji
+baseurl=https://openkoji.iscas.ac.cn/kojifiles/repos/f37-build-side-32-misc-devel/latest/riscv64/
+enabled=1
+gpgcheck=0
+EOF
 
 exit
 EOT
 
 	echo copy bsp package...
-	cp -r $RV_RPM_INSTALL_DIR $RV_OUTPUT_DIR/rootfs/home/fedora/
-
-	echo mount EFI partition...
-	mkdir $RV_OUTPUT_DIR/efi
-	sudo mount /dev/mapper/$fat32part $RV_OUTPUT_DIR/efi
-
-	echo copy bootloader...
-	sudo mkdir $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/efi/
-	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
-	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/uroot.cpio $RV_OUTPUT_DIR/efi/riscv64/initrd.img
-	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
-	sudo touch $RV_OUTPUT_DIR/efi/BOOT
-
-	echo mount system special filesystem to target...
-	sudo mount --bind /dev $RV_OUTPUT_DIR/rootfs/dev
-	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/rootfs/dev/pts
-	sudo mount --bind /proc $RV_OUTPUT_DIR/rootfs/proc
-	sudo mount --bind /sys $RV_OUTPUT_DIR/rootfs/sys
-
+	sudo cp -r $RV_RPM_INSTALL_DIR $RV_OUTPUT_DIR/root/home/fedora/
 
 	echo install linux image...
-	pushd $RV_OUTPUT_DIR/rootfs
 # following lines must not be started with space or tab.
-#sudo chroot . qemu-riscv64-static /bin/bash << "EOT"
-sudo chroot . /bin/env BOOT_PART="$fedora_boot_part" /bin/bash << "EOT"
+sudo chroot $RV_OUTPUT_DIR/root /bin/env BOOT_PART="$boot_part" /bin/bash << "EOT"
 mount /dev/mapper/$BOOT_PART /boot
 rpm -ivh --force /home/fedora/bsp-rpms/kernel-[0-9]*.riscv64.rpm
 umount /boot
 exit
 EOT
-	popd
 
 	echo cleanup...
 	sync
-	sudo umount $RV_OUTPUT_DIR/rootfs/dev/pts
-	sudo umount $RV_OUTPUT_DIR/rootfs/dev
-	sudo umount $RV_OUTPUT_DIR/rootfs/proc
-	sudo umount $RV_OUTPUT_DIR/rootfs/sys
-	sudo umount /dev/mapper/$fat32part
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	echo $PWD
-	sudo umount /dev/mapper/$ext4part2
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-	sudo kpartx -d $RV_OUTPUT_DIR/sd_fedora.img
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-
-	sudo kpartx -d $RV_DISTRO_DIR/$RV_DISTRO_FEDORA/$RV_FEDORA_IMAGE
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		return $ret
-	fi
-
+	sudo umount $RV_OUTPUT_DIR/root/proc
+	sudo umount $RV_OUTPUT_DIR/root/sys
+	sudo umount $RV_OUTPUT_DIR/root/dev/pts
+	sudo umount $RV_OUTPUT_DIR/root/dev
+	sudo umount /dev/mapper/$efi_part
+	sudo umount /dev/mapper/$root_part
+	sudo kpartx -d $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE
+	sudo kpartx -d $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE
 	rm -r $RV_OUTPUT_DIR/efi
-	rm -r $RV_OUTPUT_DIR/rootfs
+	rm -r $RV_OUTPUT_DIR/root
 }
 
-function clean_rv_sdimage_fedora()
+function clean_rv_fedora_image()
 {
-	rm -f $RV_OUTPUT_DIR/sd_fedora.img
-}
-
-function run_rv_zsbl()
-{
-    qemu-system-riscv64 -nographic -M virt -bios $RV_OUTPUT_DIR/zsbl.bin
+	rm -f $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE
 }
 
 function build_rv_ubuntu_perf_tool()
@@ -797,13 +725,13 @@ function build_rv_ubuntu_perf_tool()
 	make perf-tar-src-pkg
 	popd
 
-	if [ ! -d $RV_TOOLS_DST_DIR/perf ]; then
-		mkdir -p $RV_TOOLS_DST_DIR/perf
+	if [ ! -d $RV_TOOLS_DIR/perf ]; then
+		mkdir -p $RV_TOOLS_DIR/perf
 	fi
 
-	sudo mv $RV_KERNEL_SRC_DIR/perf-*.tar $RV_TOOLS_DST_DIR/perf
+	sudo mv $RV_KERNEL_SRC_DIR/perf-*.tar $RV_TOOLS_DIR/perf
 
-	pushd $RV_TOOLS_DST_DIR/perf
+	pushd $RV_TOOLS_DIR/perf
 	tar -xvf perf-*.tar
 	echo -e "#! /bin/bash\n" > build-perf.sh
 	echo -e "echo install dependencies..." >> build-perf.sh
@@ -826,51 +754,115 @@ function build_rv_ubuntu_perf_tool()
 
 function clean_rv_ubuntu_perf_tool()
 {
-	rm -rf $RV_TOOLS_DST_DIR/perf
+	rm -rf $RV_TOOLS_DIR/perf
 }
 
-# global variables
-CHIP=${CHIP:-mango}
-KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
-VENDOR=${VENDOR:-sophgo}
+function build_rv_fedora_perf_tool()
+{
+	echo "build_rv_fedora_perf_tool is not implemented"
+}
 
-# absolute path
-RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
+function clean_rv_fedora_perf_tool()
+{
+	echo "clean_rv_fedora_perf_tool is not implemented"
+}
 
-RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/riscv64
-PLD_INSTALL_DIR=${PLD_INSTALL_DIR:-$RV_OUTPUT_DIR/pld}
+function build_rv_ltp()
+{
+	pushd $RV_LTP_SRC_DIR
+	if [ ! -f "configure" ]; then
+	    make autotools
+	fi
 
-RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
-RV_DISTRO=ubuntu
-RV_DISTRO_FEDORA=fedora
-RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
-RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
-RV_UBUNTU_IMAGE=ubuntu-22.10-preinstalled-server-riscv64+unmatched.img
-RV_FEDORA_IMAGE=Fedora-Developer-37-20221130.n.0-mmc.raw.img
-RV_TOOLS_DST_DIR=$RV_OUTPUT_DIR/tools
+	./configure CC=${RISCV64_LINUX_CROSS_COMPILE}gcc --prefix=$RV_LTP_OUTPUT_DIR --host=riscv64-linux-gnu  --without-tirpc
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE}
+	make install -j$(nproc)
+	popd
+}
 
-SCRIPTS_DIR=${SCRIPTS_DIR:-$RV_TOP_DIR/bootloader-arm64/scripts}
-RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
+function clean_rv_ltp()
+{
+	pushd $RV_LTP_SRC_DIR
+	make clean
+	rm -rf lib/newlib_tests/test_children_cleanup
+	popd
+	rm -rf $RV_LTP_OUTPUT_DIR
+}
 
-RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
-RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
+function build_rv_ubuntu()
+{
+	build_rv_ubuntu_kernel
+	build_rv_ubuntu_perf_tool
+	build_rv_ubuntu_distro
+	build_rv_ubuntu_image
+}
 
+function clean_rv_ubuntu()
+{
+	clean_rv_ubuntu_kernel
+	clean_rv_ubuntu_perf_tool
+	clean_rv_ubuntu_distro
+	clean_rv_ubuntu_image
+}
 
-RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-riscv
-RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
+function build_rv_fedora()
+{
+	build_rv_fedora_kernel
+	build_rv_fedora_perf_tool
+	build_rv_fedora_distro
+	build_rv_fedora_image
+}
 
-RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
-RV_ZSBL_DIR=$RV_TOP_DIR/bootloader-riscv/zsbl
-RV_SBI_DIR=$RV_TOP_DIR/opensbi
-RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
-RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
+function clean_rv_fedora()
+{
+	clean_rv_fedora_kernel
+	clean_rv_fedora_perf_tool
+	clean_rv_fedora_distro
+	clean_rv_fedora_image
+}
 
-RV_ZSBL_BUILD_DIR=$RV_ZSBL_DIR/build/$CHIP/$KERNEL_VARIANT
+function build_rv_all()
+{
+	build_rv_zsbl
+	build_rv_sbi
+	build_rv_kernel
+	build_rv_uroot
+	build_rv_ubuntu
+}
 
-RV_GCC_DIR=$RV_TOP_DIR/gcc-riscv
-RV_ELF_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-elf
-RV_LINUX_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-linux-gnu
+function clean_rv_all()
+{
+	clean_rv_zsbl
+	clean_rv_sbi
+	clean_rv_kernel
+	clean_rv_uroot
+	clean_rv_ubuntu
+}
 
-# riscv specific variables
-RISCV64_LINUX_CROSS_COMPILE=$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-
-RISCV64_ELF_CROSS_COMPILE=$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-
+#######################################################################
+# run something
+#######################################################################
+
+function run_rv_zsbl()
+{
+	qemu-system-riscv64 -nographic -M virt -bios $RV_OUTPUT_DIR/zsbl.bin
+}
+
+function run_rv_ramfs()
+{
+	qemu-system-riscv64 -nographic -M virt \
+	    -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
+	    -kernel $RV_OUTPUT_DIR/Image \
+	    -initrd $RV_OUTPUT_DIR/initrd.img \
+	    -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
+}
+
+function run_rv_uroot()
+{
+	qemu-system-riscv64 -nographic -M virt \
+	    -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
+	    -kernel $RV_OUTPUT_DIR/Image \
+	    -initrd $RV_OUTPUT_DIR/uroot.cpio \
+	    -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
+}
+
