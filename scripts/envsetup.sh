@@ -120,6 +120,9 @@ function show_rv_functions()
 	echo "build_rv_ltp			-build ltp"
 	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
 	echo "build_rv_fedora_perf_tool     	-build fedora perf tool source package"
+	echo "build_rv_firmware_bin		-build firmware bin"
+	echo "build_rv_firmware_image		-build firmware image"
+	echo "build_rv_firmware_package 	-build firmware package"
 	echo "build_rv_ubuntu_distro		-dowload ubuntu image from offical"
 	echo "build_rv_fedora_distro		-download fedora image from offical"
 	echo "build_rv_ubuntu_image		-only build sophgo ubuntu image"
@@ -139,6 +142,9 @@ function show_rv_functions()
 	echo "clean_rv_ltp			-clean ltp obj files"
 	echo "clean_rv_ubuntu_perf_tool     	-clean ubuntu perf tool files"
 	echo "clean_rv_fedora_perf_tool     	-clean fedora perf tool files"
+	echo "clean_rv_firmware_bin		-clean firmware bin"
+	echo "clean_rv_firmware_image		-clean firmware image"
+	echo "clean_rv_firmware_package 	-clean firmware package"
 	echo "clean_rv_ubuntu_distro		-clean ubuntu image"
 	echo "clean_rv_fedora_distro		-clean fedora image"
 	echo "clean_rv_ubuntu_image		-clean ubuntu image"
@@ -516,8 +522,8 @@ function build_rv_ubuntu_image()
 
 	echo create partitions...
 	sudo parted $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE mktable msdos
-	sudo parted $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE mkpart p fat32 0% 128MiB
-	sudo parted $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE mkpart p ext4 128MiB 100%
+	sudo parted $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE mkpart p fat32 0% 256MiB
+	sudo parted $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE mkpart p ext4 256MiB 100%
 	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE | cut -d ' ' -f 3)
 	efi_part=$(echo $loops | cut -d ' ' -f 1)
 	root_part=$(echo $loops | cut -d ' ' -f 2)
@@ -530,12 +536,7 @@ function build_rv_ubuntu_image()
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 
-	if [ -f $RV_OUTPUT_DIR/../fip.bin ] ; then
-		sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/efi/
-	else
-		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
-	fi
-
+	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
@@ -618,9 +619,9 @@ function build_rv_fedora_image()
 
 	echo create partitions...
 	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mktable msdos 
-	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p fat32 0% 128MiB
-	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p ext4 128MiB 1152MiB
-	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p ext4 1152MiB 100%
+	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p fat32 0% 256MiB
+	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p ext4 256MiB 1280MiB
+	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p ext4 1280MiB 100%
 
 	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE | cut -d ' ' -f 3)
 	efi_part=$(echo $loops | cut -d ' ' -f 1)
@@ -635,11 +636,7 @@ function build_rv_fedora_image()
 	mkdir $RV_OUTPUT_DIR/efi
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
-	if [ -f $RV_OUTPUT_DIR/../fip.bin ] ; then
-		sudo cp $RV_OUTPUT_DIR/../fip.bin $RV_OUTPUT_DIR/efi
-	else
-		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi
-	fi
+	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi
 	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi
 	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
@@ -765,6 +762,114 @@ function build_rv_fedora_perf_tool()
 function clean_rv_fedora_perf_tool()
 {
 	echo "clean_rv_fedora_perf_tool is not implemented"
+}
+
+function build_rv_firmware_bin()
+{
+	gcc -g -Werror $RV_SCRIPTS_DIR/gen_spi_flash.c -o $RV_OUTPUT_DIR/gen_spi_flash
+
+	pushd $RV_OUTPUT_DIR
+
+	rm -f ./firmware.bin
+
+	dtb_group=$(ls *.dtb | awk '{print ""$1" "$1" 0x02000000 "}')
+	
+	./gen_spi_flash $dtb_group \
+			fw_jump.bin fw_jump.bin 0x00000000 \
+			riscv64_Image riscv64_Image 0x00200000 \
+			initrd.img initrd.img 0x30000000 \
+			zsbl.bin zsbl.bin 0x40000000
+	
+	popd
+	
+	mv $RV_OUTPUT_DIR/spi_flash.bin $RV_OUTPUT_DIR/firmware.bin
+}
+
+function clean_rv_firmware_bin()
+{
+	pushd $RV_OUTPUT_DIR
+
+	rm -f gen_spi_flash
+	rm -f firmware.bin
+
+	popd
+}
+
+function build_rv_firmware_image()
+{
+	pushd $RV_OUTPUT_DIR
+
+	rm -f firmware.img
+
+	echo create an image file...
+	dd if=/dev/zero of=firmware.img bs=256MiB count=1
+
+	echo create partitions...
+	sudo parted firmware.img mktable msdos
+	sudo parted firmware.img mkpart p fat32 0% 100%
+	loops=$(sudo kpartx -av firmware.img | cut -d ' ' -f 3)
+	fat32part=$(echo $loops | cut -d ' ' -f 1)
+	sudo mkfs.vfat /dev/mapper/$fat32part -n EFI
+
+	echo mount EFI partition...
+	sudo mkdir -p efi/
+	sudo mount /dev/mapper/$fat32part efi
+	sudo mkdir -p efi/riscv64
+
+	echo copy bootloader...
+	sudo cp $RV_FIRMWARE/fip.bin efi/
+	sudo cp zsbl.bin efi/
+	sudo cp riscv64_Image efi/riscv64
+	sudo cp *.dtb efi/riscv64
+	sudo cp initrd.img efi/riscv64
+	sudo cp fw_jump.bin efi/riscv64
+	sudo touch efi/BOOT
+
+	echo cleanup...
+	sudo umount /dev/mapper/$fat32part
+	sudo kpartx -d $RV_OUTPUT_DIR/firmware.img
+	sudo rm -rf efi
+
+	popd
+}
+
+function clean_rv_firmware_image()
+{
+	pushd $RV_OUTPUT_DIR
+
+	rm -f firmware.img
+
+	popd
+}
+
+function build_rv_firmware_package()
+{
+	pushd $RV_OUTPUT_DIR
+
+	mkdir -p firmware/riscv64
+
+	echo copy bootloader...
+	cp $RV_FIRMWARE/fip.bin firmware
+	cp zsbl.bin firmware
+	cp riscv64_Image firmware/riscv64
+	cp *.dtb firmware/riscv64
+	cp initrd.img firmware/riscv64
+	cp fw_jump.bin firmware/riscv64
+	touch firmware/BOOT
+
+	tar -czvf firmware.tgz firmware
+	rm -rf firmware
+
+	popd
+}
+
+function clean_rv_firmware_package()
+{
+	pushd $RV_OUTPUT_DIR
+
+	rm -f firmware.tgz
+
+	popd
 }
 
 function build_rv_ltp()
