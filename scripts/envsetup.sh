@@ -771,12 +771,12 @@ function build_rv_firmware_bin()
 	pushd $RV_OUTPUT_DIR
 
 	rm -f ./firmware.bin
-
-	dtb_group=$(ls *.dtb | awk '{print ""$1" "$1" 0x02000000 "}')
+	cp $RV_FIRMWARE/fip.bin  ./
+	dtb_group=$(ls *.dtb | awk '{print ""$1" "$1" 0x020000000 "}')
 	
 	./gen_spi_flash $dtb_group \
 			fw_jump.bin fw_jump.bin 0x00000000 \
-			riscv64_Image riscv64_Image 0x00200000 \
+			riscv64_Image riscv64_Image 0x02000000 \
 			initrd.img initrd.img 0x30000000 \
 			zsbl.bin zsbl.bin 0x40000000
 	
