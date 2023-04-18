@@ -113,8 +113,8 @@ function show_rv_functions()
 	echo "build_rv_zsbl			-build zsbl bin"
 	echo "build_rv_sbi			-build sbi bin"
 	echo "build_rv_kernel			-build linuxboot kernel"
-	echo "build_rv_ubuntu_kernel		-build ubuntu kernel, [\$1=vector] with CONFIG_VECTOR=y"
-	echo "build_rv_fedora_kernel		-build fedora kernel, [\$1=vector] with CONFIG_VECTOR=y"
+	echo "build_rv_ubuntu_kernel		-build ubuntu kernel"
+	echo "build_rv_fedora_kernel		-build fedora kernel"
 	echo "build_rv_ramfs			-build buildroot"
 	echo "build_rv_uroot			-build u-root for linuxboot"
 	echo "build_rv_ltp			-build ltp"
@@ -337,10 +337,6 @@ function build_rv_ubuntu_kernel()
 	rm -f ../linux-*
 	rm -rf ./debs
 
-	if [ $1 == 'vector' ]; then
-		sed -i 's/# CONFIG_VECTOR is not set/CONFIG_VECTOR=y/' .config
-	fi
-
 	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg
 	ret=$?
@@ -379,10 +375,6 @@ function build_rv_fedora_kernel()
 		echo "making kernel config failed"
 		popd
 		return $err
-	fi
-
-	if [ $1 == 'vector' ]; then
-		sed -i 's/# CONFIG_VECTOR is not set/CONFIG_VECTOR=y/' .config
 	fi
 
 	if [ -e ~/.rpmmacros ]; then
