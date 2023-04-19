@@ -120,6 +120,7 @@ function show_rv_functions()
 	echo "build_rv_ltp			-build ltp"
 	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
 	echo "build_rv_fedora_perf_tool     	-build fedora perf tool source package"
+	echo "build_rv_firmware			-build firmware(zsbl,sbi,kernel,uroot)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
 	echo "build_rv_firmware_package 	-build firmware package"
@@ -142,6 +143,7 @@ function show_rv_functions()
 	echo "clean_rv_ltp			-clean ltp obj files"
 	echo "clean_rv_ubuntu_perf_tool     	-clean ubuntu perf tool files"
 	echo "clean_rv_fedora_perf_tool     	-clean fedora perf tool files"
+	echo "clean_rv_firmware			-clean firmware(zsbl,sbi,kernel,uroot)"
 	echo "clean_rv_firmware_bin		-clean firmware bin"
 	echo "clean_rv_firmware_image		-clean firmware image"
 	echo "clean_rv_firmware_package 	-clean firmware package"
@@ -756,8 +758,26 @@ function clean_rv_fedora_perf_tool()
 	echo "clean_rv_fedora_perf_tool is not implemented"
 }
 
+function build_rv_firmware()
+{
+	build_rv_zsbl
+	build_rv_sbi
+	build_rv_kernel
+	build_rv_uroot
+}
+
+function clean_rv_firmware()
+{
+	clean_rv_zsbl
+	clean_rv_sbi
+	clean_rv_kernel
+	clean_rv_uroot
+}
+
 function build_rv_firmware_bin()
 {
+	build_rv_firmware
+
 	gcc -g -Werror $RV_SCRIPTS_DIR/gen_spi_flash.c -o $RV_OUTPUT_DIR/gen_spi_flash
 
 	pushd $RV_OUTPUT_DIR
@@ -779,6 +799,8 @@ function build_rv_firmware_bin()
 
 function clean_rv_firmware_bin()
 {
+	clean_rv_firmware
+
 	pushd $RV_OUTPUT_DIR
 
 	rm -f gen_spi_flash
@@ -789,6 +811,8 @@ function clean_rv_firmware_bin()
 
 function build_rv_firmware_image()
 {
+	build_rv_firmware
+
 	pushd $RV_OUTPUT_DIR
 
 	rm -f firmware.img
@@ -827,6 +851,8 @@ function build_rv_firmware_image()
 
 function clean_rv_firmware_image()
 {
+	clean_rv_firmware
+
 	pushd $RV_OUTPUT_DIR
 
 	rm -f firmware.img
@@ -836,6 +862,8 @@ function clean_rv_firmware_image()
 
 function build_rv_firmware_package()
 {
+	build_rv_firmware
+
 	pushd $RV_OUTPUT_DIR
 
 	mkdir -p firmware/riscv64
@@ -857,6 +885,8 @@ function build_rv_firmware_package()
 
 function clean_rv_firmware_package()
 {
+	clean_rv_firmware
+
 	pushd $RV_OUTPUT_DIR
 
 	rm -f firmware.tgz
@@ -920,19 +950,13 @@ function clean_rv_fedora()
 
 function build_rv_all()
 {
-	build_rv_zsbl
-	build_rv_sbi
-	build_rv_kernel
-	build_rv_uroot
+	build_rv_firmware
 	build_rv_ubuntu
 }
 
 function clean_rv_all()
 {
-	clean_rv_zsbl
-	clean_rv_sbi
-	clean_rv_kernel
-	clean_rv_uroot
+	clean_rv_firmware
 	clean_rv_ubuntu
 }
 
