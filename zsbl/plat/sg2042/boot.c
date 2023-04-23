@@ -152,12 +152,14 @@ static char *dtb_name_sd[] = {
 	"0:riscv64/mango-sophgo-x8evb.dtb",
 	"0:riscv64/mango-milkv-pioneer.dtb",
 	"0:riscv64/mango-sophgo-pisces.dtb",
+	"0:riscv64/mango-sophgo-x4evb.dtb",
 };
 
 static char *dtb_name_spi[] = {
 	"mango-sophgo-x8evb.dtb",
 	"mango-milkv-pioneer.dtb",
 	"mango-sophgo-pisces.dtb",
+	"mango-sophgo-x4evb.dtb",
 };
 
 char **dtb_name[] = {
@@ -309,7 +311,7 @@ int build_bootfile_info(int dev_num)
 			boot_file[ID_DEVICETREE].name = config.name;
 	} else {
 		reg = mmio_read_32(BOARD_TYPE_REG);
-		if (reg >= 0x02 && reg <= 0x04)
+		if (reg >= 0x02 && reg <= 0x05)
 			boot_file[ID_DEVICETREE].name = dtbs[reg - 0x02];
 	}
 
