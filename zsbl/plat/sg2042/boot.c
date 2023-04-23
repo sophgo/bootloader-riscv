@@ -9,6 +9,7 @@
 #include <driver/io/io_sd.h>
 #include <driver/io/io_flash.h>
 #include <driver/io/io.h>
+#include <driver/spi-flash/mango_spif.h>
 
 #include <ff.h>
 #include <platform.h>
@@ -21,6 +22,7 @@
 #include "spinlock.h"
 #include "board.h"
 #include <libfdt.h>
+#include "ini.h"
 //#include <thread_safe_printf.h>
 
 //#define ZSBL_BOOT_DEBUG
@@ -180,6 +182,52 @@ char *ddr_node_name[SG2042_MAX_CHIP_NUM][DDR_CHANLE_NUM] = {
 
 board_info sg2042_board_info;
 
+struct global_config {
+	char *name;
+	uint64_t addr;
+};
+
+static struct global_config config;
+
+static int handler(void* user, const char* section, const char* name,
+				   const char* value)
+{
+	struct global_config *pconfig = (struct global_config *)user;
+
+	#define MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
+
+	if (MATCH("devicetree", "name"))
+		pconfig->name = strdup(value);
+	else if (MATCH("devicetree", "addr"))
+		pconfig->addr = strtoul(value, NULL, 16);
+	else
+		return 0;
+
+	return -1;
+}
+
+/* TODO: load conf.ini from EEPROM */
+static int mango_parse_ini(void)
+{
+	const char *header = "[sophgo-config]";
+	char read_buf[512];
+
+	read_buf[0] = 0;
+
+	bm_spi_init(FLASH1_BASE);
+	bm_spi_flash_read((uint8_t *)read_buf, 0, 256);
+	// back to DMMR mode
+	mmio_write_32(FLASH1_BASE + REG_SPI_DMMR, 1);
+
+	if (strncmp(header, read_buf, strlen(header)))
+		return -1;
+
+	if (ini_parse_string((const char*)read_buf, handler, &config) < 0)
+		return -1;
+
+	return 0;
+}
+
 int read_all_img(IO_DEV *io_dev)
 {
 	FILINFO info;
@@ -254,9 +302,16 @@ int build_bootfile_info(int dev_num)
 	for (int i = 0; i < ID_MAX; i++)
 		boot_file[i].name = imgs[i];
 
-	reg = mmio_read_32(BOARD_TYPE_REG);
-	if (reg >= 0x02 && reg <= 0x04)
-		boot_file[ID_DEVICETREE].name = dtbs[reg - 0x02];
+	if (!mango_parse_ini()) {
+		if (dev_num == IO_DEVICE_SD)
+			boot_file[ID_DEVICETREE].name = strcat("0:riscv64/", config.name);
+		else if (dev_num == IO_DEVICE_SPIFLASH)
+			boot_file[ID_DEVICETREE].name = config.name;
+	} else {
+		reg = mmio_read_32(BOARD_TYPE_REG);
+		if (reg >= 0x02 && reg <= 0x04)
+			boot_file[ID_DEVICETREE].name = dtbs[reg - 0x02];
+	}
 
 	return 0;
 }
@@ -311,7 +366,7 @@ int read_boot_file(void)
 			 dev_num == IO_DEVICE_SD ? "sd" : "flash");
 	}
 
-        return 0;
+	return 0;
 }
 
 int show_ddr_node(char *path)
