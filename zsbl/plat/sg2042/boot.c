@@ -224,7 +224,8 @@ static int mango_parse_ini(void)
 	if (strncmp(header, read_buf, strlen(header)))
 		return -1;
 
-	if (ini_parse_string((const char*)read_buf, handler, &config) < 0)
+	if (ini_parse_string((const char*)read_buf, handler, &config) < 0
+		|| config.name == NULL)
 		return -1;
 
 	return 0;
