@@ -120,7 +120,7 @@ function show_rv_functions()
 	echo "build_rv_ltp			-build ltp"
 	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
 	echo "build_rv_fedora_perf_tool     	-build fedora perf tool source package"
-	echo "build_rv_firmware			-build firmware(zsbl,sbi,kernel,uroot)"
+	echo "build_rv_firmware                 -build firmware(zsbl,sbi,kernel,uroot)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
 	echo "build_rv_firmware_package 	-build firmware package"
@@ -143,7 +143,7 @@ function show_rv_functions()
 	echo "clean_rv_ltp			-clean ltp obj files"
 	echo "clean_rv_ubuntu_perf_tool     	-clean ubuntu perf tool files"
 	echo "clean_rv_fedora_perf_tool     	-clean fedora perf tool files"
-	echo "clean_rv_firmware			-clean firmware(zsbl,sbi,kernel,uroot)"
+	echo "clean_rv_firmware                 -clean firmware(zsbl,sbi,kernel,uroot)"
 	echo "clean_rv_firmware_bin		-clean firmware bin"
 	echo "clean_rv_firmware_image		-clean firmware image"
 	echo "clean_rv_firmware_package 	-clean firmware package"
@@ -463,7 +463,8 @@ function build_rv_uroot()
 	pushd $RV_UROOT_DIR
 	GOARCH=riscv64 go build
 	GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
-	    -uinitcmd="boot" -o $RV_UROOT_DIR/initramfs.cpio core boot
+	    -uinitcmd="boot" -files ../busybox/busybox:bin/busybox -o $RV_UROOT_DIR/initramfs.cpio \
+	    core boot
 	popd
 	cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/initrd.img
 }
