@@ -1,7 +1,0 @@
-mainmenu "TPU Firmware"
-
-source "arch/Kconfig"
-source "plat/Kconfig"
-source "common/Kconfig"
-source "drivers/Kconfig"
-source "test/Kconfig"

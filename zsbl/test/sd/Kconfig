@@ -1,5 +1,0 @@
-config TEST_SD
-	bool "HelloWorld"
-	select DRIVER_SD
-	help
-	SD testcase

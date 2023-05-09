@@ -1,4 +1,0 @@
-config TEST_GIC
-	bool "GIC"
-	help
-	GIC test case

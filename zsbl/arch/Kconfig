@@ -1,3 +1,0 @@
-menu "Architecture"
-source "arch/$(SRCARCH)/Kconfig"
-endmenu

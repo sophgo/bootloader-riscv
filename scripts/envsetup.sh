@@ -41,7 +41,7 @@ RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
 RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/riscv64
 
-RV_ZSBL_SRC_DIR=$RV_TOP_DIR/bootloader-riscv/zsbl
+RV_ZSBL_SRC_DIR=$RV_TOP_DIR/zsbl
 RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 RV_SBI_SRC_DIR=$RV_TOP_DIR/opensbi
 

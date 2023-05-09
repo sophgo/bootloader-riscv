@@ -1,4 +1,0 @@
-config TEST_SMP
-	bool "HelloWorld"
-	help
-	SMP testcase

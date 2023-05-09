@@ -1,7 +1,0 @@
-
-menu "IRQ Chips"
-source "drivers/irqchip/gic/Kconfig"
-source "drivers/irqchip/ictl/Kconfig"
-source "drivers/irqchip/intc/Kconfig"
-endmenu
-
