@@ -16,21 +16,6 @@ _start:
 	csrw	CSR_MCCR2, t0
 
 	li	t0, 0xe6e30c
-
-#ifndef MANGO_DVM
-	/* disable sfence.vma broadcast */
-	li	t1, 1
-	slli	t1, t1, 21
-	or	t0, t0, t1
-	/* disable fence broadcast */
-	li	t1, 1
-	slli	t1, t1, 22
-	or	t0, t0, t1
-	; /* disable fence.i broadcast */
-	li	t1, 1
-	slli	t1, t1, 23
-	or	t0, t0, t1
-#endif
 	csrw	CSR_MHINT, t0
 
 	csrr	t0, CSR_MHINT2
