@@ -24,6 +24,13 @@ jobs:
         with:
           path: bootloader-riscv
 
+      - name: Checkout zsbl
+        uses: actions/checkout@v3
+        with:
+          repository: sophgo/zsbl
+          path: zsbl
+
+
       - name: Checkout opensbi
         uses: actions/checkout@v3
         with:
@@ -60,10 +67,9 @@ jobs:
                 # fix build variable in github action
                 export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
                 export RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-
-                export RV_SBI_DIR=$GITHUB_WORKSPACE/opensbi
+                export RV_ZSBL_SRC_DIR=$GITHUB_WORKSPACE/zsbl
+                export RV_SBI_SRC_DIR=$GITHUB_WORKSPACE/opensbi
                 export PATH=/opt/riscv/elf-gcc-2022.08.08/bin:$PATH
-                # build_rv_gcc
-                # build_rv_all
 
                 build_rv_zsbl
                 build_rv_sbi
@@ -81,7 +87,7 @@ jobs:
                 build_rv_kernel
               popd
 
-      - name: Compile uboot
+      - name: Compile u-root
         run: |
               pushd bootloader-riscv
                 source scripts/envsetup.sh
@@ -100,13 +106,12 @@ jobs:
                 pushd $RV_OUTPUT_DIR
                   # Copy efi directory
                   mkdir -p ~/efi/riscv64
-                  cp $RV_OUTPUT_DIR/zsbl.bin ~/efi/
                   cp $GITHUB_WORKSPACE/bootloader-riscv/firmware/fip.bin ~/efi/
-                  cp $RV_OUTPUT_DIR/riscv64_Image ~/efi/riscv64
-                  cp $RV_OUTPUT_DIR/mango-sophgo-x8evb.dtb ~/efi/riscv64
-                  cp $RV_OUTPUT_DIR/mango-milkv-pioneer.dtb ~/efi/riscv64
-                  cp $RV_OUTPUT_DIR/initrd.img ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/zsbl.bin ~/efi/
                   cp $RV_OUTPUT_DIR/fw_jump.bin ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/riscv64_Image ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/*.dtb ~/efi/riscv64
+                  cp $RV_OUTPUT_DIR/initrd.img ~/efi/riscv64
 
                   # Compress
                   pushd ~/efi/
