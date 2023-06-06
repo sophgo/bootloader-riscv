@@ -359,7 +359,6 @@ function build_rv_ubuntu_kernel()
 	fi
 	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
 	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
-	mv ../linux-image-${KERNELRELEASE}-dbg_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}-dbg.deb
 	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
 	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
 	popd
