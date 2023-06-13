@@ -469,7 +469,7 @@ function build_rv_uroot()
 	GOARCH=riscv64 go build
 	GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
 	    -uinitcmd="boot" -files ../busybox/busybox:bin/busybox -o $RV_UROOT_DIR/initramfs.cpio \
-		-files "$RV_UROOT_DIR/firmware/radeon:lib/firmware/radeon" \
+		-files "$RV_UROOT_DIR/firmware/:lib/firmware/" \
 	    core boot
 	popd
 	cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/initrd.img
