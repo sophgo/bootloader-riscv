@@ -62,9 +62,9 @@ RV_UBUNTU_OFFICIAL_IMAGE=ubuntu-22.10-preinstalled-server-riscv64+unmatched.img
 DOWNLOAD_RV_UBUNTU_OFFICIAL_IMAGE="wget https://cdimage.ubuntu.com/releases/22.10/release/$RV_UBUNTU_OFFICIAL_IMAGE.xz"
 UNCOMPRESS_RV_UBUNTU_OFFICIAL_IMAGE="unxz $RV_UBUNTU_OFFICIAL_IMAGE.xz"
 
-RV_FEDORA_OFFICIAL_IMAGE=fedora-disk-developer-gnome-desktop-test-Rawhide-20220515-040634.n.0-sda.raw
-DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE="wget https://openkoji.iscas.ac.cn/pub/dl/riscv/qemu/images/$RV_FEDORA_OFFICIAL_IMAGE.zst"
-UNCOMPRESS_RV_FEDORA_OFFICIAL_IMAGE="zstd -d $RV_FEDORA_OFFICIAL_IMAGE.zst"
+RV_FEDORA_OFFICIAL_IMAGE=fedora-disk-server_sophgo_sg2042-f38-20230523-014306.n.0-sda.raw
+DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE="wget http://openkoji.iscas.ac.cn/kojifiles/work/tasks/8061/1418061/$RV_FEDORA_OFFICIAL_IMAGE.xz"
+UNCOMPRESS_RV_FEDORA_OFFICIAL_IMAGE="unxz $RV_FEDORA_OFFICIAL_IMAGE.xz"
 
 RV_UBUNTU_SOPHGO_IMAGE=ubuntu-sophgo.img
 RV_FEDORA_SOPHGO_IMAGE=fedora-sophgo.img
@@ -646,8 +646,8 @@ function build_rv_fedora_image()
 
 	echo copy fedora ...
 	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE | cut -d ' ' -f 3)
-	fedora_boot_part=$(echo $loops | cut -d ' ' -f 1)
-	fedora_root_part=$(echo $loops | cut -d ' ' -f 2)
+	fedora_boot_part=$(echo $loops | cut -d ' ' -f 2)
+	fedora_root_part=$(echo $loops | cut -d ' ' -f 3)
 	sudo dd if=/dev/mapper/$fedora_boot_part of=/dev/mapper/$boot_part bs=256M
 	sudo e2fsck -f /dev/mapper/$boot_part
 	sudo resize2fs /dev/mapper/$boot_part
@@ -657,7 +657,7 @@ function build_rv_fedora_image()
 	sudo resize2fs /dev/mapper/$root_part
 	sudo e2label /dev/mapper/$root_part ROOT
 
-	mkdir $RV_OUTPUT_DIR/root
+	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
@@ -693,7 +693,35 @@ EOT
 sudo chroot $RV_OUTPUT_DIR/root /bin/env BOOT_PART="$boot_part" /bin/bash << "EOT"
 mount /dev/mapper/$BOOT_PART /boot
 rpm -ivh --force /home/fedora/bsp-rpms/kernel-[0-9]*.riscv64.rpm
+
+# The following command is to solve the problem of not updating the extlinux.conf file when installing kernel RPM package.
+kernel_version=`ls /home/fedora/bsp-rpms/kernel-[0-9]*.riscv64.rpm | cut -d '-' -f 3 | cut -d '.' -f 1-3`
+mv /boot/extlinux/extlinux.conf /boot/extlinux/extlinux.conf_bak
+cat > /boot/extlinux/extlinux.conf << EOF
+## /boot/extlinux/extlinux.conf
+
+default fedora_sophgo
+menu title linuxboot menu
+prompt 0
+timeout 50
+
+label fedora_sophgo
+	menu label Fedora Sophgo in SD
+	linux /vmlinuz-$kernel_version
+	initrd /initramfs-$kernel_version.img
+	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000
+EOF
+
 umount /boot
+
+# replace UUID to LABEL
+mv /etc/fstab /etc/fstab_bak
+cat > /etc/fstab << EOF
+LABEL=ROOT	/		ext4	defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
+LABEL=BOOT	/boot		ext4	defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
+LABEL=EFI	/boot/efi	vfat    defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
+EOF
+
 exit
 EOT
 
