@@ -618,7 +618,7 @@ function build_rv_fedora_image()
 	echo build_rv_fedora_image
 	echo create an image file...
 	rm -f $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE
-	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE bs=1GiB count=10
+	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE bs=1GiB count=20
 
 	echo create partitions...
 	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mktable msdos 
