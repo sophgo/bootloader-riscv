@@ -549,7 +549,7 @@ function build_rv_ubuntu_image()
 	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE | cut -d ' ' -f 3)
 	ubuntu_root_part=$(echo $loops | cut -d ' ' -f 1)
 	sudo dd if=/dev/mapper/$ubuntu_root_part of=/dev/mapper/$root_part bs=256M
-	sudo e2fsck -f /dev/mapper/$root_part
+	sudo e2fsck -f -y /dev/mapper/$root_part
 	sudo resize2fs /dev/mapper/$root_part
 
 	echo mount root partition...
@@ -604,6 +604,8 @@ EOT
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE
 	sudo rm -r $RV_OUTPUT_DIR/efi
 	sudo rm -r $RV_OUTPUT_DIR/root
+
+	echo "build ubuntu image successfully!"
 }
 
 function clean_rv_ubuntu_image()
@@ -616,7 +618,7 @@ function build_rv_fedora_image()
 	echo build_rv_fedora_image
 	echo create an image file...
 	rm -f $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE
-	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE bs=1GiB count=20
+	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE bs=1GiB count=10
 
 	echo create partitions...
 	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mktable msdos 
@@ -649,11 +651,11 @@ function build_rv_fedora_image()
 	fedora_boot_part=$(echo $loops | cut -d ' ' -f 2)
 	fedora_root_part=$(echo $loops | cut -d ' ' -f 3)
 	sudo dd if=/dev/mapper/$fedora_boot_part of=/dev/mapper/$boot_part bs=256M
-	sudo e2fsck -f /dev/mapper/$boot_part
+	sudo e2fsck -f -y /dev/mapper/$boot_part
 	sudo resize2fs /dev/mapper/$boot_part
 	sudo e2label /dev/mapper/$boot_part BOOT
 	sudo dd if=/dev/mapper/$fedora_root_part of=/dev/mapper/$root_part bs=256M
-	sudo e2fsck -f /dev/mapper/$root_part
+	sudo e2fsck -f -y /dev/mapper/$root_part
 	sudo resize2fs /dev/mapper/$root_part
 	sudo e2label /dev/mapper/$root_part ROOT
 
@@ -737,6 +739,8 @@ EOT
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE
 	rm -r $RV_OUTPUT_DIR/efi
 	rm -r $RV_OUTPUT_DIR/root
+
+	echo "build fedora image successfully!"
 }
 
 function clean_rv_fedora_image()
