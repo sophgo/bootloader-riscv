@@ -673,17 +673,6 @@ sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
 useradd -m -s /bin/bash fedora
 echo "fedora:fedora" | chpasswd
 sed -i -e '/NOPASSWD/a\%fedora   ALL=(ALL) NOPASSWD: ALL' /etc/sudoers
-
-mv /etc/yum.repos.d /etc/yum.repos.d-backup
-mkdir /etc/yum.repos.d/
-cat > /etc/yum.repos.d/fedora-riscv-koji.repo << EOF
-[fedora-riscv-koji]
-name=Fedora RISC-V Koji
-baseurl=https://openkoji.iscas.ac.cn/kojifiles/repos/f37-build-side-32-misc-devel/latest/riscv64/
-enabled=1
-gpgcheck=0
-EOF
-
 exit
 EOT
 
