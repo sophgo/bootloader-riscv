@@ -33,13 +33,14 @@ function get_rv_top()
 
 CHIP=${CHIP:-mango}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
+CHIP_NUM=${CHIP_NUM:-single} # single, multi
 VENDOR=${VENDOR:-sophgo}
 
 # absolute path
 RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
-RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/riscv64
+RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/"$CHIP_NUM"_chip
 
 RV_ZSBL_SRC_DIR=$RV_TOP_DIR/zsbl
 RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
@@ -71,6 +72,7 @@ RV_FEDORA_SOPHGO_IMAGE=fedora-sophgo.img
 
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
+RV_FIRMWARE_INSTALL_DIR=$RV_OUTPUT_DIR/firmware
 
 RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
 RV_TOOLS_DIR=$RV_OUTPUT_DIR/tools
@@ -160,10 +162,6 @@ function show_rv_functions()
 	echo "clean_rv_ubuntu			-clean ubuntu image"
 	echo "clean_rv_fedora			-clean feodra image"
 	echo "clean_rv_all			-clean all bin and image(default: ubuntu)"
-	echo ""
-	echo "run_rv_zsbl			-run zsbl on qemu"
-	echo "run_rv_ramfs			-run ramfs on qemu"
-	echo "run_rv_uroot			-run uroot on qemu"
 }
 
 #######################################################################
@@ -249,14 +247,14 @@ function build_rv_zsbl()
 		return $err
 	    fi
 
-	mkdir -p $RV_OUTPUT_DIR
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_OUTPUT_DIR
+	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR
 }
 
 function clean_rv_zsbl()
 {
-	rm -rf $RV_OUTPUT_DIR/zsbl.bin
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/zsbl.bin
 	rm -rf $RV_ZSBL_BUILD_DIR
 }
 
@@ -268,15 +266,15 @@ function build_rv_sbi()
 	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE PLATFORM=$PLATFORM FW_TEXT_START=0x0 FW_JUMP_ADDR=0x02000000 FW_JUMP_FDT_ADDR=0x20000000 FW_PIC=y BUILD_INFO=y DEBUG=1
 	popd
 
-	mkdir -p $RV_OUTPUT_DIR
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_jump.bin $RV_OUTPUT_DIR
-	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_jump.elf $RV_OUTPUT_DIR
+	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_jump.bin $RV_FIRMWARE_INSTALL_DIR
+	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_jump.elf $RV_FIRMWARE_INSTALL_DIR
 }
 
 function clean_rv_sbi()
 {
-	rm -rf $RV_OUTPUT_DIR/fw_jump.*
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/fw_jump.*
 
 	pushd $RV_SBI_SRC_DIR
 	make distclean
@@ -299,6 +297,9 @@ function build_rv_kernel()
 	fi
 
 	pushd $RV_KERNEL_BUILD_DIR
+	if [ "$CHIP_NUM" == "multi" ];then
+		echo CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y >> .config
+	fi
 	make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
 	err=$?
 	popd
@@ -308,20 +309,19 @@ function build_rv_kernel()
 		return $err
 	fi
 
-	mkdir -p $RV_OUTPUT_DIR
-	cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_OUTPUT_DIR/riscv64_Image
-	cp $RV_KERNEL_BUILD_DIR/vmlinux $RV_OUTPUT_DIR
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
+	cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/riscv64_Image
 
 	if [ $CHIP != 'qemu' ]; then
-	    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_OUTPUT_DIR
+	    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_FIRMWARE_INSTALL_DIR
 	fi
 }
 
 function clean_rv_kernel()
 {
-	rm -rf $RV_OUTPUT_DIR/riscv64_Image
-	rm -rf $RV_OUTPUT_DIR/vmlinux
-	rm -rf $RV_OUTPUT_DIR/*.dtb
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/riscv64_Image
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/vmlinux
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.dtb
 
 	rm -rf $RV_KERNEL_BUILD_DIR
 }
@@ -344,6 +344,10 @@ function build_rv_ubuntu_kernel()
 	pushd $RV_KERNEL_BUILD_DIR
 	rm -f ../linux-*
 	rm -rf ./debs
+
+	if [ "$CHIP_NUM" == "multi" ];then
+		echo CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y >> .config
+	fi
 
 	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg
@@ -382,6 +386,10 @@ function build_rv_fedora_kernel()
 		echo "making kernel config failed"
 		popd
 		return $err
+	fi
+
+	if [ "$CHIP_NUM" == "multi" ];then
+		echo CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y >> .config
 	fi
 
 	if [ -e ~/.rpmmacros ]; then
@@ -454,12 +462,12 @@ function build_rv_ramfs()
 	    return $err
 	fi
 
-	cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_OUTPUT_DIR/
+	cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_FIRMWARE_INSTALL_DIR/
 }
 
 function clean_rv_ramfs()
 {
-	rm -rf $RV_OUTPUT_DIR/rootfs.cpio
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/rootfs.cpio
 	rm -rf $RV_BUILDROOT_DIR/output
 }
 
@@ -472,12 +480,12 @@ function build_rv_uroot()
 		-files "$RV_UROOT_DIR/firmware/:lib/firmware/" \
 	    core boot
 	popd
-	cp $RV_UROOT_DIR/initramfs.cpio $RV_OUTPUT_DIR/initrd.img
+	cp $RV_UROOT_DIR/initramfs.cpio $RV_FIRMWARE_INSTALL_DIR/initrd.img
 }
 
 function clean_rv_uroot()
 {
-	rm $RV_OUTPUT_DIR/initrd.img
+	rm $RV_FIRMWARE_INSTALL_DIR/initrd.img
 }
 
 function build_rv_ubuntu_distro()
@@ -538,11 +546,11 @@ function build_rv_ubuntu_image()
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
-	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
-	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
 	sudo touch $RV_OUTPUT_DIR/efi/BOOT
 
 	echo copy ubuntu...
@@ -640,11 +648,11 @@ function build_rv_fedora_image()
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi
-	sudo cp $RV_OUTPUT_DIR/zsbl.bin $RV_OUTPUT_DIR/efi
-	sudo cp $RV_OUTPUT_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_OUTPUT_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
 
 	echo copy fedora ...
 	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE | cut -d ' ' -f 3)
@@ -806,9 +814,9 @@ function build_rv_firmware_bin()
 {
 	build_rv_firmware
 
-	gcc -g -Werror $RV_SCRIPTS_DIR/gen_spi_flash.c -o $RV_OUTPUT_DIR/gen_spi_flash
+	gcc -g -Werror $RV_SCRIPTS_DIR/gen_spi_flash.c -o $RV_FIRMWARE_INSTALL_DIR/gen_spi_flash
 
-	pushd $RV_OUTPUT_DIR
+	pushd $RV_FIRMWARE_INSTALL_DIR
 
 	rm -f ./firmware.bin
 	cp $RV_FIRMWARE/fip.bin  ./
@@ -820,18 +828,18 @@ function build_rv_firmware_bin()
 			initrd.img initrd.img 0x30000000 \
 			zsbl.bin zsbl.bin 0x40000000
 	
+	mv spi_flash.bin firmware.bin
+	rm -f gen_spi_flash
+
 	popd
-	
-	mv $RV_OUTPUT_DIR/spi_flash.bin $RV_OUTPUT_DIR/firmware.bin
 }
 
 function clean_rv_firmware_bin()
 {
 	clean_rv_firmware
 
-	pushd $RV_OUTPUT_DIR
+	pushd $RV_FIRMWARE_INSTALL_DIR
 
-	rm -f gen_spi_flash
 	rm -f firmware.bin
 
 	popd
@@ -841,7 +849,7 @@ function build_rv_firmware_image()
 {
 	build_rv_firmware
 
-	pushd $RV_OUTPUT_DIR
+	pushd $RV_FIRMWARE_INSTALL_DIR
 
 	rm -f firmware.img
 
@@ -871,7 +879,7 @@ function build_rv_firmware_image()
 
 	echo cleanup...
 	sudo umount /dev/mapper/$fat32part
-	sudo kpartx -d $RV_OUTPUT_DIR/firmware.img
+	sudo kpartx -d $RV_FIRMWARE_INSTALL_DIR/firmware.img
 	sudo rm -rf efi
 
 	popd
@@ -881,7 +889,7 @@ function clean_rv_firmware_image()
 {
 	clean_rv_firmware
 
-	pushd $RV_OUTPUT_DIR
+	pushd $RV_FIRMWARE_INSTALL_DIR
 
 	rm -f firmware.img
 
@@ -892,7 +900,7 @@ function build_rv_firmware_package()
 {
 	build_rv_firmware
 
-	pushd $RV_OUTPUT_DIR
+	pushd $RV_FIRMWARE_INSTALL_DIR
 
 	mkdir -p firmware/riscv64
 
@@ -915,7 +923,7 @@ function clean_rv_firmware_package()
 {
 	clean_rv_firmware
 
-	pushd $RV_OUTPUT_DIR
+	pushd $RV_FIRMWARE_INSTALL_DIR
 
 	rm -f firmware.tgz
 
@@ -978,40 +986,12 @@ function clean_rv_fedora()
 
 function build_rv_all()
 {
-	build_rv_firmware
+	build_rv_firmware_bin
 	build_rv_ubuntu
 }
 
 function clean_rv_all()
 {
-	clean_rv_firmware
+	clean_rv_firmware_bin
 	clean_rv_ubuntu
 }
-
-#######################################################################
-# run something
-#######################################################################
-
-function run_rv_zsbl()
-{
-	qemu-system-riscv64 -nographic -M virt -bios $RV_OUTPUT_DIR/zsbl.bin
-}
-
-function run_rv_ramfs()
-{
-	qemu-system-riscv64 -nographic -M virt \
-	    -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
-	    -kernel $RV_OUTPUT_DIR/Image \
-	    -initrd $RV_OUTPUT_DIR/initrd.img \
-	    -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
-}
-
-function run_rv_uroot()
-{
-	qemu-system-riscv64 -nographic -M virt \
-	    -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
-	    -kernel $RV_OUTPUT_DIR/Image \
-	    -initrd $RV_OUTPUT_DIR/uroot.cpio \
-	    -append "root=/dev/ram0 earlycon ignore_loglevel rootwait"
-}
-
