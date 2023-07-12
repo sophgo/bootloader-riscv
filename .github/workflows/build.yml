@@ -63,6 +63,7 @@ jobs:
       - name: Compile zsbl & sbi
         run: |
               pushd bootloader-riscv
+                CHIP_NUM=single
                 source scripts/envsetup.sh
                 # fix build variable in github action
                 export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
@@ -78,6 +79,7 @@ jobs:
       - name: Compile kernel
         run: |
               pushd bootloader-riscv
+                CHIP_NUM=single
                 source scripts/envsetup.sh
                 # fix build variable in github action
                 export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
@@ -90,6 +92,7 @@ jobs:
       - name: Compile u-root
         run: |
               pushd bootloader-riscv
+                CHIP_NUM=single
                 source scripts/envsetup.sh
                 # fix build variable in github action
                 export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
@@ -102,16 +105,17 @@ jobs:
       - name: Compress Artifact
         run: |
               pushd bootloader-riscv
+                CHIP_NUM=single
                 source scripts/envsetup.sh
-                pushd $RV_OUTPUT_DIR
+                pushd $RV_FIRMWARE_INSTALL_DIR
                   # Copy efi directory
                   mkdir -p ~/efi/riscv64
                   cp $GITHUB_WORKSPACE/bootloader-riscv/firmware/fip.bin ~/efi/
-                  cp $RV_OUTPUT_DIR/zsbl.bin ~/efi/
-                  cp $RV_OUTPUT_DIR/fw_jump.bin ~/efi/riscv64
-                  cp $RV_OUTPUT_DIR/riscv64_Image ~/efi/riscv64
-                  cp $RV_OUTPUT_DIR/*.dtb ~/efi/riscv64
-                  cp $RV_OUTPUT_DIR/initrd.img ~/efi/riscv64
+                  cp zsbl.bin ~/efi/
+                  cp fw_jump.bin ~/efi/riscv64
+                  cp riscv64_Image ~/efi/riscv64
+                  cp *.dtb ~/efi/riscv64
+                  cp initrd.img ~/efi/riscv64
 
                   # Compress
                   pushd ~/efi/
