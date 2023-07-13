@@ -17,7 +17,9 @@ jobs:
       KBUILD_BUILD_USER: riscv
       KBUILD_BUILD_HOST: riscv-builder
       KDEB_COMPRESS: xz
-
+      CHIP_NUM: single
+      ELF_TOOLCHAIN_HOME: /opt/riscv/elf-gcc-2022.08.08/
+      
     steps:
       - name: Checkout bootloader-riscv
         uses: actions/checkout@v3
@@ -54,8 +56,8 @@ jobs:
                                   qemu binfmt-support qemu-user-static curl wget
               update-binfmts --display
               ${wget_alias} ${elf_newlib_toolchain}/${toolchain_file_name}
-              sudo mkdir -p /opt/riscv/elf-gcc-2022.08.08/
-              sudo tar -xvf ${toolchain_file_name} -C /opt/riscv/elf-gcc-2022.08.08/
+              sudo mkdir -p ${ELF_TOOLCHAIN_HOME}
+              sudo tar -xvf ${toolchain_file_name} -C ${ELF_TOOLCHAIN_HOME}
 
       - name: prepare
         run: mkdir -p artifact
@@ -63,14 +65,9 @@ jobs:
       - name: Compile zsbl & sbi
         run: |
               pushd bootloader-riscv
-                CHIP_NUM=single
                 source scripts/envsetup.sh
                 # fix build variable in github action
-                export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
-                export RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-
-                export RV_ZSBL_SRC_DIR=$GITHUB_WORKSPACE/zsbl
-                export RV_SBI_SRC_DIR=$GITHUB_WORKSPACE/opensbi
-                export PATH=/opt/riscv/elf-gcc-2022.08.08/bin:$PATH
+                source scripts/github_env.sh
 
                 build_rv_zsbl
                 build_rv_sbi
@@ -79,25 +76,18 @@ jobs:
       - name: Compile kernel
         run: |
               pushd bootloader-riscv
-                CHIP_NUM=single
                 source scripts/envsetup.sh
                 # fix build variable in github action
-                export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
-                export RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-
-                export RV_KERNEL_SRC_DIR=$GITHUB_WORKSPACE/linux-riscv
-                export PATH=/opt/riscv/elf-gcc-2022.08.08/bin:$PATH
+                source scripts/github_env.sh
                 build_rv_kernel
               popd
 
       - name: Compile u-root
         run: |
               pushd bootloader-riscv
-                CHIP_NUM=single
                 source scripts/envsetup.sh
                 # fix build variable in github action
-                export RISCV64_LINUX_CROSS_COMPILE=riscv64-linux-gnu-
-                export RISCV64_ELF_CROSS_COMPILE=riscv64-unknown-elf-
-                export PATH=/opt/riscv/elf-gcc-2022.08.08/bin:$PATH
+                source scripts/github_env.sh
 
                 build_rv_uroot
               popd
@@ -105,7 +95,6 @@ jobs:
       - name: Compress Artifact
         run: |
               pushd bootloader-riscv
-                CHIP_NUM=single
                 source scripts/envsetup.sh
                 pushd $RV_FIRMWARE_INSTALL_DIR
                   # Copy efi directory
