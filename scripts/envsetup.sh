@@ -298,7 +298,7 @@ function build_rv_kernel()
 
 	pushd $RV_KERNEL_BUILD_DIR
 	if [ "$CHIP_NUM" == "multi" ];then
-		echo CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y >> .config
+		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
 	fi
 	make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
 	err=$?
@@ -346,7 +346,7 @@ function build_rv_ubuntu_kernel()
 	rm -rf ./debs
 
 	if [ "$CHIP_NUM" == "multi" ];then
-		echo CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y >> .config
+		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
 	fi
 
 	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
@@ -389,7 +389,7 @@ function build_rv_fedora_kernel()
 	fi
 
 	if [ "$CHIP_NUM" == "multi" ];then
-		echo CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y >> .config
+		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
 	fi
 
 	if [ -e ~/.rpmmacros ]; then
@@ -398,7 +398,6 @@ function build_rv_fedora_kernel()
 
 # following lines must not be started with space or tab.
 cat >> ~/.rpmmacros << "EOT"
-%_topdir                /tmp/rpmbuild
 %_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
 EOT
 
@@ -412,7 +411,7 @@ EOT
 		echo "making rpm package failed"
 		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
 		rm kernel-[0-9]*.tar.gz
-		rm -rf /tmp/rpmbuild
+		rm -rf $HOME/rpmbuild
 		popd
 		return $ret
 	fi
@@ -423,10 +422,10 @@ EOT
 		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
 	fi
 
-	cp /tmp/rpmbuild/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	cp $HOME/rpmbuild/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
 	rm kernel-[0-9]*.tar.gz
-	rm -rf /tmp/rpmbuild
+	rm -rf $HOME/rpmbuild
 	popd
 }
 
