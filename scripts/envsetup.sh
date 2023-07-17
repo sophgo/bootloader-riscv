@@ -762,13 +762,13 @@ function build_rv_ubuntu_perf_tool()
 	echo -e "#! /bin/bash\n" > build-perf.sh
 	echo -e "echo install dependencies..." >> build-perf.sh
 	echo -e "sudo apt update" >> build-perf.sh
-	echo -e "sudo apt install make gcc flex bison libdwarf-dev libbfd-dev libcap-dev" >> build-perf.sh
-	echo -e "sudo apt install libelf-dev libnuma-dev libperl-dev liblzma-dev python2" >> build-perf.sh
-	echo -e "sudo apt install python2-dev python-dev-is-python3 python-setuptools" >> build-perf.sh
-	echo -e "sudo apt install libssl-dev libunwind-dev zlib1g-dev libaio-dev" >> build-perf.sh
-	echo -e "sudo apt install libdw-dev binutils-dev binutils-multiarch-dev elfutils" >> build-perf.sh
-	echo -e "sudo apt install libiberty-dev libzstd-dev libaudit-dev libslang2-dev" >> build-perf.sh
-	echo -e "sudo apt install systemtap-sdt-dev libbabeltrace-dev libbabeltrace-ctf-dev\n" >> build-perf.sh
+	echo -e "sudo apt install -y make gcc flex bison libdwarf-dev libbfd-dev libcap-dev" >> build-perf.sh
+	echo -e "sudo apt install -y libelf-dev libnuma-dev libperl-dev liblzma-dev python2" >> build-perf.sh
+	echo -e "sudo apt install -y python2-dev python-dev-is-python3 python-setuptools" >> build-perf.sh
+	echo -e "sudo apt install -y libssl-dev libunwind-dev zlib1g-dev libaio-dev" >> build-perf.sh
+	echo -e "sudo apt install -y libdw-dev binutils-dev binutils-multiarch-dev elfutils" >> build-perf.sh
+	echo -e "sudo apt install -y libiberty-dev libzstd-dev libaudit-dev libslang2-dev" >> build-perf.sh
+	echo -e "sudo apt install -y systemtap-sdt-dev libbabeltrace-dev libbabeltrace-ctf-dev\n" >> build-perf.sh
 	echo -e "echo make perf tool..." >> build-perf.sh
 	echo -e "pushd perf-*/tools/perf" >> build-perf.sh
 	echo -e "sudo make clean" >> build-perf.sh
