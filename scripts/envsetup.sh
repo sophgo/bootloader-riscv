@@ -46,6 +46,12 @@ RV_ZSBL_SRC_DIR=$RV_TOP_DIR/zsbl
 RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 RV_SBI_SRC_DIR=$RV_TOP_DIR/opensbi
 
+
+RV_UBOOT_SRC_DIR=$RV_TOP_DIR/u-boot
+RV_GRUB_SRC_DIR=$RV_TOP_DIR/grub
+RV_GRUB_BUILD_DIR=$RV_TOP_DIR/grubriscv64
+
+
 RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-riscv
 RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 
@@ -73,6 +79,9 @@ RV_FEDORA_SOPHGO_IMAGE=fedora-sophgo.img
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
 RV_FIRMWARE_INSTALL_DIR=$RV_OUTPUT_DIR/firmware
+
+
+RV_GRUB_CFG=$RV_FIRMWARE_INSTALL_DIR/grub.cfg
 
 RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
 RV_TOOLS_DIR=$RV_OUTPUT_DIR/tools
@@ -120,6 +129,9 @@ function show_rv_functions()
 	echo "build_rv_gcc			-build gcc from source"
 	echo "build_rv_zsbl			-build zsbl bin"
 	echo "build_rv_sbi			-build sbi bin"
+	echo "build_rv_uboot			-build u-boot bin"
+	echo "build_rv_grub			-build grub2 efi"
+	echo "build_rv_grub_cfg_tmpl		-create a grub.cfg template"
 	echo "build_rv_kernel			-build linuxboot kernel"
 	echo "build_rv_ubuntu_kernel		-build ubuntu kernel"
 	echo "build_rv_fedora_kernel		-build fedora kernel"
@@ -128,7 +140,7 @@ function show_rv_functions()
 	echo "build_rv_ltp			-build ltp"
 	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
 	echo "build_rv_fedora_perf_tool     	-build fedora perf tool source package"
-	echo "build_rv_firmware                 -build firmware(zsbl,sbi,kernel,uroot)"
+	echo "build_rv_firmware                 -build firmware(zsbl,sbi,kernel,uroot,uboot,grub2)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
 	echo "build_rv_firmware_package 	-build firmware package"
@@ -143,6 +155,8 @@ function show_rv_functions()
 	echo "clean_rv_gcc			-clean gcc obj files"
 	echo "clean_rv_zsbl			-clean zsbl obj files"
 	echo "clean_rv_sbi			-clean sbi obj files"
+	echo "clean_rv_uboot			-clean u-boot obj files"
+	echo "clean_rv_grub			-clean grub efi files"
 	echo "clean_rv_kernel			-clean linuxboot kernel obj files"
 	echo "clean_rv_ubuntu_kernel		-clean ubuntu kernel obj files"
 	echo "clean_rv_fedora_kernel		-clean fedora kernel obj files"
@@ -151,7 +165,7 @@ function show_rv_functions()
 	echo "clean_rv_ltp			-clean ltp obj files"
 	echo "clean_rv_ubuntu_perf_tool     	-clean ubuntu perf tool files"
 	echo "clean_rv_fedora_perf_tool     	-clean fedora perf tool files"
-	echo "clean_rv_firmware                 -clean firmware(zsbl,sbi,kernel,uroot)"
+	echo "clean_rv_firmware                 -clean firmware(zsbl,sbi,kernel,uroot,uboot,grub2)"
 	echo "clean_rv_firmware_bin		-clean firmware bin"
 	echo "clean_rv_firmware_image		-clean firmware image"
 	echo "clean_rv_firmware_package 	-clean firmware package"
@@ -277,6 +291,102 @@ function clean_rv_sbi()
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/fw_jump.*
 
 	pushd $RV_SBI_SRC_DIR
+	make distclean
+	popd
+}
+
+function build_rv_uboot()
+{
+	pushd $RV_UBOOT_SRC_DIR
+	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv sophgo_sg2042_defconfig
+	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv all
+	popd
+
+	mkdir -p $RV_OUTPUT_DIR
+
+	cp $RV_UBOOT_SRC_DIR/u-boot.bin $RV_FIRMWARE_INSTALL_DIR
+}
+
+function clean_rv_uboot()
+{
+	rm -f $RV_FIRMWARE_INSTALL_DIR/u-boot.bin
+
+	pushd $RV_UBOOT_SRC_DIR
+	make distclean
+	popd
+}
+
+function build_rv_grub_cfg_tmpl()
+{
+	echo "set default=0" > ${RV_GRUB_CFG}
+	echo "set timeout_style=menu" >> ${RV_GRUB_CFG}
+	echo "set timeout=10" >> ${RV_GRUB_CFG}
+	echo "" >> ${RV_GRUB_CFG}
+	echo "set debug="linux,loader,mm"" >> ${RV_GRUB_CFG}
+	echo "set term="vt100"" >> ${RV_GRUB_CFG}
+	echo "" >> ${RV_GRUB_CFG}
+	echo "menuentry 'ubuntu vmlinuz-6.1.31' {" >> ${RV_GRUB_CFG}
+	echo "        root=hd0,msdos2" >> ${RV_GRUB_CFG}
+	echo "        linux /boot/vmlinuz-6.1.31 root=/dev/mmcblk1p2 console=ttyS0,115200 earlycon" >> ${RV_GRUB_CFG}
+	echo "        initrd /boot/initrd.img-6.1.31" >> ${RV_GRUB_CFG}
+	echo "        root=hd0,msdos1" >> ${RV_GRUB_CFG}
+	echo "        devicetree /riscv64/mango-sophgo-x8evb.dtb" >> ${RV_GRUB_CFG}
+	echo "}" >> ${RV_GRUB_CFG}
+}
+
+function build_rv_grub()
+{
+	build_rv_grub_cfg_tmpl
+
+	pushd $RV_GRUB_SRC_DIR
+
+	#setup build env
+	GRUB_INSTALL_DIR=${RV_GRUB_BUILD_DIR}/rootfs
+
+	mkdir -p $GRUB_INSTALL_DIR
+	GRUB_DEFAULT_CFG_RISCV=${RV_GRUB_BUILD_DIR}/default.cfg
+	echo "search -f /grub.cfg -s root" > $GRUB_DEFAULT_CFG_RISCV
+	# Use single quotes to prevent variables from being substituted
+	echo 'set prefix=($root)' >> $GRUB_DEFAULT_CFG_RISCV
+
+	GRUB_BINARY_NAME_RISCV=grubriscv64.efi
+	GRUB_BINARY_FORMAT_RISCV=riscv64-efi
+	GRUB_PREFIX_DIR_RISCV=efi
+	GRUB_UEFI_IMAGE_MODULES_RISCV='acpi adler32 affs afs afsplitter all_video archelp bfs bitmap bitmap_scale blocklist boot bswap_test btrfs bufio cat cbfs chain cmdline_cat_test cmp cmp_test configfile cpio_be cpio crc64 cryptodisk crypto ctz_test datehook date datetime diskfilter disk div div_test dm_nv echo efifwsetup efi_gop efinet elf eval exfat exfctest ext2 extcmd f2fs fat fdt file font fshelp functional_test gcry_arcfour gcry_blowfish gcry_camellia gcry_cast5 gcry_crc gcry_des gcry_dsa gcry_idea gcry_md4 gcry_md5 gcry_rfc2268 gcry_rijndael gcry_rmd160 gcry_rsa gcry_seed gcry_serpent gcry_sha1 gcry_sha256 gcry_sha512 gcry_tiger gcry_twofish gcry_whirlpool geli gettext gfxmenu gfxterm_background gfxterm_menu gfxterm gptsync gzio halt hashsum hello help hexdump hfs hfspluscomp hfsplus http iso9660 jfs jpeg json keystatus ldm linux loadenv loopback lsacpi lsefimmap lsefi lsefisystab lsmmap ls lssal luks2 luks lvm lzopio macbless macho mdraid09_be mdraid09 mdraid1x memdisk memrw minicmd minix2_be minix2 minix3_be minix3 minix_be minix mmap mpi msdospart mul_test net newc nilfs2 normal ntfscomp ntfs odc offsetio part_acorn part_amiga part_apple part_bsd part_dfly part_dvh part_gpt part_msdos part_plan part_sun part_sunpc parttool password password_pbkdf2 pbkdf2 pbkdf2_test pgp png priority_queue probe procfs progress raid5rec raid6rec read reboot regexp reiserfs romfs scsi search_fs_file search_fs_uuid search_label search serial setjmp setjmp_test sfs shift_test signature_test sleep sleep_test smbios squash4 strtoull_test syslinuxcfg tar terminal terminfo test_blockarg testload test testspeed tftp tga time tpm trig tr true udf ufs1_be ufs1 ufs2 video_colors video_fb videoinfo video videotest_checksum videotest xfs xnu_uuid xnu_uuid_test xzio zfscrypt zfsinfo zfs zstd'
+
+	#bootstrap, download gunlib...
+	./bootstrap
+	#auto generate the config files
+	./autogen.sh
+	#auto config and generate Makefile
+	TARGET_CC="${RISCV64_LINUX_CROSS_COMPILE}gcc" \
+	TARGET_OBJCOPY="${RISCV64_LINUX_CROSS_COMPILE}objcopy" \
+	TARGET_STRIP="${RISCV64_LINUX_CROSS_COMPILE}strip" \
+	TARGET_NM="${RISCV64_LINUX_CROSS_COMPILE}nm" \
+	TARGET_RANLIB="${RISCV64_LINUX_CROSS_COMPILE}ranlib" \
+	TARGET_CFLAGS='-Os -march=rv64imac_zicsr_zifencei' \
+	./configure --target=riscv64-unknown-linux-gnu --with-platform=efi --prefix=$GRUB_INSTALL_DIR
+	#build and install to ${RISCV_ROOTFS}
+	make install -j$(nproc)
+
+	#make executable efi file
+	pushd ${GRUB_INSTALL_DIR}
+	./bin/grub-mkimage -v \
+                       -o ${GRUB_BINARY_NAME_RISCV} \
+                       -O  ${GRUB_BINARY_FORMAT_RISCV} \
+                       -p ${GRUB_PREFIX_DIR_RISCV}  \
+                       -c ${GRUB_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
+	popd
+	popd
+
+	cp ${GRUB_INSTALL_DIR}/grubriscv64.efi $RV_FIRMWARE_INSTALL_DIR
+}
+
+function clean_rv_grub()
+{
+	rm -rf ${RV_GRUB_BUILD_DIR}
+	rm -f ${RV_FIRMWARE_INSTALL_DIR}/grubriscv64.efi
+	pushd ${RV_GRUB_SRC_DIR}
 	make distclean
 	popd
 }
@@ -546,8 +656,11 @@ function build_rv_ubuntu_image()
 
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grub.cfg $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64.efi $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
 	sudo touch $RV_OUTPUT_DIR/efi/BOOT
@@ -652,6 +765,10 @@ function build_rv_fedora_image()
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
+
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grub.cfg $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64.efi $RV_OUTPUT_DIR/efi/
 
 	echo copy fedora ...
 	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE | cut -d ' ' -f 3)
@@ -797,6 +914,8 @@ function build_rv_firmware()
 {
 	build_rv_zsbl
 	build_rv_sbi
+	build_rv_uboot
+	build_rv_grub
 	build_rv_kernel
 	build_rv_uroot
 }
@@ -805,6 +924,8 @@ function clean_rv_firmware()
 {
 	clean_rv_zsbl
 	clean_rv_sbi
+	clean_rv_uboot
+	clean_rv_grub
 	clean_rv_kernel
 	clean_rv_uroot
 }
@@ -906,6 +1027,9 @@ function build_rv_firmware_package()
 	echo copy bootloader...
 	cp $RV_FIRMWARE/fip.bin firmware
 	cp zsbl.bin firmware
+	cp grub.cfg firmware
+	cp u-boot.bin firmware/riscv64
+	cp grubriscv64.efi firmware
 	cp riscv64_Image firmware/riscv64
 	cp *.dtb firmware/riscv64
 	cp initrd.img firmware/riscv64
