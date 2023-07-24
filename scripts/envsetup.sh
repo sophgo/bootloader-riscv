@@ -31,7 +31,7 @@ function get_rv_top()
 	fi
 }
 
-CHIP=${CHIP:-mango}
+CHIP=${CHIP}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
 CHIP_NUM=${CHIP_NUM:-single} # single, multi
 VENDOR=${VENDOR:-sophgo}
@@ -228,7 +228,11 @@ function build_rv_zsbl()
 	local err
 
 	pushd $RV_ZSBL_SRC_DIR
-	make CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
+	if [ $CHIP == 'mango' ]; then
+		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
+	else
+		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv ${CHIP}_defconfig
+	fi
 	err=$?
 	popd
 
@@ -238,7 +242,7 @@ function build_rv_zsbl()
 	    fi
 
 	pushd $RV_ZSBL_BUILD_DIR
-	make -j$(nproc) CROSS_COMPILE=$RISCV64_ELF_CROSS_COMPILE ARCH=riscv
+	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
 	err=$?
 	popd
 
@@ -628,7 +632,7 @@ function build_rv_fedora_image()
 	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE bs=1GiB count=20
 
 	echo create partitions...
-	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mktable msdos 
+	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mktable msdos
 	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p fat32 0% 256MiB
 	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p ext4 256MiB 1280MiB
 	sudo parted $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE mkpart p ext4 1280MiB 100%
@@ -820,13 +824,13 @@ function build_rv_firmware_bin()
 	rm -f ./firmware.bin
 	cp $RV_FIRMWARE/fip.bin  ./
 	dtb_group=$(ls *.dtb | awk '{print ""$1" "$1" 0x020000000 "}')
-	
+
 	./gen_spi_flash $dtb_group \
 			fw_jump.bin fw_jump.bin 0x00000000 \
 			riscv64_Image riscv64_Image 0x02000000 \
 			initrd.img initrd.img 0x30000000 \
 			zsbl.bin zsbl.bin 0x40000000
-	
+
 	mv spi_flash.bin firmware.bin
 	rm -f gen_spi_flash
 
