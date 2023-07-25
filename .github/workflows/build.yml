@@ -17,6 +17,7 @@ jobs:
       KBUILD_BUILD_USER: riscv
       KBUILD_BUILD_HOST: riscv-builder
       KDEB_COMPRESS: xz
+      CHIP: mango
       CHIP_NUM: single
       ELF_TOOLCHAIN_HOME: /opt/riscv/elf-gcc-2022.08.08/
       
