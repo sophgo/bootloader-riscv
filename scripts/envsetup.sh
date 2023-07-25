@@ -1122,3 +1122,10 @@ function clean_rv_all()
 	clean_rv_firmware_bin
 	clean_rv_ubuntu
 }
+
+# include top mcu environment
+RV_TOP_MCU_BOOTLOADER_DIR=$RV_TOP_DIR/sophgo-2260
+if [ -f $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh ]; then
+ echo 'import riscv top mcu build instructions'
+ source $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh
+fi
