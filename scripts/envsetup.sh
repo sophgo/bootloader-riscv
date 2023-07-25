@@ -110,6 +110,7 @@ function show_rv_env()
 	echo "RV_SBI_SRC_DIR: $RV_SBI_SRC_DIR"
 	echo "RV_KERNEL_SRC_DIR: $RV_KERNEL_SRC_DIR"
 	echo "RV_KERNEL_BUILD_DIR: $RV_KERNEL_BUILD_DIR"
+	echo "RV_TOP_MCU_SRC: $RV_TOP_MCU_BOOTLOADER_DIR"
 }
 
 function show_rv_functions()
@@ -998,3 +999,12 @@ function clean_rv_all()
 	clean_rv_firmware_bin
 	clean_rv_ubuntu
 }
+
+
+# include riscv environment
+RV_TOP_MCU_BOOTLOADER_DIR=$RV_TOP_DIR/sophgo-2260
+if [ -f $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh ]; then
+	echo 'import riscv top mcu build instructions'
+	source $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh
+fi
+
