@@ -2,7 +2,8 @@ name: sophgo-bootloader
 
 on:
   push:
- 
+  pull_request:
+  workflow_dispatch:
   schedule:
     - cron: "0 2 * * *"
 
@@ -10,8 +11,9 @@ jobs:
   build-bootloader:
     runs-on: ubuntu-22.04
     env:
-      elf_newlib_toolchain: https://mirror.iscas.ac.cn/deepin-riscv/tools
-      toolchain_file_name: elf-gcc-2022.08.08.tar.gz
+      toolchains_base_url: https://mirror.iscas.ac.cn/revyos/extra/tools/
+      toolchain_elf_file_name: elf-gcc-2022.08.08.tar.gz
+      toolchain_linux_file_name: linux-gcc-2022.08.08.tar.gz
       wget_alias: 'wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0'
       ARCH: riscv
       KBUILD_BUILD_USER: riscv
@@ -20,6 +22,7 @@ jobs:
       CHIP: mango
       CHIP_NUM: single
       ELF_TOOLCHAIN_HOME: /opt/riscv/elf-gcc-2022.08.08/
+      LINUX_TOOLCHAIN_HOME: /opt/riscv/linux-gcc-2022.08.08/
       
     steps:
       - name: Checkout bootloader-riscv
@@ -56,9 +59,12 @@ jobs:
                                   device-tree-compiler xz-utils \
                                   qemu binfmt-support qemu-user-static curl wget
               update-binfmts --display
-              ${wget_alias} ${elf_newlib_toolchain}/${toolchain_file_name}
+              ${wget_alias} ${toolchains_base_url}/${toolchain_elf_file_name}
               sudo mkdir -p ${ELF_TOOLCHAIN_HOME}
-              sudo tar -xvf ${toolchain_file_name} -C ${ELF_TOOLCHAIN_HOME}
+              sudo tar -xvf ${toolchain_elf_file_name} -C ${ELF_TOOLCHAIN_HOME}
+              ${wget_alias} ${toolchains_base_url}/${toolchain_linux_file_name}
+              sudo mkdir -p ${LINUX_TOOLCHAIN_HOME}
+              sudo tar -xvf ${toolchain_linux_file_name} -C ${LINUX_TOOLCHAIN_HOME}
 
       - name: prepare
         run: mkdir -p artifact
