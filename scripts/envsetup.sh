@@ -306,7 +306,7 @@ function build_rv_uboot()
 	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv all
 	popd
 
-	mkdir -p $RV_OUTPUT_DIR
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
 	cp $RV_UBOOT_SRC_DIR/u-boot.bin $RV_FIRMWARE_INSTALL_DIR
 }
@@ -377,12 +377,13 @@ function build_rv_grub()
 	pushd ${GRUB_INSTALL_DIR}
 	./bin/grub-mkimage -v \
                        -o ${GRUB_BINARY_NAME_RISCV} \
-                       -O  ${GRUB_BINARY_FORMAT_RISCV} \
+                       -O ${GRUB_BINARY_FORMAT_RISCV} \
                        -p ${GRUB_PREFIX_DIR_RISCV}  \
                        -c ${GRUB_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
 	popd
 	popd
 
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 	cp ${GRUB_INSTALL_DIR}/grubriscv64.efi $RV_FIRMWARE_INSTALL_DIR
 }
 
@@ -918,8 +919,8 @@ function build_rv_firmware()
 {
 	build_rv_zsbl
 	build_rv_sbi
-	build_rv_uboot
-	build_rv_grub
+	# build_rv_uboot
+	# build_rv_grub
 	build_rv_kernel
 	build_rv_uroot
 }
@@ -928,8 +929,8 @@ function clean_rv_firmware()
 {
 	clean_rv_zsbl
 	clean_rv_sbi
-	clean_rv_uboot
-	clean_rv_grub
+	# clean_rv_uboot
+	# clean_rv_grub
 	clean_rv_kernel
 	clean_rv_uroot
 }
