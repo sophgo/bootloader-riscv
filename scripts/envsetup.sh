@@ -242,7 +242,7 @@ function build_rv_zsbl()
 	local err
 
 	pushd $RV_ZSBL_SRC_DIR
-	if [ $CHIP == 'mango' ]; then
+	if [ $CHIP = 'mango' ]; then
 		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
 	else
 		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv ${CHIP}_defconfig
@@ -412,7 +412,7 @@ function build_rv_kernel()
 	fi
 
 	pushd $RV_KERNEL_BUILD_DIR
-	if [ "$CHIP_NUM" == "multi" ];then
+	if [ "$CHIP_NUM" = "multi" ];then
 		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
 	fi
 	make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
@@ -460,7 +460,7 @@ function build_rv_ubuntu_kernel()
 	rm -f ../linux-*
 	rm -rf ./debs
 
-	if [ "$CHIP_NUM" == "multi" ];then
+	if [ "$CHIP_NUM" = "multi" ];then
 		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
 	fi
 
@@ -503,7 +503,7 @@ function build_rv_fedora_kernel()
 		return $err
 	fi
 
-	if [ "$CHIP_NUM" == "multi" ];then
+	if [ "$CHIP_NUM" = "multi" ];then
 		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
 	fi
 
