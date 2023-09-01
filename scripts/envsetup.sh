@@ -711,7 +711,6 @@ EOT
 # following lines must not be started with space or tab.
 sudo chroot . /bin/bash << "EOT"
 sed -i '/UEFI/d' /etc/fstab
-echo 'U_BOOT_PARAMETERS="nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000"' >> /etc/default/u-boot
 dpkg -i /home/ubuntu/bsp-debs/linux-image-*[0-9].deb
 exit
 EOT
@@ -829,7 +828,7 @@ label fedora_sophgo
 	menu label Fedora Sophgo in SD
 	linux /vmlinuz-$kernel_version
 	initrd /initramfs-$kernel_version.img
-	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000
+	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8
 EOF
 
 umount /boot
