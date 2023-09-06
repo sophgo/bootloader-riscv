@@ -108,7 +108,7 @@ jobs:
                   mkdir -p ~/efi/riscv64
                   cp $GITHUB_WORKSPACE/bootloader-riscv/firmware/fip.bin ~/efi/
                   cp zsbl.bin ~/efi/
-                  cp fw_jump.bin ~/efi/riscv64
+                  cp fw_dynamic.bin ~/efi/riscv64
                   cp riscv64_Image ~/efi/riscv64
                   cp *.dtb ~/efi/riscv64
                   cp initrd.img ~/efi/riscv64
