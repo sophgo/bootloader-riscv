@@ -286,13 +286,13 @@ function build_rv_sbi()
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_jump.bin $RV_FIRMWARE_INSTALL_DIR
-	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_jump.elf $RV_FIRMWARE_INSTALL_DIR
+	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_dynamic.bin $RV_FIRMWARE_INSTALL_DIR
+	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_dynamic.elf $RV_FIRMWARE_INSTALL_DIR
 }
 
 function clean_rv_sbi()
 {
-	rm -rf $RV_FIRMWARE_INSTALL_DIR/fw_jump.*
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.*
 
 	pushd $RV_SBI_SRC_DIR
 	make distclean
@@ -663,7 +663,7 @@ function build_rv_ubuntu_image()
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/grub.cfg $RV_OUTPUT_DIR/efi/
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64.efi $RV_OUTPUT_DIR/efi/
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
@@ -765,7 +765,7 @@ function build_rv_fedora_image()
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_jump.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
@@ -947,7 +947,7 @@ function build_rv_firmware_bin()
 	dtb_group=$(ls *.dtb | awk '{print ""$1" "$1" 0x020000000 "}')
 
 	./gen_spi_flash $dtb_group \
-			fw_jump.bin fw_jump.bin 0x00000000 \
+			fw_dynamic.bin fw_dynamic.bin 0x00000000 \
 			riscv64_Image riscv64_Image 0x02000000 \
 			initrd.img initrd.img 0x30000000 \
 			zsbl.bin zsbl.bin 0x40000000
@@ -998,7 +998,7 @@ function build_rv_firmware_image()
 	sudo cp riscv64_Image efi/riscv64
 	sudo cp *.dtb efi/riscv64
 	sudo cp initrd.img efi/riscv64
-	sudo cp fw_jump.bin efi/riscv64
+	sudo cp fw_dynamic.bin efi/riscv64
 	sudo touch efi/BOOT
 
 	echo cleanup...
@@ -1037,7 +1037,7 @@ function build_rv_firmware_package()
 	cp riscv64_Image firmware/riscv64
 	cp *.dtb firmware/riscv64
 	cp initrd.img firmware/riscv64
-	cp fw_jump.bin firmware/riscv64
+	cp fw_dynamic.bin firmware/riscv64
 	touch firmware/BOOT
 
 	tar -czvf firmware.tgz firmware
