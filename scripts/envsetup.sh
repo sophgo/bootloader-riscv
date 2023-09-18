@@ -401,6 +401,14 @@ function build_rv_kernel()
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
 	local err
 
+	if [ "$CHIP" = "sg2260" ];then
+		if [ "$1" = "" ];then
+			echo "build sg2260 kernel, eg: build_rv_kernel ap|rp|tp"
+			return -1
+		fi
+		RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_$1_${KERNEL_VARIANT}_defconfig
+	fi
+
 	pushd $RV_KERNEL_SRC_DIR
 	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
 	err=$?
@@ -425,7 +433,11 @@ function build_rv_kernel()
 	fi
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/riscv64_Image
+	if [ "$CHIP" = "sg2260" ];then
+		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/$1_Image
+	else
+		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/riscv64_Image
+	fi
 
 	if [ $CHIP != 'qemu' ]; then
 	    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_FIRMWARE_INSTALL_DIR
@@ -434,7 +446,7 @@ function build_rv_kernel()
 
 function clean_rv_kernel()
 {
-	rm -rf $RV_FIRMWARE_INSTALL_DIR/riscv64_Image
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/*_Image
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/vmlinux
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.dtb
 
@@ -920,7 +932,13 @@ function build_rv_firmware()
 	build_rv_sbi
 	# build_rv_uboot
 	# build_rv_grub
-	build_rv_kernel
+	if [ "$CHIP" = "sg2260" ];then
+		build_rv_kernel ap
+		build_rv_kernel rp
+		build_rv_kernel tp
+	else
+		build_rv_kernel
+	fi
 	build_rv_uroot
 }
 
