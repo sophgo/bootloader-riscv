@@ -65,8 +65,8 @@ RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
 RV_UBUNTU_DISTRO=ubuntu
 RV_FEDORA_DISTRO=fedora
 
-RV_UBUNTU_OFFICIAL_IMAGE=ubuntu-22.10-preinstalled-server-riscv64+unmatched.img
-DOWNLOAD_RV_UBUNTU_OFFICIAL_IMAGE="wget https://cdimage.ubuntu.com/releases/22.10/release/$RV_UBUNTU_OFFICIAL_IMAGE.xz"
+RV_UBUNTU_OFFICIAL_IMAGE=ubuntu-22.04.3-preinstalled-server-riscv64+licheerv.img
+DOWNLOAD_RV_UBUNTU_OFFICIAL_IMAGE="wget https://cdimage.ubuntu.com/releases/22.04/release/$RV_UBUNTU_OFFICIAL_IMAGE.xz"
 UNCOMPRESS_RV_UBUNTU_OFFICIAL_IMAGE="unxz $RV_UBUNTU_OFFICIAL_IMAGE.xz"
 
 RV_FEDORA_OFFICIAL_IMAGE=fedora-disk-server_sophgo_sg2042-f38-20230523-014306.n.0-sda.raw
