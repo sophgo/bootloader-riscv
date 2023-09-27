@@ -10,6 +10,9 @@ on:
 jobs:
   build-bootloader:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        M_CHIP_NUM: [single, multi]
     env:
       toolchains_base_url: https://mirror.iscas.ac.cn/revyos/extra/tools/
       toolchain_elf_file_name: elf-gcc-2022.08.08.tar.gz
@@ -20,32 +23,30 @@ jobs:
       KBUILD_BUILD_HOST: riscv-builder
       KDEB_COMPRESS: xz
       CHIP: mango
-      CHIP_NUM: single
+      CHIP_NUM: ${{ matrix.M_CHIP_NUM }}
       ELF_TOOLCHAIN_HOME: /opt/riscv/elf-gcc-2022.08.08/
       LINUX_TOOLCHAIN_HOME: /opt/riscv/linux-gcc-2022.08.08/
-      
+
     steps:
       - name: Checkout bootloader-riscv
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: bootloader-riscv
 
       - name: Checkout zsbl
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: sophgo/zsbl
           path: zsbl
 
-
       - name: Checkout opensbi
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: sophgo/opensbi
           path: opensbi
 
-
       - name: Checkout linux-riscv
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: sophgo/linux-riscv
           path: linux-riscv
@@ -115,7 +116,7 @@ jobs:
 
                   # Compress
                   pushd ~/efi/
-                    tar -zcvf $GITHUB_WORKSPACE/sophgo-bootloader-`date "+%y%m%d%H%M%S"`.tar.gz .
+                    tar -zcvf $GITHUB_WORKSPACE/sophgo-bootloader-${{ matrix.M_CHIP_NUM }}-`date "+%y%m%d%H%M%S"`.tar.gz .
                   popd
                 popd
               popd
@@ -123,6 +124,6 @@ jobs:
       - name: 'Upload Build Artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: sophgo-bootloader
-          path: sophgo-bootloader-*.tar.gz
+          name: sophgo-bootloader-${{ matrix.M_CHIP_NUM }}
+          path: sophgo-bootloader-${{ matrix.M_CHIP_NUM }}-*.tar.gz
           retention-days: 10
