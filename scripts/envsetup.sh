@@ -64,17 +64,23 @@ RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
 RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
 RV_UBUNTU_DISTRO=ubuntu
 RV_FEDORA_DISTRO=fedora
+RV_EULER_DISTRO=euler
 
 RV_UBUNTU_OFFICIAL_IMAGE=ubuntu-22.04.3-preinstalled-server-riscv64+unmatched.img
 DOWNLOAD_RV_UBUNTU_OFFICIAL_IMAGE="wget https://cdimage.ubuntu.com/releases/22.04/release/$RV_UBUNTU_OFFICIAL_IMAGE.xz"
 UNCOMPRESS_RV_UBUNTU_OFFICIAL_IMAGE="unxz $RV_UBUNTU_OFFICIAL_IMAGE.xz"
 
 RV_FEDORA_OFFICIAL_IMAGE=fedora-disk-server_sophgo_sg2042-f38-20230523-014306.n.0-sda.raw
-DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE="wget http://openkoji.iscas.ac.cn/kojifiles/work/tasks/8061/1418061/$RV_FEDORA_OFFICIAL_IMAGE.xz"
+DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE="wget https://repo.openeuler.org/openEuler-preview/RISC-V/openEuler-22.03-V1-riscv64/Unmatched/openEuler-22.03-V1-riscv64-unmatched-xfce.img.tar.zst"
 UNCOMPRESS_RV_FEDORA_OFFICIAL_IMAGE="unxz $RV_FEDORA_OFFICIAL_IMAGE.xz"
+
+RV_EULER_OFFICIAL_IMAGE=openEuler-23.03-V1-base-sg2042-preview.img
+DOWNLOAD_RV_EULER_OFFICIAL_IMAGE="wget https://mirror.iscas.ac.cn/openeuler-sig-riscv/openEuler-RISC-V/preview/openEuler-23.03-V1-riscv64/SG2042/$RV_EULER_OFFICIAL_IMAGE.zst"
+UNCOMPRESS_RV_EULER_OFFICIAL_IMAGE="unzstd $RV_EULER_OFFICIAL_IMAGE.zst"
 
 RV_UBUNTU_SOPHGO_IMAGE=ubuntu-sophgo.img
 RV_FEDORA_SOPHGO_IMAGE=fedora-sophgo.img
+RV_EULER_SOPHGO_IMAGE=euler-sophgo.img
 
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
@@ -135,21 +141,26 @@ function show_rv_functions()
 	echo "build_rv_kernel			-build linuxboot kernel"
 	echo "build_rv_ubuntu_kernel		-build ubuntu kernel"
 	echo "build_rv_fedora_kernel		-build fedora kernel"
+	echo "build_rv_euler_kernel		-build euler kernel"
 	echo "build_rv_ramfs			-build buildroot"
 	echo "build_rv_uroot			-build u-root for linuxboot"
 	echo "build_rv_ltp			-build ltp"
 	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
 	echo "build_rv_fedora_perf_tool     	-build fedora perf tool source package"
+	echo "build_rv_euler_perf_tool     	-build euler perf tool source package"
 	echo "build_rv_firmware                 -build firmware(zsbl,sbi,kernel,uroot,uboot,grub2)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
 	echo "build_rv_firmware_package 	-build firmware package"
 	echo "build_rv_ubuntu_distro		-dowload ubuntu image from offical"
 	echo "build_rv_fedora_distro		-download fedora image from offical"
+	echo "build_rv_euler_distro		-download euler image from offical"
 	echo "build_rv_ubuntu_image		-only build sophgo ubuntu image"
 	echo "build_rv_fedora_image		-only build sophgo fedora image"
+	echo "build_rv_euler_image		-only build sophgo euler image"
 	echo "build_rv_ubuntu			-build sophgo ubuntu image"
 	echo "build_rv_fedora			-build sophgo fedora image"
+	echo "build_rv_euler			-build sophgo euler image"
 	echo "build_rv_all			-build all bin and image(default: ubuntu)"
 	echo ""
 	echo "clean_rv_gcc			-clean gcc obj files"
@@ -160,6 +171,7 @@ function show_rv_functions()
 	echo "clean_rv_kernel			-clean linuxboot kernel obj files"
 	echo "clean_rv_ubuntu_kernel		-clean ubuntu kernel obj files"
 	echo "clean_rv_fedora_kernel		-clean fedora kernel obj files"
+	echo "clean_rv_euler_kernel		-clean euler kernel obj files"
 	echo "clean_rv_ramfs			-clean buildroot obj files"
 	echo "clean_rv_uroot			-clean uroot obj files"
 	echo "clean_rv_ltp			-clean ltp obj files"
@@ -171,8 +183,10 @@ function show_rv_functions()
 	echo "clean_rv_firmware_package 	-clean firmware package"
 	echo "clean_rv_ubuntu_distro		-clean ubuntu image"
 	echo "clean_rv_fedora_distro		-clean fedora image"
+	echo "clean_rv_euler_distro		-clean fedora image"
 	echo "clean_rv_ubuntu_image		-clean ubuntu image"
 	echo "clean_rv_fedora_image		-clean fedora image"
+	echo "clean_rv_euler_image		-clean euler image"
 	echo "clean_rv_ubuntu			-clean ubuntu image"
 	echo "clean_rv_fedora			-clean feodra image"
 	echo "clean_rv_all			-clean all bin and image(default: ubuntu)"
@@ -556,6 +570,69 @@ EOT
 	popd
 }
 
+function build_rv_euler_kernel()
+{
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_euler_defconfig
+	local err
+
+	pushd $RV_KERNEL_SRC_DIR
+	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
+	err=$?
+	if [ $err -ne 0 ]; then
+		echo "making kernel config failed"
+		popd
+		return $err
+	fi
+
+	if [ "$CHIP_NUM" = "multi" ];then
+		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
+	fi
+
+	if [ -e ~/.rpmmacros ]; then
+		mv ~/.rpmmacros ~/.rpmmacros.orig
+	fi
+
+# following lines must not be started with space or tab.
+cat >> ~/.rpmmacros << "EOT"
+%_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
+EOT
+
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
+	ret=$?
+	rm ~/.rpmmacros
+	if [ -e ~/.rpmmacros.orig ]; then
+		mv ~/.rpmmacros.orig ~/.rpmmacros
+	fi
+	if [ $ret -ne 0 ]; then
+		echo "making rpm package failed"
+		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
+		rm kernel-[0-9]*.tar.gz
+		rm -rf $HOME/rpmbuild
+		popd
+		return $ret
+	fi
+
+	if [ ! -d $RV_RPM_INSTALL_DIR ]; then
+		mkdir -p $RV_RPM_INSTALL_DIR
+	else
+		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+	fi
+
+	cp $HOME/rpmbuild/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
+	rm kernel-[0-9]*.tar.gz
+	rm -rf $HOME/rpmbuild
+	popd
+}
+
+function clean_rv_euler_kernel()
+{
+	pushd $RV_KERNEL_SRC_DIR
+	make distclean
+	popd
+	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+}
+
 function clean_rv_fedora_kernel()
 {
 	pushd $RV_KERNEL_SRC_DIR
@@ -648,6 +725,23 @@ function clean_rv_fedora_distro()
 	rm $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE
 }
 
+function build_rv_euler_distro()
+{
+	mkdir -p $RV_DISTRO_DIR/$RV_EULER_DISTRO
+
+	pushd $RV_DISTRO_DIR/$RV_EULER_DISTRO
+	if [ ! -f $RV_EULER_OFFICIAL_IMAGE ] ; then
+		$DOWNLOAD_RV_EULER_OFFICIAL_IMAGE
+		$UNCOMPRESS_RV_EULER_OFFICIAL_IMAGE
+	fi
+	popd
+}
+
+function clean_rv_euler_distro()
+{
+	rm $RV_DISTRO_DIR/$RV_EULER_DISTRO/$RV_EULER_OFFICIAL_IMAGE
+}
+
 function build_rv_ubuntu_image()
 {
 	echo build_rv_ubuntu_image
@@ -736,7 +830,7 @@ EOT
 	sudo umount $RV_OUTPUT_DIR/root/dev
 	sudo umount /dev/mapper/$efi_part
 	sudo umount /dev/mapper/$root_part
-	sudo kpartx -d $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
+	sudo kpartx -d $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGEs
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE
 	sudo rm -r $RV_OUTPUT_DIR/efi
 	sudo rm -r $RV_OUTPUT_DIR/root
@@ -747,6 +841,125 @@ EOT
 function clean_rv_ubuntu_image()
 {
 	rm -f $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
+}
+
+function build_rv_euler_image()
+{
+	echo build_rv_euler_image
+	echo create an image file...
+	rm -f $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE
+	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE bs=1GiB count=10
+
+	echo create partitions...
+	sudo parted $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE mktable msdos
+	sudo parted $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE mkpart p fat32 0% 256MiB
+	sudo parted $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE mkpart p ext4 256MiB 100%
+	loops=$(sudo kpartx -av $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE | cut -d ' ' -f 3)
+	efi_part=$(echo $loops | cut -d ' ' -f 1)
+	root_part=$(echo $loops | cut -d ' ' -f 2)
+	sleep 3
+	sudo mkfs.vfat /dev/mapper/$efi_part -n EFI
+	sudo mkfs.ext4 /dev/mapper/$root_part
+
+	echo copy bootloader...
+	mkdir $RV_OUTPUT_DIR/efi
+	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
+	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
+
+	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+	# sudo cp $RV_FIRMWARE_INSTALL_DIR/grub.cfg $RV_OUTPUT_DIR/efi/
+	# sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64.efi $RV_OUTPUT_DIR/efi/
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
+	# sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
+	sudo touch $RV_OUTPUT_DIR/efi/BOOT
+
+	echo copy euler...
+	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_EULER_DISTRO/$RV_EULER_OFFICIAL_IMAGE | cut -d ' ' -f 3)
+	euler_root_part=$(echo $loops | cut -d ' ' -f 3)
+	echo ============ rootfs $euler_root_part
+	sudo dd if=/dev/mapper/$euler_root_part of=/dev/mapper/$root_part bs=256M status=progress
+	sudo e2fsck -f -y /dev/mapper/$root_part
+	sudo resize2fs /dev/mapper/$root_part
+	sudo e2label /dev/mapper/$root_part ROOT
+
+	echo mount root partition...
+	mkdir $RV_OUTPUT_DIR/root
+	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
+
+	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
+	sudo mount --bind /sys $RV_OUTPUT_DIR/root/sys
+	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
+	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/root/dev/pts
+	sudo mount --bind /run/ 	$RV_OUTPUT_DIR/root/run
+	sudo mv $RV_OUTPUT_DIR/root/etc/hosts $RV_OUTPUT_DIR/root/etc/hosts-bak
+	sudo cp /etc/hosts $RV_OUTPUT_DIR/root/etc/
+	#echo add user euler:Sophgo12#
+# following lines must not be started with space or tab.
+
+# following lines must not be started with space or tab.
+	echo copy bsp package...
+	sudo cp -r $RV_RPM_INSTALL_DIR $RV_OUTPUT_DIR/root/home/
+
+	echo install linux image...
+# following lines must not be started with space or tab.
+sudo chroot $RV_OUTPUT_DIR/root /bin/env ROOT_PART="$root_part" /bin/bash << "EOT"
+echo install dracut
+echo "y" | dnf install dracut
+rm -rf /lib/dracut/dracut.conf.d/99-initramfs.conf
+echo install kernel
+rpm -ivh --force /home/bsp-rpms/kernel-[0-9]*.riscv64.rpm
+
+# The following command is to solve the problem of not updating the extlinux.conf file when installing kernel RPM package.
+kernel_version=`ls /home/bsp-rpms/kernel-[0-9]*.riscv64.rpm | cut -d '-' -f 3 | cut -d '.' -f 1-3`
+mv /boot/extlinux/extlinux.conf /boot/extlinux/extlinux.conf_bak
+cat > /boot/extlinux/extlinux.conf << EOF
+## /boot/extlinux/extlinux.conf
+
+default euler_sophgo
+menu title linuxboot menu
+prompt 0
+timeout 50
+
+label euler_sophgo
+	menu label euler Sophgo in SD
+	linux /boot/vmlinuz-$kernel_version
+	initrd /boot/initramfs-$kernel_version.img
+	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000 
+EOF
+
+exit
+
+EOT
+	popd
+
+	echo cleanup...
+	sync
+	sleep 60
+	sudo rm $RV_OUTPUT_DIR/root/etc/hosts
+	sudo mv $RV_OUTPUT_DIR/root/etc/hosts-bak $RV_OUTPUT_DIR/root/etc/hosts
+	sudo umount $RV_OUTPUT_DIR/root/run
+	sudo umount $RV_OUTPUT_DIR/root/proc
+	sudo umount $RV_OUTPUT_DIR/root/sys
+	sudo umount $RV_OUTPUT_DIR/root/dev/pts
+	sudo umount $RV_OUTPUT_DIR/root/dev
+	sudo umount /dev/mapper/$efi_part
+	sudo umount /dev/mapper/$root_part
+	sudo kpartx -d $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE
+	sudo kpartx -d $RV_DISTRO_DIR/$RV_EULER_DISTRO/$RV_EULER_OFFICIAL_IMAGE
+	sudo rm -r $RV_OUTPUT_DIR/efi
+	#sudo umount $RV_OUTPUT_DIR/root
+	sudo rm -r $RV_OUTPUT_DIR/root
+
+	echo "build euler image successfully!"
+}
+
+function clean_rv_euler_image()
+{
+	rm -rf $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE
 }
 
 function build_rv_fedora_image()
@@ -924,6 +1137,16 @@ function build_rv_fedora_perf_tool()
 function clean_rv_fedora_perf_tool()
 {
 	echo "clean_rv_fedora_perf_tool is not implemented"
+}
+
+function build_rv_euler_perf_tool()
+{
+	echo "build_rv_euler_perf_tool is not implemented"
+}
+
+function clean_rv_euler_perf_tool()
+{
+	echo "clean_rv_euler_perf_tool is not implemented"
 }
 
 function build_rv_firmware()
@@ -1127,6 +1350,22 @@ function clean_rv_fedora()
 	clean_rv_fedora_perf_tool
 	clean_rv_fedora_distro
 	clean_rv_fedora_image
+}
+
+function build_rv_euler()
+{
+	build_rv_euler_kernel
+	build_rv_euler_perf_tool
+	build_rv_euler_distro
+	build_rv_euler_image
+}
+
+function clean_rv_euler()
+{
+	clean_rv_euler_kernel
+	clean_rv_euler_perf_tool
+	clean_rv_euler_distro
+	clean_rv_euler_image
 }
 
 function build_rv_all()
