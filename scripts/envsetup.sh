@@ -71,7 +71,7 @@ DOWNLOAD_RV_UBUNTU_OFFICIAL_IMAGE="wget https://cdimage.ubuntu.com/releases/22.0
 UNCOMPRESS_RV_UBUNTU_OFFICIAL_IMAGE="unxz $RV_UBUNTU_OFFICIAL_IMAGE.xz"
 
 RV_FEDORA_OFFICIAL_IMAGE=fedora-disk-server_sophgo_sg2042-f38-20230523-014306.n.0-sda.raw
-DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE="wget https://repo.openeuler.org/openEuler-preview/RISC-V/openEuler-22.03-V1-riscv64/Unmatched/openEuler-22.03-V1-riscv64-unmatched-xfce.img.tar.zst"
+DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE="wget http://openkoji.iscas.ac.cn/kojifiles/work/tasks/8061/1418061/$RV_FEDORA_OFFICIAL_IMAGE.xz"
 UNCOMPRESS_RV_FEDORA_OFFICIAL_IMAGE="unxz $RV_FEDORA_OFFICIAL_IMAGE.xz"
 
 RV_EULER_OFFICIAL_IMAGE=openEuler-23.03-V1-base-sg2042-preview.img
@@ -830,7 +830,7 @@ EOT
 	sudo umount $RV_OUTPUT_DIR/root/dev
 	sudo umount /dev/mapper/$efi_part
 	sudo umount /dev/mapper/$root_part
-	sudo kpartx -d $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGEs
+	sudo kpartx -d $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE
 	sudo rm -r $RV_OUTPUT_DIR/efi
 	sudo rm -r $RV_OUTPUT_DIR/root
