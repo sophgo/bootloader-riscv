@@ -100,30 +100,24 @@ jobs:
                 build_rv_uroot
               popd
 
-      - name: Compress Artifact
+      - name: Pcakege firmware
         run: |
               pushd bootloader-riscv
                 source scripts/envsetup.sh
-                pushd $RV_FIRMWARE_INSTALL_DIR
-                  # Copy efi directory
-                  mkdir -p ~/efi/riscv64
-                  cp $GITHUB_WORKSPACE/bootloader-riscv/firmware/fip.bin ~/efi/
-                  cp zsbl.bin ~/efi/
-                  cp fw_dynamic.bin ~/efi/riscv64
-                  cp riscv64_Image ~/efi/riscv64
-                  cp *.dtb ~/efi/riscv64
-                  cp initrd.img ~/efi/riscv64
+                # fix build variable in github action
+                source scripts/github_env.sh
 
-                  # Compress
-                  pushd ~/efi/
-                    tar -zcvf $GITHUB_WORKSPACE/sophgo-bootloader-${{ matrix.M_CHIP_NUM }}-`date "+%y%m%d%H%M%S"`.tar.gz .
-                  popd
-                popd
+                build_rv_firmware_bin
+                build_rv_firmware_image
+
+                mkdir ~/firmware_artifact
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.bin $GITHUB_WORKSPACE/firmware_${CHIP_NUM}.bin
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_${CHIP_NUM}.img
               popd
 
       - name: 'Upload Build Artifact'
         uses: actions/upload-artifact@v3
         with:
           name: sophgo-bootloader-${{ matrix.M_CHIP_NUM }}
-          path: sophgo-bootloader-${{ matrix.M_CHIP_NUM }}-*.tar.gz
-          retention-days: 10
+          path: firmware_*
+          retention-days: 30
