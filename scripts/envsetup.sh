@@ -1177,6 +1177,7 @@ function clean_rv_firmware()
 
 function build_rv_firmware_bin()
 {
+	version=$(date "+%Y%m%d%H%M%S")
 	build_rv_firmware
 
 	gcc -g -Werror $RV_SCRIPTS_DIR/gen_spi_flash.c -o $RV_FIRMWARE_INSTALL_DIR/gen_spi_flash
@@ -1193,8 +1194,12 @@ function build_rv_firmware_bin()
 			initrd.img initrd.img 0x30000000 \
 			zsbl.bin zsbl.bin 0x40000000
 
-	mv spi_flash.bin firmware.bin
+	mv spi_flash.bin firmware-$version.bin
 	rm -f gen_spi_flash
+
+	cp firmware-$version.bin image-bmc
+	$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
+	rm -f image-bmc
 
 	popd
 }
