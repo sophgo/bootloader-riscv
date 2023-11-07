@@ -818,6 +818,11 @@ EOT
 sudo chroot . /bin/bash << "EOT"
 sed -i '/UEFI/d' /etc/fstab
 dpkg -i /home/ubuntu/bsp-debs/linux-image-*[0-9].deb
+
+cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
+blacklist switchtec
+EOF
+
 exit
 EOT
 	popd
@@ -928,7 +933,11 @@ label euler_sophgo
 	menu label euler Sophgo in SD
 	linux /boot/vmlinuz-$kernel_version
 	initrd /boot/initramfs-$kernel_version.img
-	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000 
+	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000
+EOF
+
+cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
+blacklist switchtec
 EOF
 
 exit
@@ -1064,6 +1073,10 @@ cat > /etc/fstab << EOF
 LABEL=ROOT	/		ext4	defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
 LABEL=BOOT	/boot		ext4	defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
 LABEL=EFI	/boot/efi	vfat    defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
+EOF
+
+cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
+blacklist switchtec
 EOF
 
 exit
