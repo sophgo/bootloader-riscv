@@ -207,7 +207,7 @@ function build_rv_linux_gcc()
 	pushd riscv-gnu-toolchain
 	rm -rf $RV_LINU_GCC_INSTALL_DIR
 	make clean
-	git checkout 2022.08.08
+	git checkout 2023.11.08
 	./configure --prefix=$RV_LINUX_GCC_INSTALL_DIR
 	make linux
 	popd
@@ -225,7 +225,7 @@ function build_rv_elf_gcc()
 	pushd riscv-gnu-toolchain
 	rm -rf $RV_ELF_GCC_INSTALL_DIR
 	make clean
-	git checkout 2022.08.08
+	git checkout 2023.11.08
 	./configure --with-cmodel=medany --with-arch=rv64imafdc --with-abi=lp64d --prefix=$RV_ELF_GCC_INSTALL_DIR
 	make
 	popd
