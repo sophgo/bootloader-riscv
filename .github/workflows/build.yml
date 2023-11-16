@@ -100,7 +100,7 @@ jobs:
                 build_rv_uroot
               popd
 
-      - name: Pcakege firmware
+      - name: Packege firmware
         run: |
               pushd bootloader-riscv
                 source scripts/envsetup.sh
@@ -111,7 +111,7 @@ jobs:
                 build_rv_firmware_image
 
                 mkdir ~/firmware_artifact
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.bin $GITHUB_WORKSPACE/firmware_${CHIP_NUM}.bin
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware*.bin $GITHUB_WORKSPACE/firmware_${CHIP_NUM}.bin
                 cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_${CHIP_NUM}.img
               popd
 
