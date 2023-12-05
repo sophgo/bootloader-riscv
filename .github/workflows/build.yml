@@ -14,9 +14,8 @@ jobs:
       matrix:
         M_CHIP_NUM: [single, multi]
     env:
-      toolchains_base_url: https://mirror.iscas.ac.cn/revyos/extra/tools/
-      toolchain_elf_file_name: elf-gcc-2022.08.08.tar.gz
-      toolchain_linux_file_name: linux-gcc-2022.08.08.tar.gz
+      mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2023.10.18
+      mainline_toolchain_file_name: riscv64-glibc-ubuntu-22.04-gcc-nightly-2023.10.18-nightly.tar.gz
       wget_alias: 'wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0'
       ARCH: riscv
       KBUILD_BUILD_USER: riscv
@@ -24,8 +23,7 @@ jobs:
       KDEB_COMPRESS: xz
       CHIP: mango
       CHIP_NUM: ${{ matrix.M_CHIP_NUM }}
-      ELF_TOOLCHAIN_HOME: /opt/riscv/elf-gcc-2022.08.08/
-      LINUX_TOOLCHAIN_HOME: /opt/riscv/linux-gcc-2022.08.08/
+      TOOLCHAIN_HOME: /opt/riscv/
 
     steps:
       - name: Checkout bootloader-riscv
@@ -60,12 +58,8 @@ jobs:
                                   device-tree-compiler xz-utils \
                                   qemu binfmt-support qemu-user-static curl wget
               update-binfmts --display
-              ${wget_alias} ${toolchains_base_url}/${toolchain_elf_file_name}
-              sudo mkdir -p ${ELF_TOOLCHAIN_HOME}
-              sudo tar -xvf ${toolchain_elf_file_name} -C ${ELF_TOOLCHAIN_HOME}
-              ${wget_alias} ${toolchains_base_url}/${toolchain_linux_file_name}
-              sudo mkdir -p ${LINUX_TOOLCHAIN_HOME}
-              sudo tar -xvf ${toolchain_linux_file_name} -C ${LINUX_TOOLCHAIN_HOME}
+              ${wget_alias} ${mainline_toolchain}/${mainline_toolchain_file_name}
+              tar -xvf ${mainline_toolchain_file_name} -C /opt
 
       - name: prepare
         run: mkdir -p artifact
