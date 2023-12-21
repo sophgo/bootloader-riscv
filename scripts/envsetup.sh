@@ -1205,7 +1205,7 @@ function build_rv_firmware_bin()
 
 	pushd $RV_FIRMWARE_INSTALL_DIR
 
-	rm -f ./firmware.bin
+	rm -f firmware*.bin
 	cp $RV_FIRMWARE/fip.bin  ./
 	dtb_group=$(ls *.dtb | awk '{print ""$1" "$1" 0x020000000 "}')
 
@@ -1231,7 +1231,8 @@ function clean_rv_firmware_bin()
 
 	pushd $RV_FIRMWARE_INSTALL_DIR
 
-	rm -f firmware.bin
+	rm -f firmware*.bin
+	rm -f obmc-bios.tar.gz
 
 	popd
 }
