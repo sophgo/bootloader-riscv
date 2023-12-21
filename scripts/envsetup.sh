@@ -823,6 +823,10 @@ cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
 blacklist switchtec
 EOF
 
+cat > /etc/modules-load.d/sg2042-modules.conf << EOF
+ipmi_si
+EOF
+
 exit
 EOT
 	popd
@@ -1077,6 +1081,10 @@ EOF
 
 cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
 blacklist switchtec
+EOF
+
+cat > /etc/modules-load.d/sg2042-modules.conf << EOF
+ipmi_si
 EOF
 
 exit
