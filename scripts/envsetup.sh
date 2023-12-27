@@ -1062,7 +1062,7 @@ label fedora_sophgo
 	menu label Fedora Sophgo in SD
 	linux /vmlinuz-$kernel_version
 	initrd /initramfs-$kernel_version.img
-	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8
+	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme_core.io_timeout=600 nvme_core.admin_timeout=600 cma=512M swiotlb=65536
 EOF
 
 umount /boot
