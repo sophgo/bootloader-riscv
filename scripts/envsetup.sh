@@ -318,7 +318,9 @@ function build_rv_edk2()
 	git submodule update --init --recursive
 
 	export PACKAGES_PATH=$RV_EDKII_SRC_DIR/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi
+	export EDK_TOOLS_PATH=$RV_EDKII_SRC_DIR/edk2/BaseTools
 	export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
+
 	source edk2/edksetup.sh
 
 	make -C edk2/BaseTools
@@ -370,13 +372,13 @@ function clean_rv_uboot()
 	popd
 }
 
-function build_rv_grub()
+function build_rv_ubuntu_grub()
 {
-	if [ ! -d $RV_GRUB_SRC_DIR ]; then
-		pushd $RV_TOP_DIR
-		git clone https://git.savannah.gnu.org/git/grub.git
-		popd
-	fi
+	# setup build env
+	GRUB_UBUNTU_INSTALL_DIR=${RV_GRUB_BUILD_DIR}/ubuntu-rootfs
+
+	# make executable efi file
+	mkdir -p $GRUB_UBUNTU_INSTALL_DIR
 
 	pushd $RV_GRUB_SRC_DIR
 
@@ -391,44 +393,101 @@ function build_rv_grub()
 	TARGET_NM="${RISCV64_LINUX_CROSS_COMPILE}nm" \
 	TARGET_RANLIB="${RISCV64_LINUX_CROSS_COMPILE}ranlib" \
 	TARGET_CFLAGS='-O2 -march=rv64imafdc_zicsr_zifencei' \
-	./configure --target=riscv64-unknown-linux-gnu --with-platform=efi --prefix=$GRUB_INSTALL_DIR
+	./configure --target=riscv64-unknown-linux-gnu --with-platform=efi --prefix=$GRUB_UBUNTU_INSTALL_DIR
 	# build and install to ${RISCV_ROOTFS}
 	make install -j$(nproc)
-
 	popd
 
-	# setup build env
-	GRUB_INSTALL_DIR=${RV_GRUB_BUILD_DIR}/rootfs
-
-	# make executable efi file
-	mkdir -p $GRUB_INSTALL_DIR
-	GRUB_DEFAULT_CFG_RISCV=${RV_GRUB_BUILD_DIR}/default.cfg
-	echo "search -f /grub/grub.cfg -s root" > $GRUB_DEFAULT_CFG_RISCV
-	echo "set prefix=(\$root)'/grub'" >> $GRUB_DEFAULT_CFG_RISCV
-	echo "configfile \$prefix/grub.cfg" >> $GRUB_DEFAULT_CFG_RISCV
-
-	pushd ${GRUB_INSTALL_DIR}
+	GRUB_UBUNTU_DEFAULT_CFG_RISCV=${RV_GRUB_BUILD_DIR}/ubuntu.cfg
+	echo "search -f /boot/grub/grub.cfg -s root" > $GRUB_UBUNTU_DEFAULT_CFG_RISCV
+	echo "set prefix=(\$root)'/boot/grub'" >> $GRUB_UBUNTU_DEFAULT_CFG_RISCV
+	echo "configfile \$prefix/grub.cfg" >> $GRUB_UBUNTU_DEFAULT_CFG_RISCV
 
 	GRUB_BINARY_NAME_RISCV=grubriscv64.efi
 	GRUB_BINARY_FORMAT_RISCV=riscv64-efi
 	GRUB_PREFIX_DIR_RISCV=efi
 	GRUB_UEFI_IMAGE_MODULES_RISCV='acpi adler32 affs afs afsplitter all_video archelp bfs bitmap bitmap_scale blocklist boot bswap_test btrfs bufio cat cbfs chain cmdline_cat_test cmp cmp_test configfile cpio_be cpio crc64 cryptodisk crypto ctz_test datehook date datetime diskfilter disk div div_test dm_nv echo efifwsetup efi_gop efinet elf eval exfat exfctest ext2 extcmd f2fs fat fdt file font fshelp functional_test gcry_arcfour gcry_blowfish gcry_camellia gcry_cast5 gcry_crc gcry_des gcry_dsa gcry_idea gcry_md4 gcry_md5 gcry_rfc2268 gcry_rijndael gcry_rmd160 gcry_rsa gcry_seed gcry_serpent gcry_sha1 gcry_sha256 gcry_sha512 gcry_tiger gcry_twofish gcry_whirlpool geli gettext gfxmenu gfxterm_background gfxterm_menu gfxterm gptsync gzio halt hashsum hello help hexdump hfs hfspluscomp hfsplus http iso9660 jfs jpeg json keystatus ldm linux loadenv loopback lsacpi lsefimmap lsefi lsefisystab lsmmap ls lssal luks2 luks lvm lzopio macbless macho mdraid09_be mdraid09 mdraid1x memdisk memrw minicmd minix2_be minix2 minix3_be minix3 minix_be minix mmap mpi msdospart mul_test net newc nilfs2 normal ntfscomp ntfs odc offsetio part_acorn part_amiga part_apple part_bsd part_dfly part_dvh part_gpt part_msdos part_plan part_sun part_sunpc parttool password password_pbkdf2 pbkdf2 pbkdf2_test pgp png priority_queue probe procfs progress raid5rec raid6rec read reboot regexp reiserfs romfs scsi search_fs_file search_fs_uuid search_label search serial setjmp setjmp_test sfs shift_test signature_test sleep sleep_test smbios squash4 strtoull_test syslinuxcfg tar terminal terminfo test_blockarg testload test testspeed tftp tga time tpm trig tr true udf ufs1_be ufs1 ufs2 video_colors video_fb videoinfo video videotest_checksum videotest xfs xnu_uuid xnu_uuid_test xzio zfscrypt zfsinfo zfs zstd'
 
+	pushd ${GRUB_UBUNTU_INSTALL_DIR}
+
+
 	./bin/grub-mkimage -v \
                        -o ${GRUB_BINARY_NAME_RISCV} \
                        -O ${GRUB_BINARY_FORMAT_RISCV} \
                        -p ${GRUB_PREFIX_DIR_RISCV}  \
-                       -c ${GRUB_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
+                       -c ${GRUB_UBUNTU_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
 	popd
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-	mv $RV_GRUB_BUILD_DIR $RV_FIRMWARE_INSTALL_DIR
+	cp -r $RV_GRUB_BUILD_DIR $RV_FIRMWARE_INSTALL_DIR
 }
 
-function clean_rv_grub()
+function build_rv_fedora_grub()
+{
+	# setup build env
+	GRUB_FEDORA_INSTALL_DIR=${RV_GRUB_BUILD_DIR}/fedora-rootfs
+
+	# make executable efi file
+	mkdir -p $GRUB_FEDORA_INSTALL_DIR
+
+	pushd $RV_GRUB_SRC_DIR
+
+	# bootstrap, download gunlib...
+	./bootstrap
+	# auto generate the config files
+	./autogen.sh
+	# auto config and generate Makefile
+	TARGET_CC="${RISCV64_LINUX_CROSS_COMPILE}gcc" \
+	TARGET_OBJCOPY="${RISCV64_LINUX_CROSS_COMPILE}objcopy" \
+	TARGET_STRIP="${RISCV64_LINUX_CROSS_COMPILE}strip" \
+	TARGET_NM="${RISCV64_LINUX_CROSS_COMPILE}nm" \
+	TARGET_RANLIB="${RISCV64_LINUX_CROSS_COMPILE}ranlib" \
+	TARGET_CFLAGS='-O2 -march=rv64imafdc_zicsr_zifencei' \
+	./configure --target=riscv64-unknown-linux-gnu --with-platform=efi --prefix=$GRUB_FEDORA_INSTALL_DIR
+	# build and install to ${RISCV_ROOTFS}
+	make install -j$(nproc)
+	popd
+
+	GRUB_FEDORA_DEFAULT_CFG_RISCV=${RV_GRUB_BUILD_DIR}/fedora.cfg
+	echo "search -f /grub2/grub.cfg -s root" > $GRUB_FEDORA_DEFAULT_CFG_RISCV
+	echo "set prefix=(\$root)'/grub2'" >> $GRUB_FEDORA_DEFAULT_CFG_RISCV
+	echo "configfile \$prefix/grub.cfg" >> $GRUB_FEDORA_DEFAULT_CFG_RISCV
+
+	GRUB_BINARY_NAME_RISCV=grubriscv64.efi
+	GRUB_BINARY_FORMAT_RISCV=riscv64-efi
+	GRUB_PREFIX_DIR_RISCV=efi
+	GRUB_UEFI_IMAGE_MODULES_RISCV='acpi adler32 affs afs afsplitter all_video archelp bfs bitmap bitmap_scale blocklist boot bswap_test btrfs bufio cat cbfs chain cmdline_cat_test cmp cmp_test configfile cpio_be cpio crc64 cryptodisk crypto ctz_test datehook date datetime diskfilter disk div div_test dm_nv echo efifwsetup efi_gop efinet elf eval exfat exfctest ext2 extcmd f2fs fat fdt file font fshelp functional_test gcry_arcfour gcry_blowfish gcry_camellia gcry_cast5 gcry_crc gcry_des gcry_dsa gcry_idea gcry_md4 gcry_md5 gcry_rfc2268 gcry_rijndael gcry_rmd160 gcry_rsa gcry_seed gcry_serpent gcry_sha1 gcry_sha256 gcry_sha512 gcry_tiger gcry_twofish gcry_whirlpool geli gettext gfxmenu gfxterm_background gfxterm_menu gfxterm gptsync gzio halt hashsum hello help hexdump hfs hfspluscomp hfsplus http iso9660 jfs jpeg json keystatus ldm linux loadenv loopback lsacpi lsefimmap lsefi lsefisystab lsmmap ls lssal luks2 luks lvm lzopio macbless macho mdraid09_be mdraid09 mdraid1x memdisk memrw minicmd minix2_be minix2 minix3_be minix3 minix_be minix mmap mpi msdospart mul_test net newc nilfs2 normal ntfscomp ntfs odc offsetio part_acorn part_amiga part_apple part_bsd part_dfly part_dvh part_gpt part_msdos part_plan part_sun part_sunpc parttool password password_pbkdf2 pbkdf2 pbkdf2_test pgp png priority_queue probe procfs progress raid5rec raid6rec read reboot regexp reiserfs romfs scsi search_fs_file search_fs_uuid search_label search serial setjmp setjmp_test sfs shift_test signature_test sleep sleep_test smbios squash4 strtoull_test syslinuxcfg tar terminal terminfo test_blockarg testload test testspeed tftp tga time tpm trig tr true udf ufs1_be ufs1 ufs2 video_colors video_fb videoinfo video videotest_checksum videotest xfs xnu_uuid xnu_uuid_test xzio zfscrypt zfsinfo zfs zstd'
+
+	pushd ${GRUB_FEDORA_INSTALL_DIR}
+
+
+	./bin/grub-mkimage -v \
+                       -o ${GRUB_BINARY_NAME_RISCV} \
+                       -O ${GRUB_BINARY_FORMAT_RISCV} \
+                       -p ${GRUB_PREFIX_DIR_RISCV}  \
+                       -c ${GRUB_FEDORA_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
+	popd
+
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
+
+	cp -r $RV_GRUB_BUILD_DIR $RV_FIRMWARE_INSTALL_DIR
+}
+
+function clean_rv_ubuntu_grub()
 {
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/grubriscv64
+	rm -rf $RV_GRUB_BUILD_DIR
+
+	pushd $RV_GRUB_SRC_DIR
+	make distclean
+	popd
+}
+
+function clean_rv_fedora_grub()
+{
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/grubriscv64
+	rm -rf $RV_GRUB_BUILD_DIR
 
 	pushd $RV_GRUB_SRC_DIR
 	make distclean
@@ -789,16 +848,23 @@ function build_rv_ubuntu_image()
 	mkdir $RV_OUTPUT_DIR/efi
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
+	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
+	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/ubuntu
 
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
-	# sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
-	sudo touch $RV_OUTPUT_DIR/efi/BOOT
+
+	echo build GRUB2...
+	build_rv_ubuntu_grub
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/ubuntu-rootfs/grubriscv64.efi $RV_OUTPUT_DIR/efi/EFI/BOOT/BOOTRISCV64.EFI
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/ubuntu-rootfs/grubriscv64.efi $RV_OUTPUT_DIR/efi/EFI/ubuntu/
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/ubuntu.cfg $RV_OUTPUT_DIR/efi/EFI/ubuntu/grub.cfg
 
 	echo copy ubuntu...
 	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE | cut -d ' ' -f 3)
@@ -847,6 +913,30 @@ cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
 blacklist switchtec
 EOF
 
+# update the grub.cfg
+mkdir -p /boot/grub
+
+kernel_version=`ls /home/ubuntu/bsp-debs/linux-image-[0-9]*.deb | cut -d '-' -f 4 | cut -d '.' -f 1-3`
+cat > /boot/grub/grub.cfg << EOF
+set default=0
+set timeout_style=menu
+set timeout=2
+
+set term="vt100"
+
+menuentry 'Ubuntu on SG2042' {
+    linux /boot/vmlinuz-$kernel_version  console=ttyS0,115200 root=LABEL=cloudimg-rootfs rootfstype=ext4 quiet splash rootwait rw earlycon selinux=0 LANG=en_US.UTF-8
+    initrd /boot/initrd.img-$kernel_version
+}
+
+EOF
+
+# replace UUID to LABEL
+mv /etc/fstab /etc/fstab_bak
+cat > /etc/fstab << EOF
+LABEL=cloudimg-rootfs	/		ext4	defaults,discard,errors=remount-ro 0 1
+LABEL=EFI		/boot/efi	vfat    defaults,discard,errors=remount-ro 0 1
+EOF
 exit
 EOT
 	popd
@@ -1021,15 +1111,23 @@ function build_rv_fedora_image()
 	mkdir $RV_OUTPUT_DIR/efi
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
+	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
+	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/fedora
+
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
-	# sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
 
+	echo build GRUB2...
+	build_rv_fedora_grub
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/fedora-rootfs/grubriscv64.efi $RV_OUTPUT_DIR/efi/EFI/BOOT/BOOTRISCV64.EFI
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/fedora-rootfs/grubriscv64.efi $RV_OUTPUT_DIR/efi/EFI/fedora/
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/fedora.cfg $RV_OUTPUT_DIR/efi/EFI/fedora/grub.cfg
 
 	echo copy fedora ...
 	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE | cut -d ' ' -f 3)
@@ -1069,6 +1167,8 @@ EOT
 sudo chroot $RV_OUTPUT_DIR/root /bin/env BOOT_PART="$boot_part" /bin/bash << "EOT"
 mount /dev/mapper/$BOOT_PART /boot
 rpm -ivh --force /home/fedora/bsp-rpms/kernel-[0-9]*.riscv64.rpm
+rpm -e kernel-6.2.16
+rm -rf /boot/*6.2.16*
 
 # The following command is to solve the problem of not updating the extlinux.conf file when installing kernel RPM package.
 kernel_version=`ls /home/fedora/bsp-rpms/kernel-[0-9]*.riscv64.rpm | cut -d '-' -f 3 | cut -d '.' -f 1-3`
@@ -1088,6 +1188,22 @@ label fedora_sophgo
 	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme_core.io_timeout=600 nvme_core.admin_timeout=600 cma=512M swiotlb=65536
 EOF
 
+# update the grub.cfg
+rm -rf /boot/grub.cfg
+
+cat > /boot/grub2/grub.cfg << EOF
+set default=0
+set timeout_style=menu
+set timeout=2
+
+set term="vt100"
+
+menuentry 'Fedora 38 on SG2042' {
+    linux /vmlinuz-$kernel_version  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 quiet splash rootwait rw earlycon selinux=0 LANG=en_US.UTF-8
+    initrd /initramfs-$kernel_version.img
+}
+
+EOF
 umount /boot
 
 # replace UUID to LABEL
@@ -1190,7 +1306,7 @@ function build_rv_firmware()
 	build_rv_zsbl
 	build_rv_sbi
 	# build_rv_uboot
-	# build_rv_edk2
+	build_rv_edk2
 	# build_rv_grub
 	if [ "$CHIP" = "sg2260" ];then
 		build_rv_kernel ap
@@ -1207,7 +1323,7 @@ function clean_rv_firmware()
 	clean_rv_zsbl
 	clean_rv_sbi
 	# clean_rv_uboot
-	# clean_rv_edk2
+	clean_rv_edk2
 	# clean_rv_grub
 	clean_rv_kernel
 	clean_rv_uroot
@@ -1230,8 +1346,8 @@ function build_rv_firmware_bin()
 			fw_dynamic.bin fw_dynamic.bin 0x00000000 \
 			riscv64_Image riscv64_Image 0x02000000 \
 			initrd.img initrd.img 0x30000000 \
-			zsbl.bin zsbl.bin 0x40000000
-		#	SG2042.fd SG2042.fd 0x02000000	\
+			zsbl.bin zsbl.bin 0x40000000	\
+			SG2042.fd SG2042.fd 0x02000000
 		#	uboot.bin uboot.bin 0x02000000
 
 	mv spi_flash.bin firmware-$version.bin
@@ -1287,7 +1403,7 @@ function build_rv_firmware_image()
 	sudo cp initrd.img efi/riscv64
 	sudo cp fw_dynamic.bin efi/riscv64
 	# sudo cp uboot.bin efi/riscv64
-	# sudo cp SG2042.fd efi/riscv64
+	sudo cp SG2042.fd efi/riscv64
 	sudo touch efi/BOOT
 
 	echo cleanup...
@@ -1321,7 +1437,7 @@ function build_rv_firmware_package()
 	cp $RV_FIRMWARE/fip.bin firmware
 	cp zsbl.bin firmware
 	# cp u-boot.bin firmware/riscv64
-	# cp SG2042.fd firmware/riscv64
+	cp SG2042.fd firmware/riscv64
 	cp riscv64_Image firmware/riscv64
 	cp *.dtb firmware/riscv64
 	cp initrd.img firmware/riscv64

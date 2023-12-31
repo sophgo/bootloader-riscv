@@ -43,6 +43,12 @@ jobs:
           repository: sophgo/opensbi
           path: opensbi
 
+      - name: Checkout sophgo-edk2
+        uses: actions/checkout@v4
+        with:
+          repository: sophgo/sophgo-edk2
+          path: sophgo-edk2
+
       - name: Checkout linux-riscv
         uses: actions/checkout@v4
         with:
@@ -56,7 +62,10 @@ jobs:
                                   libncurses-dev gawk flex bison openssl libssl-dev tree \
                                   dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf \
                                   device-tree-compiler xz-utils \
-                                  qemu binfmt-support qemu-user-static curl wget
+                                  qemu binfmt-support qemu-user-static curl wget \
+                                  automake autotools-dev python3 libmpc-dev libmpfr-dev libgmp-dev \
+                                  texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
+                                  ninja-build uuid-dev gcc-riscv64-unknown-elf
               update-binfmts --display
               ${wget_alias} ${mainline_toolchain}/${mainline_toolchain_file_name}
               tar -xvf ${mainline_toolchain_file_name} -C /opt
@@ -73,6 +82,16 @@ jobs:
 
                 build_rv_zsbl
                 build_rv_sbi
+              popd
+
+      - name: Compile edk2
+        run: |
+              pushd bootloader-riscv
+                source scripts/envsetup.sh
+                # fix build variable in github action
+                source scripts/github_env.sh
+
+                build_rv_edk2
               popd
 
       - name: Compile kernel
