@@ -120,6 +120,7 @@ function show_rv_env()
 	echo "RV_ZSBL_SRC_DIR: $RV_ZSBL_SRC_DIR"
 	echo "RV_ZSBL_BUILD_DIR: $RV_ZSBL_BUILD_DIR"
 	echo "RV_SBI_SRC_DIR: $RV_SBI_SRC_DIR"
+	echo "RV_EDKII_SRC_DIR: $RV_EDKII_SRC_DIR"
 	echo "RV_KERNEL_SRC_DIR: $RV_KERNEL_SRC_DIR"
 	echo "RV_KERNEL_BUILD_DIR: $RV_KERNEL_BUILD_DIR"
 }
@@ -134,7 +135,8 @@ function show_rv_functions()
 	echo "build_rv_sbi			-build sbi bin"
 	echo "build_rv_edk2			-build EDKII bin"
 	echo "build_rv_uboot			-build u-boot bin"
-	echo "build_rv_grub			-build grub2 bin"
+	echo "build_rv_ubuntu_grub		-build ubuntu grub2 bin"
+	echo "build_rv_fedora_grub		-build fedora grub2 bin"
 	echo "build_rv_kernel			-build linuxboot kernel"
 	echo "build_rv_ubuntu_kernel		-build ubuntu kernel"
 	echo "build_rv_fedora_kernel		-build fedora kernel"
@@ -165,7 +167,8 @@ function show_rv_functions()
 	echo "clean_rv_sbi			-clean sbi obj files"
 	echo "clean_rv_edk2			-clean EDKII obj files"
 	echo "clean_rv_uboot			-clean u-boot obj files"
-	echo "clean_rv_grub			-clean grub2 obj files"
+	echo "clean_rv_ubuntu_grub	  	-clean ubuntu grub2 obj files"
+	echo "clean_rv_fedora_grub	  	-clean fedora grub2 obj files"
 	echo "clean_rv_kernel			-clean linuxboot kernel obj files"
 	echo "clean_rv_ubuntu_kernel		-clean ubuntu kernel obj files"
 	echo "clean_rv_fedora_kernel		-clean fedora kernel obj files"
@@ -317,8 +320,9 @@ function build_rv_edk2()
 	git submodule sync
 	git submodule update --init --recursive
 
-	export PACKAGES_PATH=$RV_EDKII_SRC_DIR/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi
-	export EDK_TOOLS_PATH=$RV_EDKII_SRC_DIR/edk2/BaseTools
+	export WORKSPACE=$RV_EDKII_SRC_DIR
+	export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi
+	export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
 	export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
 
 	source edk2/edksetup.sh
@@ -1307,7 +1311,6 @@ function build_rv_firmware()
 	build_rv_sbi
 	# build_rv_uboot
 	build_rv_edk2
-	# build_rv_grub
 	if [ "$CHIP" = "sg2260" ];then
 		build_rv_kernel ap
 		build_rv_kernel rp
@@ -1324,7 +1327,6 @@ function clean_rv_firmware()
 	clean_rv_sbi
 	# clean_rv_uboot
 	clean_rv_edk2
-	# clean_rv_grub
 	clean_rv_kernel
 	clean_rv_uroot
 }
