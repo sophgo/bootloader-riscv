@@ -1203,7 +1203,7 @@ set timeout=2
 set term="vt100"
 
 menuentry 'Fedora 38 on SG2042' {
-    linux /vmlinuz-$kernel_version  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 quiet splash rootwait rw earlycon selinux=0 LANG=en_US.UTF-8
+    linux /vmlinuz-$kernel_version  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 quiet splash rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme_core.io_timeout=600 nvme_core.admin_timeout=600 cma=512M swiotlb=65536
     initrd /initramfs-$kernel_version.img
 }
 
