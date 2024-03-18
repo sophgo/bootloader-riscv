@@ -14,8 +14,8 @@ jobs:
       matrix:
         M_CHIP_NUM: [single, multi]
     env:
-      mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2023.10.18
-      mainline_toolchain_file_name: riscv64-glibc-ubuntu-22.04-gcc-nightly-2023.10.18-nightly.tar.gz
+      mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.03.01
+      mainline_toolchain_file_name: riscv64-glibc-ubuntu-22.04-gcc-nightly-2024.03.01-nightly.tar.gz
       wget_alias: 'wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0'
       ARCH: riscv
       KBUILD_BUILD_USER: riscv
