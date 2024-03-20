@@ -42,6 +42,9 @@ RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
 RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/"$CHIP_NUM"_chip
 
+RV_BOOTROM_SRC_DIR=$RV_TOP_DIR/bootrom
+RV_BOOTROM_BUILD_DIR=$RV_BOOTROM_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
+
 RV_ZSBL_SRC_DIR=$RV_TOP_DIR/zsbl
 RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 RV_SBI_SRC_DIR=$RV_TOP_DIR/opensbi
@@ -131,6 +134,7 @@ function show_rv_functions()
 	echo "show_rv_functions     		-print all funtions "
 	echo ""
 	echo "build_rv_gcc			-build gcc from source"
+	echo "build_rv_bootrom			-build bootrom bin"
 	echo "build_rv_zsbl			-build zsbl bin"
 	echo "build_rv_sbi			-build sbi bin"
 	echo "build_rv_edk2			-build EDKII bin"
@@ -163,6 +167,7 @@ function show_rv_functions()
 	echo "build_rv_all			-build all bin and image(default: ubuntu)"
 	echo ""
 	echo "clean_rv_gcc			-clean gcc obj files"
+	echo "clean_rv_bootrom			-clean bootrom obj files"
 	echo "clean_rv_zsbl			-clean zsbl obj files"
 	echo "clean_rv_sbi			-clean sbi obj files"
 	echo "clean_rv_edk2			-clean EDKII obj files"
@@ -251,6 +256,45 @@ function clean_rv_gcc()
 #######################################################################
 # build bin and image
 #######################################################################
+
+function build_rv_bootrom()
+{
+    local err
+
+    pushd $RV_BOOTROM_SRC_DIR
+    if [ $CHIP == 'mango' ]; then
+        make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_BOOTROM_BUILD_DIR ARCH=riscv sg2042_defconfig
+    else
+        make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_BOOTROM_BUILD_DIR ARCH=riscv ${CHIP}_defconfig
+    fi
+    err=$?
+    popd
+
+    if [ $err -ne 0 ]; then
+        echo "making bootrom config failed"
+        return $err
+        fi
+
+    pushd $RV_BOOTROM_BUILD_DIR
+    make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
+    err=$?
+    popd
+
+    if [ $err -ne 0 ]; then
+        echo "making bootrom failed"
+        return $err
+        fi
+
+    mkdir -p $RV_FIRMWARE_INSTALL_DIR
+
+    cp $RV_BOOTROM_BUILD_DIR/bootrom.bin $RV_FIRMWARE_INSTALL_DIR
+}
+
+function clean_rv_bootrom()
+{
+    rm -rf $RV_FIRMWARE_INSTALL_DIR/bootrom.bin
+    rm -rf $RV_BOOTROM_BUILD_DIR
+}
 
 function build_rv_zsbl()
 {
