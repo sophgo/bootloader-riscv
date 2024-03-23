@@ -13,6 +13,8 @@ jobs:
     strategy:
       matrix:
         M_CHIP_NUM: [single, multi]
+        LINUX_BRANCH: [sg2042-dev, sg2042-dev-6.6, sg2042-master]
+
     env:
       mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.03.01
       mainline_toolchain_file_name: riscv64-glibc-ubuntu-22.04-gcc-nightly-2024.03.01-nightly.tar.gz
@@ -23,6 +25,7 @@ jobs:
       KDEB_COMPRESS: xz
       CHIP: mango
       CHIP_NUM: ${{ matrix.M_CHIP_NUM }}
+      BRANCH: ${{ matrix.LINUX_BRANCH }}
       TOOLCHAIN_HOME: /opt/riscv/
 
     steps:
@@ -54,6 +57,7 @@ jobs:
         with:
           repository: sophgo/linux-riscv
           path: linux-riscv
+          ref: ${{ matrix.LINUX_BRANCH }}
 
       - name: Install software
         run: |
@@ -124,13 +128,13 @@ jobs:
                 build_rv_firmware_image
 
                 mkdir ~/firmware_artifact
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware*.bin $GITHUB_WORKSPACE/firmware_${CHIP_NUM}.bin
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_${CHIP_NUM}.img
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware*.bin $GITHUB_WORKSPACE/firmware_${CHIP_NUM}_${BRANCH}.bin
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_${CHIP_NUM}_${BRANCH}.img
               popd
 
       - name: 'Upload Build Artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: sophgo-bootloader-${{ matrix.M_CHIP_NUM }}
+          name: sophgo-bootloader-${{ matrix.M_CHIP_NUM }}-${{ matrix.LINUX_BRANCH }}
           path: firmware_*
           retention-days: 30
