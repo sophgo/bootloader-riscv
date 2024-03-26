@@ -650,6 +650,8 @@ function clean_rv_ubuntu_kernel()
 function build_rv_fedora_kernel()
 {
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_fedora_defconfig
+	local KERNELRELEASE
+	local RPMBUILD_DIR
 	local err
 
 	pushd $RV_KERNEL_SRC_DIR
@@ -674,60 +676,12 @@ cat >> ~/.rpmmacros << "EOT"
 %_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
 EOT
 
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
-	ret=$?
-	rm ~/.rpmmacros
-	if [ -e ~/.rpmmacros.orig ]; then
-		mv ~/.rpmmacros.orig ~/.rpmmacros
-	fi
-	if [ $ret -ne 0 ]; then
-		echo "making rpm package failed"
-		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
-		rm kernel-[0-9]*.tar.gz
-		rm -rf $HOME/rpmbuild
-		popd
-		return $ret
-	fi
-
-	if [ ! -d $RV_RPM_INSTALL_DIR ]; then
-		mkdir -p $RV_RPM_INSTALL_DIR
+	KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+	if [[ ${KERNELRELEASE:0:3} == "6.1" ]]; then
+		RPMBUILD_DIR=$HOME/rpmbuild
 	else
-		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
 	fi
-
-	cp $HOME/rpmbuild/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
-	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
-	rm kernel-[0-9]*.tar.gz
-	rm -rf $HOME/rpmbuild
-	popd
-}
-
-function build_rv_euler_kernel()
-{
-	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_euler_defconfig
-	local err
-
-	pushd $RV_KERNEL_SRC_DIR
-	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
-	err=$?
-	if [ $err -ne 0 ]; then
-		echo "making kernel config failed"
-		popd
-		return $err
-	fi
-
-	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
-	fi
-
-	if [ -e ~/.rpmmacros ]; then
-		mv ~/.rpmmacros ~/.rpmmacros.orig
-	fi
-
-# following lines must not be started with space or tab.
-cat >> ~/.rpmmacros << "EOT"
-%_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
-EOT
 
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
 	ret=$?
@@ -738,8 +692,8 @@ EOT
 	if [ $ret -ne 0 ]; then
 		echo "making rpm package failed"
 		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
-		rm kernel-[0-9]*.tar.gz
-		rm -rf $HOME/rpmbuild
+		rm *.tar.gz
+		rm -rf $RPMBUILD_DIR
 		popd
 		return $ret
 	fi
@@ -750,14 +704,14 @@ EOT
 		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
 	fi
 
-	cp $HOME/rpmbuild/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
-	rm kernel-[0-9]*.tar.gz
-	rm -rf $HOME/rpmbuild
+	rm *.tar.gz
+	rm -rf $RPMBUILD_DIR
 	popd
 }
 
-function clean_rv_euler_kernel()
+function clean_rv_fedora_kernel()
 {
 	pushd $RV_KERNEL_SRC_DIR
 	make distclean
@@ -765,7 +719,71 @@ function clean_rv_euler_kernel()
 	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
 }
 
-function clean_rv_fedora_kernel()
+function build_rv_euler_kernel()
+{
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_euler_defconfig
+	local KERNELRELEASE
+	local RPMBUILD_DIR
+	local err
+
+	pushd $RV_KERNEL_SRC_DIR
+	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
+	err=$?
+	if [ $err -ne 0 ]; then
+		echo "making kernel config failed"
+		popd
+		return $err
+	fi
+
+	if [ "$CHIP_NUM" = "multi" ];then
+		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
+	fi
+
+	if [ -e ~/.rpmmacros ]; then
+		mv ~/.rpmmacros ~/.rpmmacros.orig
+	fi
+
+# following lines must not be started with space or tab.
+cat >> ~/.rpmmacros << "EOT"
+%_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
+EOT
+
+	KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+	if [[ ${KERNELRELEASE:0:3} == "6.1" ]]; then
+		RPMBUILD_DIR=$HOME/rpmbuild
+	else
+		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
+	fi
+
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
+	ret=$?
+	rm ~/.rpmmacros
+	if [ -e ~/.rpmmacros.orig ]; then
+		mv ~/.rpmmacros.orig ~/.rpmmacros
+	fi
+	if [ $ret -ne 0 ]; then
+		echo "making rpm package failed"
+		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
+		rm *.tar.gz
+		rm -rf $RPMBUILD_DIR
+		popd
+		return $ret
+	fi
+
+	if [ ! -d $RV_RPM_INSTALL_DIR ]; then
+		mkdir -p $RV_RPM_INSTALL_DIR
+	else
+		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+	fi
+
+	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
+	rm *.tar.gz
+	rm -rf $RPMBUILD_DIR
+	popd
+}
+
+function clean_rv_euler_kernel()
 {
 	pushd $RV_KERNEL_SRC_DIR
 	make distclean
