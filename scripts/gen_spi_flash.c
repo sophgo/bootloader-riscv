@@ -16,7 +16,7 @@
 #define DISK_PART_TABLE_ADDR	0x600000
 #define BUFFER_SIZE		1024
 #define UP_4K_ALIGN 		0x1000
-#define NUM_PAR_PER_PART 	3
+#define NUM_PAR_PER_PART 	4
 
 enum {
 	DPT_MAGIC	= 0x55aa55aa,
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 	unsigned char raw_byte;
 	char *part_name, *file_name;
 	struct part_info *info;
-	uint64_t lma;
+	uint64_t lma, flash_offset;
 	unsigned char zero_byte = 0;
 
 	fd_spi = open("./spi_flash.bin", O_CREAT | O_RDWR, 0644);
@@ -166,14 +166,42 @@ int main(int argc, char **argv)
 	for (i = 0; i < part_num; i++) {
 		part_name = argv[i * NUM_PAR_PER_PART + 1];
 		file_name = argv[i * NUM_PAR_PER_PART + 2];
-		ret = sscanf(argv[i * NUM_PAR_PER_PART + 3], "0x%lx", &lma);
+		ret = sscanf(argv[i * NUM_PAR_PER_PART + 3], "0x%lx",
+							&flash_offset);
+		if (ret < 0) {
+			printf("sscanf flash_offset error\n");
+			goto failed_pack;
+		}
+
+		/* dtb files are placed after partition table by default */
+		if (i != 0 && (strstr(part_name, "dtb") != NULL ||
+				strstr(file_name, "dtb") != NULL) ) {
+			flash_offset = offset;
+		} else {
+			if (flash_offset & (UP_4K_ALIGN - 1)) {
+				printf("Flash offset needs aligned to 4KB.\n");
+				flash_offset = (flash_offset + UP_4K_ALIGN - 1)
+						& ~(UP_4K_ALIGN - 1);
+			}
+
+			if (offset > flash_offset) {
+				printf("Flash offset overlaps with the previous file.\
+					flash_offset=0x%lx\toffset=0x%x\n",
+					flash_offset, offset);
+				goto failed_pack;
+			}
+
+			offset = flash_offset;
+		}
+
+		ret = sscanf(argv[i * NUM_PAR_PER_PART + 4], "0x%lx", &lma);
 		if (ret < 0) {
 			printf("sscanf lma error\n");
 			goto failed_pack;
 		}
 
 		ret = paser_and_setup_part_info(&info[i], part_name, file_name,
-						lma, offset);
+						lma, flash_offset);
 		if (ret) {
 			printf("failed to setup part info\n");
 			goto failed_pack;
