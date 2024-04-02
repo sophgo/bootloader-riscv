@@ -721,7 +721,7 @@ function clean_rv_fedora_kernel()
 
 function build_rv_euler_kernel()
 {
-	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_euler_defconfig
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_openeuler_defconfig
 	local KERNELRELEASE
 	local RPMBUILD_DIR
 	local err
