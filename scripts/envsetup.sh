@@ -373,23 +373,41 @@ function build_rv_edk2()
 
 	make -C edk2/BaseTools
 
-	if [ "$CHIP_NUM" = "multi" ];then
-		TARGET=DEBUG
-		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/SG2042_EVB_Board/SG2042.dsc
+	if [ $CHIP = 'mango' ]; then
+		if [ "$CHIP_NUM" = "multi" ];then
+			TARGET=DEBUG
+			build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/SG2042_EVB_Board/SG2042.dsc
+		else
+			TARGET=RELEASE
+			build -a RISCV64 -t GCC5 -b $TARGET -D X64EMU_ENABLE -p Platform/Sophgo/SG2042_EVB_Board/SG2042.dsc
+		fi
+
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+
+		cp $RV_EDKII_SRC_DIR/Build/SG2042_EVB/$TARGET\_GCC5/FV/SG2042.fd $RV_FIRMWARE_INSTALL_DIR
 	else
-		TARGET=RELEASE
-		build -a RISCV64 -t GCC5 -b $TARGET -D X64EMU_ENABLE -p Platform/Sophgo/SG2042_EVB_Board/SG2042.dsc
+		pushd edk2-platforms
+		git checkout devel-${CHIP}
+		popd
+
+		TARGET=DEBUG
+		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
+
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+
+		cp $RV_EDKII_SRC_DIR/Build/${CHIP^^}/$TARGET\_GCC5/FV/${CHIP^^}.fd $RV_FIRMWARE_INSTALL_DIR
 	fi
+
 	popd
-
-	mkdir -p $RV_FIRMWARE_INSTALL_DIR
-
-	cp $RV_EDKII_SRC_DIR/Build/SG2042_EVB/$TARGET\_GCC5/FV/SG2042.fd $RV_FIRMWARE_INSTALL_DIR
 }
 
 function clean_rv_edk2()
 {
-	rm -rf $RV_FIRMWARE_INSTALL_DIR/SG2042.fd
+	if [ $CHIP = 'mango' ]; then
+		rm -rf $RV_FIRMWARE_INSTALL_DIR/SG2042.fd
+	else
+		rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd
+	fi
 
 	pushd $RV_EDKII_SRC_DIR
 	rm -rf Build
