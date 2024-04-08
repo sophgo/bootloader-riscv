@@ -64,6 +64,10 @@ RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
 RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
 RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
 
+TPUV7_RUNTIME_DIR=$RV_TOP_DIR/tpuv7-runtime
+TPUV7_AP_DAEMON=$TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/daemon/cdm_daemon/cdm_daemon
+TPUV7_TP_DAEMON=$TPUV7_RUNTIME_DIR/build/asic/cdmlib/tp/daemon/tp_daemon
+
 RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
 RV_UBUNTU_DISTRO=ubuntu
 RV_FEDORA_DISTRO=fedora
@@ -105,6 +109,14 @@ else
 	RISCV64_LINUX_CROSS_COMPILE=$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-
 fi
 RISCV64_ELF_CROSS_COMPILE=$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-
+
+TP_IMAGES=(
+	tp_zsbl.bin
+	fw_dynamic.bin
+	tp_Image.bin
+	tp.dtb
+	tp_rootfs.cpio
+)
 
 #######################################################################
 # common function
@@ -165,6 +177,9 @@ function show_rv_functions()
 	echo "build_rv_fedora			-build sophgo fedora image"
 	echo "build_rv_euler			-build sophgo euler image"
 	echo "build_rv_all			-build all bin and image(default: ubuntu)"
+	echo "build_ap_ramfs			-build tpuv7 cdm ap rootfs"
+	echo "build_tp_ramfs			-build tpuv7 cdm tp rootfs"
+	echo "build_tpuv7_runtime		-build tpuv7 runtime for sdk"
 	echo ""
 	echo "clean_rv_gcc			-clean gcc obj files"
 	echo "clean_rv_bootrom			-clean bootrom obj files"
@@ -196,6 +211,7 @@ function show_rv_functions()
 	echo "clean_rv_ubuntu			-clean ubuntu image"
 	echo "clean_rv_fedora			-clean feodra image"
 	echo "clean_rv_all			-clean all bin and image(default: ubuntu)"
+	echo "clean_tpuv7_runtime		-clean tpuv7 runtime for sdk"
 }
 
 #######################################################################
@@ -807,6 +823,151 @@ function clean_rv_euler_kernel()
 	make distclean
 	popd
 	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+}
+
+
+function build_tp_ramfs()
+{
+	if [ ! -d $RV_BUILDROOT_DIR/overlay/tp ]; then
+		mkdir -p $RV_BUILDROOT_DIR/overlay/tp
+	fi
+
+	# copy tp daemon
+	if [ -f $TPUV7_TP_DAEMON ]; then
+		cp $TPUV7_TP_DAEMON $RV_BUILDROOT_DIR/overlay/tp/
+	else
+		echo "no ap daemon found"
+	fi
+
+	# copy other non-generated files
+	cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_BUILDROOT_DIR/overlay/tp/
+
+	pushd $RV_BUILDROOT_DIR
+	make sg2260_tp_defconfig
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+	    echo 'config buildroot failed'
+	    return $err
+	fi
+
+	pushd $RV_BUILDROOT_DIR
+	make -j$(nproc)
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+	    echo 'build buildroot failed'
+	    return $err
+	fi
+
+	cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_FIRMWARE_INSTALL_DIR/tp_rootfs.cpio
+
+	# delete tp daemon
+	rm $RV_BUILDROOT_DIR/output/target/tp_daemon
+
+	# delete other non-generated files
+	pushd $RV_BUILDROOT_DIR/overlay/tp/
+	TP_OVERLAY_FILE=$(find ./)
+	popd
+
+	pushd $RV_BUILDROOT_DIR/output/target/
+	for i in ${TP_OVERLAY_FILE}; do
+		if [ -f $i ]; then
+			echo "dele $i"
+			rm $i
+		fi
+	done
+	popd
+}
+
+function clean_tp_ramfs()
+{
+	if [ -d $RV_BUILDROOT_DIR/overlay ]; then
+		rm -rf $RV_BUILDROOT_DIR/overlay
+	fi
+}
+
+function build_ap_ramfs()
+{
+	if [ ! -d $RV_BUILDROOT_DIR/overlay/ap ]; then
+		mkdir -p $RV_BUILDROOT_DIR/overlay/ap
+	fi
+
+	# copy ap daemon
+	if [ -f $TPUV7_AP_DAEMON ]; then
+		cp $TPUV7_AP_DAEMON $RV_BUILDROOT_DIR/overlay/ap/
+	else
+		echo "no ap daemon found"
+	fi
+
+	# copy tp firmware file
+	mkdir -p $RV_BUILDROOT_DIR/overlay/ap/lib/firmware/
+	for i in ${TP_IMAGES[@]}; do
+		if [ -f $RV_FIRMWARE_INSTALL_DIR/$i ]; then
+			cp $RV_FIRMWARE_INSTALL_DIR/$i $RV_BUILDROOT_DIR/overlay/ap/lib/firmware/
+		else
+			echo "no $RV_FIRMWARE_INSTALL_DIR/$i found"
+		fi
+	done
+
+	# copy other non-generated files
+	cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/ap/* $RV_BUILDROOT_DIR/overlay/ap/
+
+	# package rootfs
+	pushd $RV_BUILDROOT_DIR
+	make sg2260_ap_defconfig
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+	    echo 'config buildroot failed'
+	    return $err
+	fi
+
+	pushd $RV_BUILDROOT_DIR
+	make -j$(nproc)
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+	    echo 'build buildroot failed'
+	    return $err
+	fi
+
+	cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_FIRMWARE_INSTALL_DIR/ap_rootfs.cpio
+
+	# delete ap daemon
+	if [ -f $RV_BUILDROOT_DIR/output/target/cdm_daemon ]; then
+		rm $RV_BUILDROOT_DIR/output/target/cdm_daemon
+	fi
+
+	# delete tp firmware
+	if [ -d $RV_BUILDROOT_DIR/output/target/lib/firmware ]; then
+		rm -r $RV_BUILDROOT_DIR/output/target/lib/firmware
+	fi
+
+	# delete other non-generated files
+	pushd $RV_BUILDROOT_DIR/overlay/ap/
+	AP_OVERLAY_FILE=$(find ./)
+	popd
+
+	pushd $RV_BUILDROOT_DIR/output/target/
+	for i in ${AP_OVERLAY_FILE}; do
+		if [ -f $i ]; then
+			echo "dele $i"
+			rm $i
+		fi
+	done
+	popd
+}
+
+function clean_ap_ramfs()
+{
+	if [ -d $RV_BUILDROOT_DIR/overlay ]; then
+		rm -rf $RV_BUILDROOT_DIR/overlay
+	fi
 }
 
 function build_rv_ramfs()
@@ -1622,6 +1783,28 @@ function clean_rv_all()
 {
 	clean_rv_firmware_bin
 	clean_rv_ubuntu
+}
+
+function build_tpuv7_runtime()
+{
+	mkdir -p $TPUV7_RUNTIME_DIR/build/asic
+	pushd $TPUV7_RUNTIME_DIR/build/asic
+	cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install  -DUSING_CMODEL=OFF ../..
+	make -j$(nproc)
+        popd
+
+	mkdir -p $TPUV7_RUNTIME_DIR/build/emulator
+	pushd $TPUV7_RUNTIME_DIR/build/emulator
+	cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install  -DUSING_CMODEL=ON ../..
+	make -j$(nproc)
+        popd
+}
+
+function clean_tpuv7_runtime()
+{
+	if [ -d $TPUV7_RUNTIME_DIR/build]; then
+		rm $TPUV7_RUNTIME_DIR/build
+	fi
 }
 
 # include top mcu environment
