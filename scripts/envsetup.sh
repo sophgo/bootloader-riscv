@@ -233,7 +233,7 @@ function build_rv_linux_gcc()
 	make clean
 	git checkout 2023.11.08
 	./configure --prefix=$RV_LINUX_GCC_INSTALL_DIR
-	make linux
+	make linux -j$(nproc)
 	popd
 	popd
 }
@@ -251,7 +251,7 @@ function build_rv_elf_gcc()
 	make clean
 	git checkout 2023.11.08
 	./configure --with-cmodel=medany --with-arch=rv64imafdc --with-abi=lp64d --prefix=$RV_ELF_GCC_INSTALL_DIR
-	make
+	make -j$(nproc)
 	popd
 	popd
 }
