@@ -58,6 +58,8 @@ RV_GRUB_BUILD_DIR=$RV_TOP_DIR/grubriscv64
 RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-riscv
 RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 
+RV_RAMDISK_DIR=$RV_TOP_DIR/bootloader-riscv/ramdisk
+
 RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
 RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
 
@@ -825,6 +827,74 @@ function clean_rv_euler_kernel()
 	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
 }
 
+RAMDISK_CPU_TYPES=(
+ap
+rp
+tp
+)
+
+function build_rv_ramdisk()
+{
+	for i in ${RAMDISK_CPU_TYPES[@]}
+	do
+		if [ "$i" == "$1" ]; then
+			local RAMDISK_CPU_TYPE=$1
+		fi
+	done
+	if [ -z "$RAMDISK_CPU_TYPE" ]; then
+		echo please specify a ramdisk type:
+		for i in ${RAMDISK_CPU_TYPES[@]}
+		do
+			echo -e "\t $i"
+		done
+		return
+	fi
+	echo build ramdisk for $RAMDISK_CPU_TYPE
+
+	if [ $RAMDISK_CPU_TYPE = "tp" ]; then
+	# copy tp daemon
+	if [ -f $TPUV7_TP_DAEMON ]; then
+		cp $TPUV7_TP_DAEMON $RV_RAMDISK_DIR/overlay/tp/
+	else
+		echo "no ap daemon found"
+	fi
+	# copy other non-generated files
+	cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_RAMDISK_DIR/overlay/tp/
+	fi
+	rm -rf $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE
+	mkdir -p $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+	cp -rf $RV_RAMDISK_DIR/rootfs/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+	cp -rf $RV_RAMDISK_DIR/overlay/$RAMDISK_CPU_TYPE/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+
+	pushd $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+	find . | cpio -o -H newc > ../rootfs_$RAMDISK_CPU_TYPE.cpio
+	cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_FIRMWARE_INSTALL_DIR
+	if [ "tp" == $RAMDISK_CPU_TYPE ]; then
+		echo copy tp cpoio to ap rootfs.
+		cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_RAMDISK_DIR/overlay/ap
+	fi
+	popd
+}
+
+function clean_rv_ramdisk()
+{
+	for i in ${RAMDISK_CPU_TYPES[@]}
+	do
+		if [ "$i" == "$1" ]; then
+		local RAMDISK_CPU_TYPE=$1
+	fi
+	done
+	if [ -z "$RAMDISK_CPU_TYPE" ]; then
+		echo please specify a ramdisk type:
+		for i in ${RAMDISK_CPU_TYPES[@]}
+		do
+			echo -e "\t $i"
+		done
+		return
+	fi
+	rm -rf $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/rootfs_$RAMDISK_CPU_TYPE.cpio
+}
 
 function build_tp_ramfs()
 {
