@@ -852,26 +852,33 @@ function build_rv_ramdisk()
 	echo build ramdisk for $RAMDISK_CPU_TYPE
 
 	if [ $RAMDISK_CPU_TYPE = "tp" ]; then
-	# copy tp daemon
-	if [ -f $TPUV7_TP_DAEMON ]; then
-		cp $TPUV7_TP_DAEMON $RV_RAMDISK_DIR/overlay/tp/
-	else
-		echo "no ap daemon found"
+		mkdir -p $RV_RAMDISK_DIR/overlay/tp/tpu/
+		# copy tp daemon
+		if [ -f $TPUV7_TP_DAEMON ]; then
+			cp $TPUV7_TP_DAEMON $RV_RAMDISK_DIR/overlay/tp/tpu/
+		else
+			echo "no ap daemon found"
 	fi
 	# copy other non-generated files
-	cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_RAMDISK_DIR/overlay/tp/
+	cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_RAMDISK_DIR/overlay/tp/tpu/
 	fi
 	rm -rf $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE
 	mkdir -p $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
-	cp -rf $RV_RAMDISK_DIR/rootfs/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+	cp -rf $RV_RAMDISK_DIR/rootfs_202405/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
 	cp -rf $RV_RAMDISK_DIR/overlay/$RAMDISK_CPU_TYPE/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
 
 	pushd $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
 	find . | cpio -o -H newc > ../rootfs_$RAMDISK_CPU_TYPE.cpio
 	cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_FIRMWARE_INSTALL_DIR
 	if [ "tp" == $RAMDISK_CPU_TYPE ]; then
+		mkdir -p $RV_RAMDISK_DIR/overlay/ap/fw_tp/
 		echo copy tp cpoio to ap rootfs.
-		cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_RAMDISK_DIR/overlay/ap
+		cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_RAMDISK_DIR/overlay/ap/fw_tp/
+	fi
+	if [ "ap" == $RAMDISK_CPU_TYPE ]; then
+		mkdir -p $RV_RAMDISK_DIR/overlay/rp/fw_ap/
+		echo copy ap cpoio to rp rootfs.
+		cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_RAMDISK_DIR/overlay/rp/fw_ap/
 	fi
 	popd
 }
