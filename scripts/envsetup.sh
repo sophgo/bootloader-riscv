@@ -1369,7 +1369,7 @@ label euler_sophgo
 	menu label euler Sophgo in SD
 	linux /boot/vmlinuz-$kernel_version
 	initrd /boot/initramfs-$kernel_version.img
-	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme.use_threaded_interrupts=1 nvme_core.io_timeout=3000
+	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme.use_threaded_interrupts=1
 EOF
 
 cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
@@ -1507,7 +1507,7 @@ label fedora_sophgo
 	menu label Fedora Sophgo in SD
 	linux /vmlinuz-$kernel_version
 	initrd /initramfs-$kernel_version.img
-	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme_core.io_timeout=600 nvme_core.admin_timeout=600 cma=512M swiotlb=65536
+	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8  nvme_core.admin_timeout=600 cma=512M swiotlb=65536
 EOF
 
 # update the grub.cfg
@@ -1521,7 +1521,7 @@ set timeout=2
 set term="vt100"
 
 menuentry 'Fedora 38 on SG2042' {
-    linux /vmlinuz-$kernel_version  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8 nvme_core.io_timeout=600 nvme_core.admin_timeout=600 cma=512M swiotlb=65536
+    linux /vmlinuz-$kernel_version  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8  cma=512M swiotlb=65536
     initrd /initramfs-$kernel_version.img
 }
 
