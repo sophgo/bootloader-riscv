@@ -1172,9 +1172,13 @@ function build_rv_ubuntu_image()
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/ubuntu
-
+	if [ "$CHIP" = "sg2260" ];then
+	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	else
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+	fi
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
@@ -1307,8 +1311,13 @@ function build_rv_euler_image()
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 
+	if [ "$CHIP" = "sg2260" ];then
+	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	else
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+	fi
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/grub.cfg $RV_OUTPUT_DIR/efi/
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64.efi $RV_OUTPUT_DIR/efi/
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
@@ -1436,8 +1445,13 @@ function build_rv_fedora_image()
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/fedora
 
+	if [ "$CHIP" = "sg2260" ];then
+	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	else
 	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi
+	fi
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
@@ -1715,8 +1729,13 @@ function build_rv_firmware_image()
 	sudo mkdir -p efi/riscv64
 
 	echo copy bootloader...
+	if [ "$CHIP" = "sg2260" ];then
+	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
+	sudo cp zsbl.bin efi/riscv64
+	else
 	sudo cp $RV_FIRMWARE/fip.bin efi/
 	sudo cp zsbl.bin efi/
+	fi
 	sudo cp riscv64_Image efi/riscv64
 	sudo cp *.dtb efi/riscv64
 	sudo cp initrd.img efi/riscv64
@@ -1753,8 +1772,13 @@ function build_rv_firmware_package()
 	mkdir -p firmware/riscv64
 
 	echo copy bootloader...
+	if [ "$CHIP" = "sg2260" ];then
+	cp $RV_FIRMWARE/fsbl.bin firmware/riscv64
+	cp zsbl.bin firmware/riscv64
+	else
 	cp $RV_FIRMWARE/fip.bin firmware
 	cp zsbl.bin firmware
+	fi
 	# cp u-boot.bin firmware/riscv64
 	cp SG2042.fd firmware/riscv64
 	cp riscv64_Image firmware/riscv64
