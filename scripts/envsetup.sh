@@ -57,6 +57,7 @@ RV_GRUB_BUILD_DIR=$RV_TOP_DIR/grubriscv64
 
 RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-riscv
 RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
+# RV_KERNEL_BUILD_DIR should only be used inside build/clean kernel functions
 
 RV_RAMDISK_DIR=$RV_TOP_DIR/bootloader-riscv/ramdisk
 
@@ -589,6 +590,7 @@ function build_rv_kernel()
 			return -1
 		fi
 		RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_$1_${KERNEL_VARIANT}_defconfig
+		RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/$1_${KERNEL_VARIANT}
 	fi
 
 	pushd $RV_KERNEL_SRC_DIR
@@ -632,13 +634,18 @@ function clean_rv_kernel()
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/vmlinux
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.dtb
 
-	rm -rf $RV_KERNEL_BUILD_DIR
+	if [ "$CHIP" = "sg2260" ];then
+		rm -rf $RV_KERNEL_SRC_DIR/build/$CHIP/*${KERNEL_VARIANT}
+	else
+		rm -rf $RV_KERNEL_BUILD_DIR
+	fi
 }
 
 function build_rv_ubuntu_kernel()
 {
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_ubuntu_defconfig
 	local err
+	RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/ubuntu
 
 	pushd $RV_KERNEL_SRC_DIR
 	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
@@ -679,6 +686,7 @@ function build_rv_ubuntu_kernel()
 
 function clean_rv_ubuntu_kernel()
 {
+	RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/ubuntu
 	rm -rf $RV_KERNEL_BUILD_DIR
 	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
 }
@@ -689,6 +697,7 @@ function build_rv_fedora_kernel()
 	local KERNELRELEASE
 	local RPMBUILD_DIR
 	local err
+	RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/fedora
 
 	pushd $RV_KERNEL_SRC_DIR
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
@@ -749,6 +758,7 @@ EOT
 
 function clean_rv_fedora_kernel()
 {
+	RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/fedora
 	pushd $RV_KERNEL_SRC_DIR
 	make distclean
 	popd
@@ -761,6 +771,7 @@ function build_rv_euler_kernel()
 	local KERNELRELEASE
 	local RPMBUILD_DIR
 	local err
+	RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/euler
 
 	pushd $RV_KERNEL_SRC_DIR
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
@@ -821,6 +832,7 @@ EOT
 
 function clean_rv_euler_kernel()
 {
+	RV_KERNEL_BUILD_DIR=$RV_KERNEL_SRC_DIR/build/$CHIP/euler
 	pushd $RV_KERNEL_SRC_DIR
 	make distclean
 	popd
@@ -1184,7 +1196,12 @@ function build_rv_ubuntu_image()
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64
+
+	if [ "$CHIP" = "sg2260" ];then
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64/rootfs_rp.cpio
+	else
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64/
+	fi
 
 	echo build GRUB2...
 	build_rv_ubuntu_grub
