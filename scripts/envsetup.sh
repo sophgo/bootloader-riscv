@@ -1184,24 +1184,32 @@ function build_rv_ubuntu_image()
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/ubuntu
-	if [ "$CHIP" = "sg2260" ];then
-	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
-	else
-	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
-	fi
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
-	# sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "mango" ]; then
+		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
+		# sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
+	elif [ "$CHIP" = "sg2260" ]; then
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	else
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd $RV_OUTPUT_DIR/efi/riscv64
+	fi
+
+	if [ "$CHIP" = "sg2260" ]; then
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64/rootfs_rp.cpio
 	else
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64/
 	fi
+
+	if [ "$CHIP" = "mango" ]; then
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+	else
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	fi
+
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/*_Image $RV_OUTPUT_DIR/efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 
 	echo build GRUB2...
 	build_rv_ubuntu_grub
@@ -1242,8 +1250,10 @@ EOT
 	echo copy bsp package...
 	sudo cp -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/root/home/ubuntu/
 
-	echo copy tools package...
-	sudo cp -r $RV_TOOLS_DIR $RV_OUTPUT_DIR/root/home/ubuntu
+	if [ "$CHIP" = "mango" ]; then
+		echo copy tools package...
+		sudo cp -r $RV_TOOLS_DIR $RV_OUTPUT_DIR/root/home/ubuntu
+	fi
 
 	echo install linux image...
 	pushd $RV_OUTPUT_DIR/root
@@ -1658,15 +1668,15 @@ function build_rv_firmware()
 {
 	build_rv_zsbl
 	build_rv_sbi
-	# build_rv_uboot
-	build_rv_edk2
 	if [ "$CHIP" = "sg2260" ];then
 		build_rv_kernel ap
 		build_rv_kernel rp
 		build_rv_kernel tp
 	else
 		build_rv_kernel
+		build_rv_edk2
 	fi
+
 	build_rv_uroot
 }
 
@@ -1674,7 +1684,6 @@ function clean_rv_firmware()
 {
 	clean_rv_zsbl
 	clean_rv_sbi
-	# clean_rv_uboot
 	clean_rv_edk2
 	clean_rv_kernel
 	clean_rv_uroot
