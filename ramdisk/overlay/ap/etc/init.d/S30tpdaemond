@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# cdm_daemon        Starts cdm_daemon
+#
+
+export LD_LIBRARY_PATH=/lib:/lib64:/usr/lib
+
+# Make sure the tp_daemon progam exists
+[ -f /cdm_daemon ] || exit 0
+
+umask 077
+
+start() {
+	printf "start tpu scalar: "
+	insmod /lib/firmware/sgdrv.ko
+        printf "Starting cdm_daemon: "
+	ulimit -n 655360
+	/cdm_daemon &
+        echo "OK"
+}
+stop() {
+        printf "Stopping cdm_daemon: "
+        killall cdm_daemon
+        echo "OK"
+}
+restart() {
+        stop
+        start
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|reload)
+    restart
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?

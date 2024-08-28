@@ -863,35 +863,47 @@ function build_rv_ramdisk()
 	fi
 	echo build ramdisk for $RAMDISK_CPU_TYPE
 
-	if [ $RAMDISK_CPU_TYPE = "tp" ]; then
-		mkdir -p $RV_RAMDISK_DIR/overlay/tp/tpu/
-		# copy tp daemon
-		if [ -f $TPUV7_TP_DAEMON ]; then
-			cp $TPUV7_TP_DAEMON $RV_RAMDISK_DIR/overlay/tp/tpu/
-		else
-			echo "no ap daemon found"
-		fi
-		# copy other non-generated files
-		cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_RAMDISK_DIR/overlay/tp/tpu/
-	fi
 	rm -rf $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE
 	mkdir -p $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
 	cp -rf $RV_RAMDISK_DIR/rootfs_202405/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
 	cp -rf $RV_RAMDISK_DIR/overlay/$RAMDISK_CPU_TYPE/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
 
-	pushd $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
-	find . | cpio -o -H newc > ../rootfs_$RAMDISK_CPU_TYPE.cpio
-	cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_FIRMWARE_INSTALL_DIR
 	if [ "tp" == $RAMDISK_CPU_TYPE ]; then
-		mkdir -p $RV_RAMDISK_DIR/overlay/ap/fw_tp/
-		echo copy tp cpoio to ap rootfs.
-		cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_RAMDISK_DIR/overlay/ap/fw_tp/
+		# copy tp daemon
+		if [ -f $TPUV7_TP_DAEMON ]; then
+			cp $TPUV7_TP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
+		else
+			echo "no ap daemon found"
+		fi
+		# copy other non-generated files
+		cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_RAMDISK_DIR/build/tp/rootfs/tpu/
 	fi
 	if [ "ap" == $RAMDISK_CPU_TYPE ]; then
-		mkdir -p $RV_RAMDISK_DIR/overlay/rp/fw_ap/
-		echo copy ap cpoio to rp rootfs.
-		cp ../rootfs_$RAMDISK_CPU_TYPE.cpio $RV_RAMDISK_DIR/overlay/rp/fw_ap/
+		if [ -f $TPUV7_AP_DAEMON ]; then
+			cp $TPUV7_AP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
+		else
+			echo "no ap daemon found"
+		fi
+		echo "copy tp firmware to ap lib/firmware"
+		mkdir -p $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
+		cp $RV_FIRMWARE_INSTALL_DIR/tp_zsbl.bin $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
+		cp $RV_FIRMWARE_INSTALL_DIR/tp_Image $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
+		cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
+		cp $RV_FIRMWARE_INSTALL_DIR/bm1690-cdm-tp.dtb $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
+		echo copy tp cpoio to ap rootfs.
+		cp $RV_RAMDISK_DIR/build/tp/tp_rootfs.cpio $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/		
 	fi
+	if [ "rp" == $RAMDISK_CPU_TYPE ]; then
+		mkdir -p $RV_RAMDISK_DIR/build/rp/rootfs/fw_ap/
+		echo copy ap cpoio to rp rootfs.
+		cp $RV_RAMDISK_DIR/build/ap/ap_rootfs.cpio  $RV_RAMDISK_DIR/build/rp/rootfs/fw_ap/
+	fi
+
+
+	pushd $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+	find . | cpio -o -H newc > ../$RAMDISK_CPU_TYPE\_rootfs.cpio
+	cp ../$RAMDISK_CPU_TYPE\_rootfs.cpio $RV_FIRMWARE_INSTALL_DIR
+
 	popd
 }
 
@@ -912,7 +924,7 @@ function clean_rv_ramdisk()
 		return
 	fi
 	rm -rf $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE
-	rm -rf $RV_FIRMWARE_INSTALL_DIR/rootfs_$RAMDISK_CPU_TYPE.cpio
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/$RAMDISK_CPU_TYPE\_rootfs.cpio
 }
 
 function build_tp_ramfs()
@@ -1088,6 +1100,8 @@ function build_rv_ramfs()
 
 function clean_rv_ramfs()
 {
+	pushd $RV_BUILDROOT_DIR
+	make clean
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/rootfs.cpio
 	rm -rf $RV_BUILDROOT_DIR/output
 }
