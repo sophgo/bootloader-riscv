@@ -584,9 +584,9 @@ function build_rv_kernel()
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
 	local err
 
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "bm1690" ];then
 		if [ "$1" = "" ];then
-			echo "build sg2260 kernel, eg: build_rv_kernel ap|rp|tp"
+			echo "build bm1690 kernel, eg: build_rv_kernel ap|tp"
 			return -1
 		fi
 		RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_$1_${KERNEL_VARIANT}_defconfig
@@ -617,7 +617,7 @@ function build_rv_kernel()
 	fi
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "bm1690" ];then
 		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/$1_Image
 	else
 		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/riscv64_Image
@@ -634,7 +634,7 @@ function clean_rv_kernel()
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/vmlinux
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.dtb
 
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "bm1690" ];then
 		rm -rf $RV_KERNEL_SRC_DIR/build/$CHIP/*${KERNEL_VARIANT}
 	else
 		rm -rf $RV_KERNEL_BUILD_DIR
@@ -1179,7 +1179,7 @@ function build_rv_ubuntu_image()
 	sudo mkfs.ext4 /dev/mapper/$root_part
 
 	echo copy bootloader...
-	mkdir $RV_OUTPUT_DIR/efi
+	mkdir -p $RV_OUTPUT_DIR/efi
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
@@ -1189,17 +1189,15 @@ function build_rv_ubuntu_image()
 		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/SG2042.fd $RV_OUTPUT_DIR/efi/riscv64
 		# sudo cp $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $RV_OUTPUT_DIR/efi/riscv64
-	elif [ "$CHIP" = "sg2260" ]; then
+	elif [ "$CHIP" = "bm1690" ]; then
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	elif [ "$CHIP" = "sg2044" ]; then
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	else
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd $RV_OUTPUT_DIR/efi/riscv64
 	fi
 
-	if [ "$CHIP" = "sg2260" ]; then
-		sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64/rootfs_rp.cpio
-	else
-		sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64/
-	fi
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/initrd.img $RV_OUTPUT_DIR/efi/riscv64/
 
 	if [ "$CHIP" = "mango" ]; then
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
@@ -1338,7 +1336,7 @@ function build_rv_euler_image()
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ];then
 	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	else
@@ -1472,7 +1470,7 @@ function build_rv_fedora_image()
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/fedora
 
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ];then
 	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	else
@@ -1668,9 +1666,8 @@ function build_rv_firmware()
 {
 	build_rv_zsbl
 	build_rv_sbi
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "bm1690" ];then
 		build_rv_kernel ap
-		build_rv_kernel rp
 		build_rv_kernel tp
 	else
 		build_rv_kernel
@@ -1755,7 +1752,7 @@ function build_rv_firmware_image()
 	sudo mkdir -p efi/riscv64
 
 	echo copy bootloader...
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ];then
 	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
 	sudo cp zsbl.bin efi/riscv64
 	else
@@ -1798,7 +1795,7 @@ function build_rv_firmware_package()
 	mkdir -p firmware/riscv64
 
 	echo copy bootloader...
-	if [ "$CHIP" = "sg2260" ];then
+	if [ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ];then
 	cp $RV_FIRMWARE/fsbl.bin firmware/riscv64
 	cp zsbl.bin firmware/riscv64
 	else
