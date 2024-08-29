@@ -1209,12 +1209,6 @@ function build_rv_ubuntu_image()
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*_Image $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 
-	echo build GRUB2...
-	build_rv_ubuntu_grub
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/ubuntu-rootfs/grubriscv64.efi $RV_OUTPUT_DIR/efi/EFI/BOOT/BOOTRISCV64.EFI
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/ubuntu-rootfs/grubriscv64.efi $RV_OUTPUT_DIR/efi/EFI/ubuntu/
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64/ubuntu.cfg $RV_OUTPUT_DIR/efi/EFI/ubuntu/grub.cfg
-
 	echo copy ubuntu...
 	loops=$(sudo kpartx -av $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE | cut -d ' ' -f 3)
 	ubuntu_root_part=$(echo $loops | cut -d ' ' -f 1)
@@ -1262,24 +1256,6 @@ dpkg -i /home/ubuntu/bsp-debs/linux-image-*[0-9].deb
 
 cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
 blacklist switchtec
-EOF
-
-# update the grub.cfg
-mkdir -p /boot/grub
-
-kernel_version=`ls /home/ubuntu/bsp-debs/linux-image-[0-9]*.deb | cut -d '-' -f 4 | cut -d '.' -f 1-3`
-cat > /boot/grub/grub.cfg << EOF
-set default=0
-set timeout_style=menu
-set timeout=2
-
-set term="vt100"
-
-menuentry 'Ubuntu on SG2042' {
-    linux /boot/vmlinuz-$kernel_version  console=ttyS0,115200 root=LABEL=cloudimg-rootfs rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8
-    initrd /boot/initrd.img-$kernel_version
-}
-
 EOF
 
 # replace UUID to LABEL
