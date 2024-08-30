@@ -1284,12 +1284,8 @@ EOT
 
 	echo cleanup...
 	sync
-	sudo umount $RV_OUTPUT_DIR/root/proc
-	sudo umount $RV_OUTPUT_DIR/root/sys
-	sudo umount $RV_OUTPUT_DIR/root/dev/pts
-	sudo umount $RV_OUTPUT_DIR/root/dev
+	sudo umount -R $RV_OUTPUT_DIR/root
 	sudo umount $RV_OUTPUT_DIR/efi
-	sudo umount $RV_OUTPUT_DIR/root
 	sudo kpartx -d $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE
 	sudo rm -r $RV_OUTPUT_DIR/efi
