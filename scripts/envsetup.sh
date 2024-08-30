@@ -1231,7 +1231,7 @@ function build_rv_ubuntu_image()
 	sudo resize2fs /dev/mapper/$root_part
 
 	echo mount root partition...
-	mkdir $RV_OUTPUT_DIR/root
+	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
@@ -1288,8 +1288,8 @@ EOT
 	sudo umount $RV_OUTPUT_DIR/root/sys
 	sudo umount $RV_OUTPUT_DIR/root/dev/pts
 	sudo umount $RV_OUTPUT_DIR/root/dev
-	sudo umount /dev/mapper/$efi_part
-	sudo umount /dev/mapper/$root_part
+	sudo umount $RV_OUTPUT_DIR/efi
+	sudo umount $RV_OUTPUT_DIR/root
 	sudo kpartx -d $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE
 	sudo rm -r $RV_OUTPUT_DIR/efi
