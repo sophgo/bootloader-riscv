@@ -76,7 +76,7 @@ RV_UBUNTU_DISTRO=ubuntu
 RV_FEDORA_DISTRO=fedora
 RV_EULER_DISTRO=euler
 
-RV_UBUNTU_OFFICIAL_IMAGE=ubuntu-24.04-preinstalled-server-riscv64+unmatched.img
+RV_UBUNTU_OFFICIAL_IMAGE=ubuntu-24.04.1-preinstalled-server-riscv64+unmatched.img
 DOWNLOAD_RV_UBUNTU_OFFICIAL_IMAGE="wget https://cdimage.ubuntu.com/releases/noble/release/$RV_UBUNTU_OFFICIAL_IMAGE.xz"
 UNCOMPRESS_RV_UBUNTU_OFFICIAL_IMAGE="unxz $RV_UBUNTU_OFFICIAL_IMAGE.xz"
 
