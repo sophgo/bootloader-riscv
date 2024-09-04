@@ -1518,6 +1518,10 @@ mount /dev/mapper/$BOOT_PART /boot
 rpm -ivh --force /home/fedora/bsp-rpms/kernel-[0-9]*.riscv64.rpm
 rpm -e kernel-6.2.16
 rm -rf /boot/*6.2.16*
+rpm -e kernel-modules kernel-modules-core kernel-core
+rpm -ivh --force /home/fedora/bsp-rpms/kernel-headers-[0-9]*.riscv64.rpm
+rpm -ivh --force /home/fedora/bsp-rpms/kernel-devel-[0-9]*.riscv64.rpm
+
 
 # The following command is to solve the problem of not updating the extlinux.conf file when installing kernel RPM package.
 kernel_version=`ls /home/fedora/bsp-rpms/kernel-[0-9]*.riscv64.rpm | cut -d '-' -f 3 | cut -d '.' -f 1-3`
@@ -1534,7 +1538,7 @@ label fedora_sophgo
 	menu label Fedora Sophgo in SD
 	linux /vmlinuz-$kernel_version
 	initrd /initramfs-$kernel_version.img
-	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8  nvme_core.admin_timeout=600 cma=512M swiotlb=65536
+	append  console=ttyS0,115200 root=LABEL=ROOT rootfstype=ext4 rootwait rw earlycon selinux=0 LANG=en_US.UTF-8   cma=512M swiotlb=65536
 EOF
 
 # update the grub.cfg
