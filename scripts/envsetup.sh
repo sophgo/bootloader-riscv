@@ -315,6 +315,41 @@ function clean_rv_bootrom()
     rm -rf $RV_BOOTROM_BUILD_DIR
 }
 
+function build_rv_tp_zsbl()
+{
+	local err
+
+	pushd $RV_ZSBL_SRC_DIR
+	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv bm1690_tpu_defconfig
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making zsbl config failed"
+		return $err
+	    fi
+
+	pushd $RV_ZSBL_BUILD_DIR
+	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making zsbl failed"
+		return $err
+	    fi
+
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
+
+	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR/tp_zsbl.bin
+}
+
+function clean_rv_tp_zsbl()
+{
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/tp_zsbl.bin
+	rm -rf $RV_ZSBL_BUILD_DIR
+}
+
 function build_rv_zsbl()
 {
 	local err
