@@ -24,3 +24,4 @@ lock:x:54:
 netdev:x:82:
 users:x:100:
 nobody:x:65534:
+sshd:x:101:

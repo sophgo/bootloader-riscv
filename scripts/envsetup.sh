@@ -877,28 +877,17 @@ function build_rv_ramdisk()
 		fi
 		# copy other non-generated files
 		if [ -d $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp ]; then
+			echo "copy cdmlib overlay tp all to rootfs/tpu"
 			cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_RAMDISK_DIR/build/tp/rootfs/tpu/
 		fi
 	fi
 	if [ "ap" == $RAMDISK_CPU_TYPE ]; then
 		if [ -f $TPUV7_AP_DAEMON ]; then
+			echo "copy cdmlib overlay ap all to rootfs/"
 			cp $TPUV7_AP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
 		else
 			echo "no ap daemon found"
 		fi
-		echo "copy tp firmware to ap lib/firmware"
-		mkdir -p $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
-		cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/tp_zsbl.bin
-		cp $RV_FIRMWARE_INSTALL_DIR/tp_Image $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
-		cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
-		cp $RV_FIRMWARE_INSTALL_DIR/bm1690-cdm-tp.dtb $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
-		echo copy tp cpio to ap rootfs.
-		cp $RV_RAMDISK_DIR/build/tp/tp_rootfs.cpio $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/lib/firmware/
-	fi
-	if [ "rp" == $RAMDISK_CPU_TYPE ]; then
-		mkdir -p $RV_RAMDISK_DIR/build/rp/rootfs/fw_ap/
-		echo copy ap cpoio to rp rootfs.
-		cp $RV_RAMDISK_DIR/build/ap/ap_rootfs.cpio  $RV_RAMDISK_DIR/build/rp/rootfs/fw_ap/
 	fi
 
 

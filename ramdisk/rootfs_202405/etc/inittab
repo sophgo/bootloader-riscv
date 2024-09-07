@@ -20,6 +20,7 @@
 ::sysinit:/bin/mount -a
 ::sysinit:/bin/mkdir -p /run/lock/subsys
 ::sysinit:/sbin/swapon -a
+::sysinit:/sbin/mdev -s
 null::sysinit:/bin/ln -sf /proc/self/fd /dev/fd
 null::sysinit:/bin/ln -sf /proc/self/fd/0 /dev/stdin
 null::sysinit:/bin/ln -sf /proc/self/fd/1 /dev/stdout
@@ -29,7 +30,6 @@ null::sysinit:/bin/ln -sf /proc/self/fd/2 /dev/stderr
 ::sysinit:/etc/init.d/rcS
 
 # Put a getty on the serial port
-# console::respawn:/sbin/getty -L  console 0 vt100 # GENERIC_SERIAL
 console::respawn:-/bin/sh
 
 # Stuff to do for the 3-finger salute
