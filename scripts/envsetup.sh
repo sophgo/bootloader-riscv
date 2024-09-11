@@ -84,8 +84,8 @@ RV_FEDORA_OFFICIAL_IMAGE=fedora-disk-server_sophgo_sg2042-f38-20230523-014306.n.
 DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE="wget http://openkoji.iscas.ac.cn/kojifiles/work/tasks/8061/1418061/$RV_FEDORA_OFFICIAL_IMAGE.xz"
 UNCOMPRESS_RV_FEDORA_OFFICIAL_IMAGE="unxz $RV_FEDORA_OFFICIAL_IMAGE.xz"
 
-RV_EULER_OFFICIAL_IMAGE=openEuler-23.03-V1-base-sg2042-preview.img
-DOWNLOAD_RV_EULER_OFFICIAL_IMAGE="wget https://mirror.iscas.ac.cn/openeuler-sig-riscv/openEuler-RISC-V/preview/openEuler-23.03-V1-riscv64/SG2042/$RV_EULER_OFFICIAL_IMAGE.zst"
+RV_EULER_OFFICIAL_IMAGE=openEuler-24.03-V1-base-sg2042-testing.img
+DOWNLOAD_RV_EULER_OFFICIAL_IMAGE="wget https://repo.tarsier-infra.isrc.ac.cn/openEuler-RISC-V/testing/20240708/v0.1/SG2042/$RV_EULER_OFFICIAL_IMAGE.zst"
 UNCOMPRESS_RV_EULER_OFFICIAL_IMAGE="unzstd $RV_EULER_OFFICIAL_IMAGE.zst"
 
 RV_UBUNTU_SOPHGO_IMAGE=ubuntu-sophgo.img
@@ -1324,13 +1324,13 @@ function clean_rv_ubuntu_image()
 {
 	rm -f $RV_OUTPUT_DIR/$RV_UBUNTU_SOPHGO_IMAGE
 }
-
 function build_rv_euler_image()
 {
 	echo build_rv_euler_image
 	echo create an image file...
+	mkdir -p $RV_OUTPUT_DIR
 	rm -f $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE
-	dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE bs=1GiB count=10
+	sudo dd if=/dev/zero of=$RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE bs=1GiB count=20
 
 	echo create partitions...
 	sudo parted $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE mktable msdos
@@ -1341,14 +1341,14 @@ function build_rv_euler_image()
 	root_part=$(echo $loops | cut -d ' ' -f 2)
 	sleep 3
 	sudo mkfs.vfat /dev/mapper/$efi_part -n EFI
-	sudo mkfs.ext4 /dev/mapper/$root_part
+	sudo mkfs.ext4 /dev/mapper/$root_part 
 
 	echo copy bootloader...
 	mkdir $RV_OUTPUT_DIR/efi
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 
-	if [ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ];then
+    if [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]]; then
 	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	else
@@ -1394,15 +1394,18 @@ function build_rv_euler_image()
 	echo install linux image...
 # following lines must not be started with space or tab.
 sudo chroot $RV_OUTPUT_DIR/root /bin/env ROOT_PART="$root_part" /bin/bash << "EOT"
-echo install dracut
-echo "y" | dnf install dracut
-rm -rf /lib/dracut/dracut.conf.d/99-initramfs.conf
+echo add user euler
+useradd -m -s /bin/bash euler
+echo "euler:sophgo@123" | chpasswd
+sed -i -e '/NOPASSWD/a\%euler   ALL=(ALL) NOPASSWD: ALL' /etc/sudoers
 echo install kernel
 rpm -ivh --force /home/bsp-rpms/kernel-[0-9]*.riscv64.rpm
-
 # The following command is to solve the problem of not updating the extlinux.conf file when installing kernel RPM package.
 kernel_version=`ls /home/bsp-rpms/kernel-[0-9]*.riscv64.rpm | cut -d '-' -f 3 | cut -d '.' -f 1-3`
-mv /boot/extlinux/extlinux.conf /boot/extlinux/extlinux.conf_bak
+echo update initramfs
+dracut --kver $kernel_version --force
+echo build exlinux
+mkdir -p /boot/extlinux
 cat > /boot/extlinux/extlinux.conf << EOF
 ## /boot/extlinux/extlinux.conf
 
@@ -1420,6 +1423,12 @@ EOF
 
 cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
 blacklist switchtec
+EOF
+# replace UUID to LABEL
+mv /etc/fstab /etc/fstab_bak
+cat > /etc/fstab << EOF
+LABEL=ROOT	/		ext4	defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
+LABEL=EFI	/boot/efi	vfat    defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
 EOF
 
 exit
