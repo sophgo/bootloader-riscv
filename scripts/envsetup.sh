@@ -1247,6 +1247,9 @@ function build_rv_ubuntu_image()
 
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*_Image $RV_OUTPUT_DIR/efi/riscv64
+	if [ "$CHIP" = "bm1690" ]; then
+		sudo cp $RV_OUTPUT_DIR/efi/riscv64/rp_Image $RV_OUTPUT_DIR/efi/riscv64/riscv64_Image
+	fi
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb $RV_OUTPUT_DIR/efi/riscv64
 
 	echo copy ubuntu...
