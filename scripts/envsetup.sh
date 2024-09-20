@@ -1523,7 +1523,7 @@ function build_rv_fedora_image()
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/fedora
 
-	if [ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ];then
+	if [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]];then
 	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	else
@@ -1809,7 +1809,7 @@ function build_rv_firmware_image()
 	sudo mkdir -p efi/riscv64
 
 	echo copy bootloader...
-	if [ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ];then
+	if [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]];then
 	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
 	sudo cp zsbl.bin efi/riscv64
 	else
@@ -1852,7 +1852,7 @@ function build_rv_firmware_package()
 	mkdir -p firmware/riscv64
 
 	echo copy bootloader...
-	if [ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ];then
+	if [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]];then
 	cp $RV_FIRMWARE/fsbl.bin firmware/riscv64
 	cp zsbl.bin firmware/riscv64
 	else
