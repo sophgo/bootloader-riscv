@@ -1296,10 +1296,11 @@ EOT
 # following lines must not be started with space or tab.
 sudo chroot . /bin/bash << "EOT"
 sed -i '/UEFI/d' /etc/fstab
-apt remove -y linux-image-6.8.0*
+apt purge -y linux-image-6.8.0*
+apt purge -y linux-headers-6.8.0*
 dpkg -i /home/ubuntu/bsp-debs/linux-image-*[0-9].deb
 apt autoremove -y
-
+apt-mark hold linux-image-6.5.5
 cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
 blacklist switchtec
 EOF
