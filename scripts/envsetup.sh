@@ -278,41 +278,41 @@ function clean_rv_gcc()
 
 function build_rv_bootrom()
 {
-    local err
+	local err
 
-    pushd $RV_BOOTROM_SRC_DIR
-    if [ $CHIP == 'mango' ]; then
-        make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_BOOTROM_BUILD_DIR ARCH=riscv sg2042_defconfig
-    else
-        make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_BOOTROM_BUILD_DIR ARCH=riscv ${CHIP}_defconfig
-    fi
-    err=$?
-    popd
+	pushd $RV_BOOTROM_SRC_DIR
+	if [ $CHIP == 'mango' ]; then
+		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_BOOTROM_BUILD_DIR ARCH=riscv sg2042_defconfig
+	else
+		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_BOOTROM_BUILD_DIR ARCH=riscv ${CHIP}_defconfig
+	fi
+	err=$?
+	popd
 
-    if [ $err -ne 0 ]; then
-        echo "making bootrom config failed"
-        return $err
-        fi
+	if [ $err -ne 0 ]; then
+		echo "making bootrom config failed"
+		return $err
+	fi
 
-    pushd $RV_BOOTROM_BUILD_DIR
-    make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
-    err=$?
-    popd
+	pushd $RV_BOOTROM_BUILD_DIR
+	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
+	err=$?
+	popd
 
-    if [ $err -ne 0 ]; then
-        echo "making bootrom failed"
-        return $err
-        fi
+	if [ $err -ne 0 ]; then
+		echo "making bootrom failed"
+		return $err
+	fi
 
-    mkdir -p $RV_FIRMWARE_INSTALL_DIR
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-    cp $RV_BOOTROM_BUILD_DIR/bootrom.bin $RV_FIRMWARE_INSTALL_DIR
+	cp $RV_BOOTROM_BUILD_DIR/bootrom.bin $RV_FIRMWARE_INSTALL_DIR
 }
 
 function clean_rv_bootrom()
 {
-    rm -rf $RV_FIRMWARE_INSTALL_DIR/bootrom.bin
-    rm -rf $RV_BOOTROM_BUILD_DIR
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/bootrom.bin
+	rm -rf $RV_BOOTROM_BUILD_DIR
 }
 
 function build_rv_tp_zsbl()
@@ -415,19 +415,20 @@ function clean_rv_sbi()
 function build_rv_edk2()
 {
 	pushd $RV_EDKII_SRC_DIR
-	git submodule sync
-	git submodule update --init --recursive
-
-	export WORKSPACE=$RV_EDKII_SRC_DIR
-	export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi
-	export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
-	export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
-
-	source edk2/edksetup.sh
-
-	make -C edk2/BaseTools
-
+	
 	if [ $CHIP = 'mango' ]; then
+		git submodule sync
+		git submodule update --init --recursive
+
+		export WORKSPACE=$RV_EDKII_SRC_DIR
+		export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi
+		export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
+		export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
+
+		source edk2/edksetup.sh
+
+		make -C edk2/BaseTools -j$(nproc)
+
 		if [ "$CHIP_NUM" = "multi" ];then
 			TARGET=DEBUG
 			build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/SG2042_EVB_Board/SG2042.dsc
@@ -440,12 +441,36 @@ function build_rv_edk2()
 
 		cp $RV_EDKII_SRC_DIR/Build/SG2042_EVB/$TARGET\_GCC5/FV/SG2042.fd $RV_FIRMWARE_INSTALL_DIR
 	else
+		git checkout devel-${CHIP}
+
+		git submodule sync
+		git submodule update --init --recursive
+
+		export WORKSPACE=$RV_EDKII_SRC_DIR
+		export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi:$WORKSPACE/external-modules
+		export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
+		export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
+
+		source edk2/edksetup.sh
+
+		make -C edk2/BaseTools -j$(nproc)
+
+		git checkout devel-${CHIP}
+
 		pushd edk2-platforms
 		git checkout devel-${CHIP}
 		popd
 
-		TARGET=DEBUG
-		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
+		pushd edk2-non-osi
+		git checkout devel-${CHIP}
+		popd
+
+		pushd edk2
+		git checkout devel-${CHIP}
+		popd
+
+		TARGET=RELEASE
+		build -a RISCV64 -t GCC5 -b $TARGET -D X64EMU_ENABLE -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
 
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
@@ -532,10 +557,10 @@ function build_rv_ubuntu_grub()
 
 
 	./bin/grub-mkimage -v \
-                       -o ${GRUB_BINARY_NAME_RISCV} \
-                       -O ${GRUB_BINARY_FORMAT_RISCV} \
-                       -p ${GRUB_PREFIX_DIR_RISCV}  \
-                       -c ${GRUB_UBUNTU_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
+		-o ${GRUB_BINARY_NAME_RISCV} \
+		-O ${GRUB_BINARY_FORMAT_RISCV} \
+		-p ${GRUB_PREFIX_DIR_RISCV}  \
+		-c ${GRUB_UBUNTU_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
 	popd
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
@@ -583,10 +608,10 @@ function build_rv_fedora_grub()
 
 
 	./bin/grub-mkimage -v \
-                       -o ${GRUB_BINARY_NAME_RISCV} \
-                       -O ${GRUB_BINARY_FORMAT_RISCV} \
-                       -p ${GRUB_PREFIX_DIR_RISCV}  \
-                       -c ${GRUB_FEDORA_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
+		-o ${GRUB_BINARY_NAME_RISCV} \
+		-O ${GRUB_BINARY_FORMAT_RISCV} \
+		-p ${GRUB_PREFIX_DIR_RISCV}  \
+		-c ${GRUB_FEDORA_DEFAULT_CFG_RISCV} ${GRUB_UEFI_IMAGE_MODULES_RISCV}
 	popd
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
@@ -1355,12 +1380,12 @@ function build_rv_euler_image()
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 
-    if [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]]; then
-	sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+	if [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]]; then
+		sudo cp $RV_FIRMWARE/fsbl.bin $RV_OUTPUT_DIR/efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/riscv64
 	else
-	sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
+		sudo cp $RV_FIRMWARE/fip.bin $RV_OUTPUT_DIR/efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $RV_OUTPUT_DIR/efi/
 	fi
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/grub.cfg $RV_OUTPUT_DIR/efi/
 	# sudo cp $RV_FIRMWARE_INSTALL_DIR/grubriscv64.efi $RV_OUTPUT_DIR/efi/
@@ -1947,13 +1972,13 @@ function build_tpuv7_runtime()
 	pushd $TPUV7_RUNTIME_DIR/build/asic
 	cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install  -DUSING_CMODEL=OFF ../..
 	make -j$(nproc)
-        popd
+	popd
 
 	mkdir -p $TPUV7_RUNTIME_DIR/build/emulator
 	pushd $TPUV7_RUNTIME_DIR/build/emulator
 	cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install  -DUSING_CMODEL=ON ../..
 	make -j$(nproc)
-        popd
+	popd
 }
 
 function clean_tpuv7_runtime()
@@ -1966,6 +1991,6 @@ function clean_tpuv7_runtime()
 # include top mcu environment
 RV_TOP_MCU_BOOTLOADER_DIR=$RV_TOP_DIR/sophgo-2260
 if [ -f $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh ]; then
- echo 'import riscv top mcu build instructions'
- source $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh
+	echo 'import riscv top mcu build instructions'
+	source $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh
 fi
