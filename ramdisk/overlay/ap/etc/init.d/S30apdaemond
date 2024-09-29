@@ -11,8 +11,6 @@ export LD_LIBRARY_PATH=/lib:/lib64:/usr/lib
 umask 077
 
 start() {
-	printf "start tpu scalar: "
-	insmod /lib/firmware/sgdrv.ko
         printf "Starting cdm_daemon: "
 	ulimit -n 655360
 	/cdm_daemon &

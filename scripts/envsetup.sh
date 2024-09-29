@@ -450,7 +450,7 @@ function clean_rv_sbi()
 function build_rv_edk2()
 {
 	pushd $RV_EDKII_SRC_DIR
-	
+
 	if [ $CHIP = 'mango' ]; then
 		git submodule sync
 		git submodule update --init --recursive
@@ -980,6 +980,8 @@ function build_rv_ramdisk()
 		if [ -f $TPUV7_AP_DAEMON ]; then
 			echo "copy cdmlib overlay ap all to rootfs/"
 			cp $TPUV7_AP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
+			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/debug_console_clnt/debug_console_clnt $RV_RAMDISK_DIR/build/ap/rootfs/
+			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/dump_memory/dump $RV_RAMDISK_DIR/build/ap/rootfs/
 		else
 			echo "no ap daemon found"
 		fi
@@ -1408,7 +1410,7 @@ function build_rv_euler_image()
 	root_part=$(echo $loops | cut -d ' ' -f 2)
 	sleep 3
 	sudo mkfs.vfat /dev/mapper/$efi_part -n EFI
-	sudo mkfs.ext4 /dev/mapper/$root_part 
+	sudo mkfs.ext4 /dev/mapper/$root_part
 
 	echo copy bootloader...
 	mkdir $RV_OUTPUT_DIR/efi
