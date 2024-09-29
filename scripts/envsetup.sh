@@ -2031,3 +2031,26 @@ if [ -f $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh ]; then
 	echo 'import riscv top mcu build instructions'
 	source $RV_TOP_MCU_BOOTLOADER_DIR/scripts/envsetup.sh
 fi
+
+function build_xmr_firmware_bin()
+{
+	version=$(date "+%Y%m%d%H%M%S")
+
+	gcc -g -Werror $RV_SCRIPTS_DIR/gen_sg2044r_spi_flash.c -o $RV_FIRMWARE_INSTALL_DIR/gen_sg2044r_spi_flash
+
+	pushd $RV_FIRMWARE_INSTALL_DIR
+
+	rm -f xmr-firmware*
+
+	./gen_sg2044r_spi_flash fsbl.bin fsbl.bin 0x81000 0x7010080000 \
+				fw_dynamic.bin fw_dynamic.bin 0x15d000 0x82200000 \
+				ap_Image ap_Image 0x2f0000 0x82400000 \
+				sg2044r-x7.dtb sg2044r-x7.dtb 0x25b1000 0x90000000 \
+				ap_rootfs.cpio ap_rootfs.cpio 0x2a00000 0xa0000000 \
+				sg2044r_xmrig sg2044r_xmrig 0x34b4000 0x0
+
+	mv spi_flash_xmr.bin  xmr-firmware-$version.bin
+	rm -f gen_sg2044r_spi_flash
+
+	popd
+}
