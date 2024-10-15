@@ -969,6 +969,7 @@ function build_rv_ramdisk()
 			cp $TPUV7_TP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
 		else
 			echo "no ap daemon found"
+			return 1
 		fi
 		# copy other non-generated files
 		if [ -d $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp ]; then
@@ -984,6 +985,7 @@ function build_rv_ramdisk()
 			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/dump_memory/dump $RV_RAMDISK_DIR/build/ap/rootfs/
 		else
 			echo "no ap daemon found"
+			return 1
 		fi
 	fi
 
