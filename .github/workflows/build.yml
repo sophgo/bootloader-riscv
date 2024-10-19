@@ -59,6 +59,12 @@ jobs:
           path: linux-riscv
           ref: ${{ matrix.LINUX_BRANCH }}
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.13'
+
+      - run: go version
+
       - name: Install software
         run: |
               sudo apt update && \
