@@ -95,7 +95,7 @@ RV_EULER_SOPHGO_IMAGE=euler-sophgo.img
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
 RV_FIRMWARE_INSTALL_DIR=$RV_OUTPUT_DIR/firmware
-
+RV_RP_DEB_INSTALL_DIR=$RV_FIRMWARE_INSTALL_DIR/rp_ramdisk_debs
 RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
 RV_TOOLS_DIR=$RV_OUTPUT_DIR/tools
 
@@ -674,6 +674,15 @@ function clean_rv_fedora_grub()
 	popd
 }
 
+function install_rp_debs()
+{
+	if [ ! -d $RV_RP_DEB_INSTALL_DIR ]; then
+		mkdir -p $RV_RP_DEB_INSTALL_DIR
+	fi
+	echo install $1 to $RV_RP_DEB_INSTALL_DIR
+	cp $1 $RV_RP_DEB_INSTALL_DIR/
+}
+
 function build_rv_kernel()
 {
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
@@ -681,7 +690,7 @@ function build_rv_kernel()
 
 	if [ "$CHIP" = "bm1690" ];then
 		if [ "$1" = "" ];then
-			echo "build bm1690 kernel, eg: build_rv_kernel ap|tp"
+			echo "build bm1690 kernel, eg: build_rv_kernel ap|rp|tp"
 			return -1
 		fi
 		RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_$1_${KERNEL_VARIANT}_defconfig
@@ -704,11 +713,45 @@ function build_rv_kernel()
 	fi
 	make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
 	err=$?
+
 	popd
 
 	if [ $err -ne 0 ]; then
-		echo "making kernel modules failed"
+		echo "making kernel Image failed"
 		return $err
+	fi
+
+	if [ "$2" = "pkg" ]; then
+		pushd $RV_KERNEL_BUILD_DIR
+		rm -rf ../linux-*
+		rm -rf ./debian
+		rm -rf ./debs
+		rm -rf ./modules
+		make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE modules_install INSTALL_MOD_PATH="./modules"
+		err=$?
+		if [ $err -ne 0 ]; then
+			popd
+			echo "making kernel modules failed"
+			return $err
+		fi
+
+		make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image.gz bindeb-pkg
+		err=$?
+		if [ $err -ne 0 ]; then
+			popd
+			echo "making kernel dev package failed"
+			return $err
+		fi
+
+		mkdir -p ./debs
+		local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+		cp ../linux-image-${KERNELRELEASE}_*.deb ./debs/linux-image-${KERNELRELEASE}.deb
+		cp ../linux-image-${KERNELRELEASE}-dbg_*.deb ./debs/linux-image-${KERNELRELEASE}-dbg.deb
+		cp ../linux-headers-${KERNELRELEASE}_*.deb ./debs/linux-headers-${KERNELRELEASE}.deb
+		install_rp_debs "./debs/*.deb"
+		install_rp_debs $RV_KERNEL_SRC_DIR/tools/include/tools/be_byteshift.h
+		install_rp_debs $RV_KERNEL_SRC_DIR/tools/include/tools/le_byteshift.h
+		popd
 	fi
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
