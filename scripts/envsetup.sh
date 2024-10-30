@@ -731,7 +731,7 @@ function build_rv_kernel()
 			return $err
 		fi
 
-		make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image.gz bindeb-pkg
+		make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg
 		err=$?
 		if [ $err -ne 0 ]; then
 			popd
