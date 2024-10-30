@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Script to load modules and start rp_daemon
+#
+
+# Set environment variables
+export LD_LIBRARY_PATH=/lib:/lib64:/usr/lib:/opt/lib
+export PATH=$PATH:/opt/bin
+
+# Function to load a module with a delay
+load_module() {
+    echo "Loading module \$1..."
+    insmod \$1
+    # Wait for 5 seconds
+    sleep 5
+}
+
+echo "Starting module loading process..."
+
+# Load modules with pauses in between
+load_module /opt/ko/rp_daemon.ko
+load_module /opt/ko/soph_base.ko
+load_module /opt/ko/soph_vpss.ko
+load_module /opt/ko/soph_vc_drv.ko
+
+# Trigger mdev to populate /dev based on loaded modules
+echo "Triggering mdev..."
+mdev -s
+
+# Start the rp_daemon process
+echo "Starting rp_daemon..."
+rp_daemon
+
+echo "All processes started successfully."
