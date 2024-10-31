@@ -35,7 +35,7 @@ CHIP=${CHIP}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
 CHIP_NUM=${CHIP_NUM:-single} # single, multi
 VENDOR=${VENDOR:-sophgo}
-
+TPUV7_RP_DAEMON=${1:-""} # receive import path
 # absolute path
 RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 
@@ -1027,7 +1027,15 @@ function build_rv_ramdisk()
 			return 1
 		fi
 	fi
-
+	if [ "rp" == $RAMDISK_CPU_TYPE ]; then
+		if [ -d $TPUV7_RP_DAEMON ]; then
+			echo "copy rp ramdisk all to rootfs/"
+			cp -r $TPUV7_RP_DAEMON/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
+		else
+			echo "no rp daemon found"
+			return 1
+		fi
+	fi
 
 	pushd $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
 	find . | cpio -o -H newc > ../$RAMDISK_CPU_TYPE\_rootfs.cpio
