@@ -977,9 +977,10 @@ RAMDISK_CPU_TYPES=(
 ap
 rp
 tp
+mini
 )
 
-function build_rv_ramdisk()
+function build_rv_ramdisk_ci()
 {
 	for i in ${RAMDISK_CPU_TYPES[@]}
 	do
@@ -1016,6 +1017,7 @@ function build_rv_ramdisk()
 			cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_RAMDISK_DIR/build/tp/rootfs/tpu/
 		fi
 	fi
+
 	if [ "ap" == $RAMDISK_CPU_TYPE ]; then
 		if [ -f $TPUV7_AP_DAEMON ]; then
 			echo "copy cdmlib overlay ap all to rootfs/"
@@ -1027,6 +1029,7 @@ function build_rv_ramdisk()
 			return 1
 		fi
 	fi
+
 	if [ "rp" == $RAMDISK_CPU_TYPE ]; then
 		if [ -d $TPUV7_RP_DAEMON ]; then
 			echo "copy rp ramdisk all to rootfs/"
@@ -1034,6 +1037,93 @@ function build_rv_ramdisk()
 		else
 			echo "no rp daemon found"
 			return 1
+		fi
+	fi
+
+	pushd $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+	find . | cpio -o -H newc > ../$RAMDISK_CPU_TYPE\_rootfs.cpio
+	cp ../$RAMDISK_CPU_TYPE\_rootfs.cpio $RV_FIRMWARE_INSTALL_DIR
+
+	popd
+}
+
+function clean_rv_ramdisk_ci()
+{
+	for i in ${RAMDISK_CPU_TYPES[@]}
+	do
+		if [ "$i" == "$1" ]; then
+		local RAMDISK_CPU_TYPE=$1
+	fi
+	done
+	if [ -z "$RAMDISK_CPU_TYPE" ]; then
+		echo please specify a ramdisk type:
+		for i in ${RAMDISK_CPU_TYPES[@]}
+		do
+			echo -e "\t $i"
+		done
+		return
+	fi
+	rm -rf $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/$RAMDISK_CPU_TYPE\_rootfs.cpio
+}
+
+function build_rv_ramdisk()
+{
+	for i in ${RAMDISK_CPU_TYPES[@]}
+	do
+		if [ "$i" == "$1" ]; then
+			local RAMDISK_CPU_TYPE=$1
+		fi
+	done
+	if [ -z "$RAMDISK_CPU_TYPE" ]; then
+		echo please specify a ramdisk type:
+		for i in ${RAMDISK_CPU_TYPES[@]}
+		do
+			echo -e "\t $i"
+		done
+		return
+	fi
+	echo build ramdisk for $RAMDISK_CPU_TYPE
+
+	rm -rf $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE
+	mkdir -p $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+	cp -rf $RV_RAMDISK_DIR/rootfs_202405/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+
+	if [ "mini" == $RAMDISK_CPU_TYPE ]; then
+		echo "mini ramdisk don't copy overlay files"
+	else
+		cp -rf $RV_RAMDISK_DIR/overlay/$RAMDISK_CPU_TYPE/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs
+	fi
+
+	if [ "tp" == $RAMDISK_CPU_TYPE ]; then
+		# copy tp daemon
+		if [ -f $TPUV7_TP_DAEMON ]; then
+			cp $TPUV7_TP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
+		else
+			echo "no ap daemon found"
+		fi
+		# copy other non-generated files
+		if [ -d $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp ]; then
+			echo "copy cdmlib overlay tp all to rootfs/tpu"
+			cp $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp/* $RV_RAMDISK_DIR/build/tp/rootfs/tpu/
+		fi
+	fi
+	if [ "ap" == $RAMDISK_CPU_TYPE ]; then
+		if [ -f $TPUV7_AP_DAEMON ]; then
+			echo "copy cdmlib overlay ap all to rootfs/"
+			cp $TPUV7_AP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
+			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/debug_console_clnt/debug_console_clnt $RV_RAMDISK_DIR/build/ap/rootfs/
+			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/dump_memory/dump $RV_RAMDISK_DIR/build/ap/rootfs/
+		else
+			echo "no ap daemon found"
+		fi
+	fi
+	if [ "rp" == $RAMDISK_CPU_TYPE ]; then
+		if [ -d $TPUV7_RP_DAEMON ]; then
+			echo "copy rp ramdisk all to rootfs/"
+			cp -r $TPUV7_RP_DAEMON/* $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
+		else
+			echo "no rp daemon found"
 		fi
 	fi
 
