@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# Script to load modules, manage, and start rp_daemon
+#
+
+# Set environment variables
+export LD_LIBRARY_PATH=/lib:/lib64:/usr/lib:/opt/lib
+[ -f /opt/bin/rp_daemon ] || exit 0
+
+umask 077
+
+# Log file path
+LOGFILE="/var/log/rp_daemon.log"
+
+# Function to load a module with a delay
+load_module() {
+    echo "Loading module \$1..." | tee -a $LOGFILE
+    insmod \$1
+    if [ $? -ne 0 ]; then
+        echo "Failed to load module \$1" | tee -a $LOGFILE
+        exit 1
+    fi
+    # Wait for 5 seconds
+    sleep 5
+}
+
+# Function to start rp_daemon
+start() {
+    echo "Starting module loading process..." | tee -a $LOGFILE
+
+    # Load modules with pauses in between
+    load_module /opt/ko/rp_daemon.ko
+    load_module /opt/ko/soph_base.ko
+    load_module /opt/ko/soph_vpss.ko
+    load_module /opt/ko/soph_vc_drv.ko
+
+    # Trigger mdev to populate /dev based on loaded modules
+    echo "Triggering mdev..." | tee -a $LOGFILE
+    mdev -s
+
+    # Start the rp_daemon process
+    echo "Starting rp_daemon..." | tee -a $LOGFILE
+    /opt/bin/rp_daemon &
+    echo $! > /var/run/rp_daemon.pid
+    echo "All processes started successfully." | tee -a $LOGFILE
+}
+
+# Function to stop rp_daemon
+stop() {
+    echo "Stopping rp_daemon..." | tee -a $LOGFILE
+    kill $(cat /var/run/rp_daemon.pid)
+    rm -f /var/run/rp_daemon.pid
+    echo "rp_daemon stopped successfully." | tee -a $LOGFILE
+}
+
+# Function to restart rp_daemon
+restart() {
+    echo "Restarting rp_daemon..." | tee -a $LOGFILE
+    stop
+    sleep 2
+    start
+}
+
+# Handle command line arguments
+case "\$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0
