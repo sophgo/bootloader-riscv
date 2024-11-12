@@ -14,13 +14,11 @@ LOGFILE="/var/log/rp_daemon.log"
 
 # Function to load a module with a delay
 load_module() {
-    echo "Loading module \$1..." | tee -a $LOGFILE
-    insmod \$1
+    echo "Loading module $1..." | tee -a $LOGFILE
+    insmod $1
     if [ $? -ne 0 ]; then
-        echo "Failed to load module \$1" | tee -a $LOGFILE
-        exit 1
+        echo "Failed to load module $1" | tee -a $LOGFILE
     fi
-    # Wait for 5 seconds
     sleep 5
 }
 
@@ -62,7 +60,7 @@ restart() {
 }
 
 # Handle command line arguments
-case "\$1" in
+case "$1" in
     start)
         start
         ;;
