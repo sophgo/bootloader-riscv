@@ -12,6 +12,8 @@ RV_EULER_OFFICIAL_IMAGE=openEuler-24.03-V1-base-sg2042-testing.img
 DOWNLOAD_RV_EULER_OFFICIAL_IMAGE="wget https://repo.tarsier-infra.isrc.ac.cn/openEuler-RISC-V/testing/20240708/v0.1/SG2042/$RV_EULER_OFFICIAL_IMAGE.zst"
 UNCOMPRESS_RV_EULER_OFFICIAL_IMAGE="unzstd $RV_EULER_OFFICIAL_IMAGE.zst"
 
+RV_SERVICE_DIR=$RV_TOP_DIR/bootloader-riscv/service
+
 function build_rv_ubuntu_image()
 {
 	echo build_rv_ubuntu_image
@@ -76,6 +78,12 @@ function build_rv_ubuntu_image()
 	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
+	if [[ "$CHIP_NUM" = "multi" ]];then
+		echo cp power good scripts
+		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/powergood.service $RV_OUTPUT_DIR/root/etc/systemd/system/
+		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/power_good.sh $RV_OUTPUT_DIR/root/usr/local/
+	fi
+
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
 	sudo mount --bind /sys $RV_OUTPUT_DIR/root/sys
 	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
@@ -125,6 +133,11 @@ cat > /etc/fstab << EOF
 LABEL=cloudimg-rootfs	/		ext4	defaults,discard,errors=remount-ro 0 1
 LABEL=EFI		/boot/efi	vfat    defaults,discard,errors=remount-ro 0 1
 EOF
+
+#enable powergood service in host to adapt BMC wdt function
+echo enable powergood service
+[ -e /etc/systemd/system/powergood.service ] && systemctl enable powergood.service
+
 exit
 EOT
 	popd
@@ -199,6 +212,12 @@ function build_rv_euler_image()
 	mkdir $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
+	if [[ "$CHIP_NUM" = "multi" ]];then
+		echo cp power good scripts
+		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/powergood.service $RV_OUTPUT_DIR/root/etc/systemd/system/
+		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/power_good.sh $RV_OUTPUT_DIR/root/usr/local/
+	fi
+
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
 	sudo mount --bind /sys $RV_OUTPUT_DIR/root/sys
 	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
@@ -252,6 +271,10 @@ cat > /etc/fstab << EOF
 LABEL=ROOT	/		ext4	defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
 LABEL=EFI	/boot/efi	vfat    defaults,noatime,x-systemd.device-timeout=300s,x-systemd.mount-timeout=300s 0 0
 EOF
+
+#enable powergood service in host to adapt BMC wdt function
+echo enable powergood service
+[ -e /etc/systemd/system/powergood.service ] && systemctl enable powergood.service
 
 exit
 
@@ -349,6 +372,12 @@ function build_rv_fedora_image()
 	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
+	if [[ "$CHIP_NUM" = "multi" ]];then
+		echo cp power good scripts
+		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/powergood.service $RV_OUTPUT_DIR/root/etc/systemd/system/
+		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/power_good.sh $RV_OUTPUT_DIR/root/usr/local/
+	fi
+
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
 	sudo mount --bind /sys $RV_OUTPUT_DIR/root/sys
 	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
@@ -425,6 +454,10 @@ EOF
 cat > /etc/modprobe.d/sg2042-blacklist.conf << EOF
 blacklist switchtec
 EOF
+
+#enable powergood service in host to adapt BMC wdt function
+echo enable powergood service
+[ -e /etc/systemd/system/powergood.service ] && systemctl enable powergood.service
 
 exit
 EOT

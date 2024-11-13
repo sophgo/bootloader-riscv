@@ -1,0 +1,9 @@
+[Unit]
+Description=Power Good Service
+After=multi-user.target
+
+[Service]
+ExecStart=/usr/local/power_good.sh 
+[Install]
+WantedBy=default.target
+ 
