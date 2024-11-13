@@ -27,10 +27,10 @@ start() {
     echo "Starting module loading process..." | tee -a $LOGFILE
 
     # Load modules with pauses in between
-    load_module /opt/ko/rp_daemon.ko
     load_module /opt/ko/soph_base.ko
     load_module /opt/ko/soph_vpss.ko
     load_module /opt/ko/soph_vc_drv.ko
+    load_module /opt/ko/rp_daemon.ko
 
     # Trigger mdev to populate /dev based on loaded modules
     echo "Triggering mdev..." | tee -a $LOGFILE
