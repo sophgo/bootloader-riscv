@@ -500,8 +500,8 @@ function build_rv_edk2()
 		git checkout devel-${CHIP}
 		popd
 
-		TARGET=RELEASE
-		build -a RISCV64 -t GCC5 -b $TARGET -D X64EMU_ENABLE -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
+		TARGET=DEBUG
+		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
 
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
