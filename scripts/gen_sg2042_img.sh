@@ -279,7 +279,6 @@ if [ -e /etc/systemd/system/powergood.service ]; then systemctl enable powergood
 exit
 
 EOT
-	popd
 
 	echo cleanup...
 	sync
