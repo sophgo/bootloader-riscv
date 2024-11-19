@@ -102,8 +102,8 @@ function build_rv_image()
 
 	if [ "$CHIP" = "bm1690" ]; then
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/rp_Image $EFI_PARTITION_DIR/riscv64
-		sudo cp -v $RV_TOP_DIR/bootloader-riscv/scripts/bm1690-config.ini $RV_FIRMWARE_INSTALL_DIR/config.ini
-		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/config.ini $EFI_PARTITION_DIR/riscv64
+		sudo cp -v $RV_TOP_DIR/bootloader-riscv/scripts/bm1690-config.ini $RV_FIRMWARE_INSTALL_DIR/conf.ini
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/conf.ini $EFI_PARTITION_DIR/riscv64
 	else
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $EFI_PARTITION_DIR/riscv64
 	fi
