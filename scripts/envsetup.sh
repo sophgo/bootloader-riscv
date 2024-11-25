@@ -833,7 +833,7 @@ cat >> ~/.rpmmacros << "EOT"
 EOT
 
 	KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
-	if [[ ${KERNELRELEASE:0:3} == "6.1" ]]; then
+	if [[ ${KERNELRELEASE:0:4} == "6.1." ]]; then
 		RPMBUILD_DIR=$HOME/rpmbuild
 	else
 		RPMBUILD_DIR=$RV_TOP_DIR/build/$CHIP/rpmbuild
@@ -907,7 +907,7 @@ cat >> ~/.rpmmacros << "EOT"
 EOT
 
 	KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
-	if [[ ${KERNELRELEASE:0:3} == "6.1" ]]; then
+	if [[ ${KERNELRELEASE:0:4} == "6.1." ]]; then
 		RPMBUILD_DIR=$HOME/rpmbuild
 	else
 		RPMBUILD_DIR=$RV_TOP_DIR/build/$CHIP/rpmbuild
