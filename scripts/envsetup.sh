@@ -808,7 +808,6 @@ function build_rv_fedora_kernel()
 	local KERNELRELEASE
 	local RPMBUILD_DIR
 	local err
-	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/fedora
 
 	pushd $RV_KERNEL_SRC_DIR
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
@@ -836,7 +835,7 @@ EOT
 	if [[ ${KERNELRELEASE:0:4} == "6.1." ]]; then
 		RPMBUILD_DIR=$HOME/rpmbuild
 	else
-		RPMBUILD_DIR=$RV_TOP_DIR/build/$CHIP/rpmbuild
+		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
 	fi
 
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
@@ -869,7 +868,6 @@ EOT
 
 function clean_rv_fedora_kernel()
 {
-	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/fedora
 	pushd $RV_KERNEL_SRC_DIR
 	make distclean
 	popd
@@ -882,7 +880,6 @@ function build_rv_euler_kernel()
 	local KERNELRELEASE
 	local RPMBUILD_DIR
 	local err
-	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/euler
 
 	pushd $RV_KERNEL_SRC_DIR
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
@@ -910,7 +907,7 @@ EOT
 	if [[ ${KERNELRELEASE:0:4} == "6.1." ]]; then
 		RPMBUILD_DIR=$HOME/rpmbuild
 	else
-		RPMBUILD_DIR=$RV_TOP_DIR/build/$CHIP/rpmbuild
+		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
 	fi
 
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
@@ -943,7 +940,6 @@ EOT
 
 function clean_rv_euler_kernel()
 {
-	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/euler
 	pushd $RV_KERNEL_SRC_DIR
 	make distclean
 	popd
