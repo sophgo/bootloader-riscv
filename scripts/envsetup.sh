@@ -1486,30 +1486,30 @@ function clean_rv_firmware()
 
 function build_rv_firmware_bin()
 {
-	version=$(date "+%Y%m%d%H%M%S")
+	RELEASED_NOTE_PATH=$RV_TOP_DIR/bootloader-riscv/release-note
 	build_rv_firmware
+	source $RV_SCRIPTS_DIR/make_pack_tool.sh $CHIP
 
-	gcc -g -Werror $RV_SCRIPTS_DIR/gen_spi_flash.c -o $RV_FIRMWARE_INSTALL_DIR/gen_spi_flash
+	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
+		version="1.0.0"
+	else 
+		version=$(awk 'END {split($1, a, "_"); print a[1]}' $RELEASED_NOTE_MD)
+	fi
 
 	pushd $RV_FIRMWARE_INSTALL_DIR
 
-	rm -f firmware*.bin
-	cp $RV_FIRMWARE/fip.bin  ./
-	dtb_group=$(ls *.dtb | awk '{print ""$1" "$1" 0x601000 0x020000000 "}')
+	rm -f firmware*.bin *.xml
+	./make_xml *.dtb
+	cp ./*.xml $RV_SCRIPTS_DIR/build/
+	./pack_v3 *.xml
+	rm -f make_xml pack_v3
 
-	./gen_spi_flash $dtb_group \
-			fw_dynamic.bin fw_dynamic.bin 0x660000 0x00000000 \
-			riscv64_Image riscv64_Image 0x6b0000 0x02000000 \
-			SG2042.fd SG2042.fd 0x02000000 0x02000000 \
-			zsbl.bin zsbl.bin 0x2a00000 0x40000000 \
-			initrd.img initrd.img 0x2b00000 0x30000000
-
-	mv spi_flash.bin firmware-$version.bin
-	rm -f gen_spi_flash
-
-	cp firmware-$version.bin image-bmc
-	$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
-	rm -f image-bmc
+	mv firmware.bin firmware-$version.bin
+	if [ "$CHIP" = "mango" ];then
+		cp firmware-$version.bin image-bmc
+		$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
+	fi
+	rm -f image-bmc *.xml 
 
 	popd
 }
