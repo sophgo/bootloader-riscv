@@ -449,8 +449,6 @@ function build_rv_edk2()
 
 		cp $RV_EDKII_SRC_DIR/Build/SG2042_EVB/$TARGET\_GCC5/FV/SG2042.fd $RV_FIRMWARE_INSTALL_DIR
 	else
-		git checkout devel-${CHIP}
-
 		git submodule sync
 		git submodule update --init --recursive
 
@@ -462,20 +460,6 @@ function build_rv_edk2()
 		source edk2/edksetup.sh
 
 		make -C edk2/BaseTools -j$(nproc)
-
-		git checkout devel-${CHIP}
-
-		pushd edk2-platforms
-		git checkout devel-${CHIP}
-		popd
-
-		pushd edk2-non-osi
-		git checkout devel-${CHIP}
-		popd
-
-		pushd edk2
-		git checkout devel-${CHIP}
-		popd
 
 		TARGET=DEBUG
 		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
