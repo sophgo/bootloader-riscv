@@ -110,7 +110,7 @@ int pack_v3(int argc, char *argv[]){
 	char *file=argv[1];
 	printf("%s\n",argv[1]);
 	unsigned int comp_count;
-	int fd,ret,size;
+	int fd,ret,size,fd_fip;
 	// struct part_info *com_part;
 
 	ezxml_t firmware=ezxml_parse_file(file);
@@ -130,20 +130,24 @@ int pack_v3(int argc, char *argv[]){
 	efie_offset=strtol(p->txt,NULL,16);
 	p=ezxml_child(efie,"size");
 	efie_size=strtol(p->txt,NULL,0);
+	printf("efie offset:%X,size:%X\n",efie_offset,efie_size);
 
 	fd = open(OUTPUT, O_CREAT | O_RDWR | O_TRUNC, 0644);
 	ezxml_t f;
 	uint32_t f_offset;
 	#ifdef SG2042
+		fd_fip=open("./fip.bin", O_RDONLY, 0);
+		printf("open fip.bin success!\n");
 		f=ezxml_child(firmware,"fip");
 		p=ezxml_child(f,"offset");
 		f_offset=(uint32_t)strtoul(p->txt,NULL,16);
 		int read_len;
 		unsigned char buf[BUFFER_SIZE];
 		lseek(fd, f_offset, SEEK_SET);
-		while ((read_len = read(fd, buf, BUFFER_SIZE)) > 0) {
+		while ((read_len = read(fd_fip, buf, BUFFER_SIZE)) > 0) {
 			write(fd, buf, read_len);
 		}
+
 	#endif
 
 	for (comp=ezxml_child(firmware,"component"),comp_count=0;comp;comp=comp->next,comp_count++){
