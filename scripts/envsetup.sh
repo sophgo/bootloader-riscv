@@ -313,14 +313,36 @@ function clean_rv_bootrom()
 
 function build_rv_pcie_zsbl()
 {
-    build_rv_zsbl
+	local err
+
+	pushd $RV_ZSBL_SRC_DIR
+	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv bm1690_pcie_defconfig
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making pcie zsbl config failed"
+		return $err
+	    fi
+
+	pushd $RV_ZSBL_BUILD_DIR
+	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making zsbl failed"
+		return $err
+	    fi
+
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR/pcie_zsbl.bin
 }
 
 function clean_rv_pcie_zsbl()
 {
-    clean_rv_zsbl
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/pcie_zsbl.bin
+	rm -rf $RV_ZSBL_BUILD_DIR
 }
 
 function build_rv_tp_zsbl()
