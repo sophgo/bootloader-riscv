@@ -1460,7 +1460,7 @@ function clean_rv_firmware()
 function build_rv_firmware_bin()
 {
 	RELEASED_NOTE_PATH=$RV_TOP_DIR/bootloader-riscv/release-note
-	build_rv_firmware
+	# build_rv_firmware
 	source $RV_SCRIPTS_DIR/make_pack_tool.sh $CHIP
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
@@ -1474,8 +1474,8 @@ function build_rv_firmware_bin()
 	rm -f firmware*.bin *.xml
 	./make_xml *.dtb
 	cp ./*.xml $RV_SCRIPTS_DIR/build/
-	./pack_v3 *.xml
-	rm -f make_xml pack_v3
+	./pack *.xml
+	rm -f make_xml pack
 
 	mv firmware.bin firmware-$version.bin
 	if [ "$CHIP" = "mango" ];then

@@ -8,12 +8,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "global.h"
-#include "md5.h"
 #include "ezxml/ezxml.h"
 #include "ezxml/ezxml.c"
-#include "log.h"
-#include "common.h"
+
+
 
 enum {
 	DPT_MAGIC	= 0x55aa55aa,
@@ -117,7 +115,8 @@ int pack_v3(int argc, char *argv[]){
 
     ezxml_t firmware=ezxml_parse_file(file);
     if (strcmp(firmware->name, "firmware")) {
-        error("not a valid layout file\n");
+        printf("not a valid layout file\n");
+		return -1;
     }
     p=ezxml_child(firmware,"name");
     firmware_name=p->txt;
@@ -132,24 +131,20 @@ int pack_v3(int argc, char *argv[]){
     p=ezxml_child(efie,"size");
     efie_size=strtol(p->txt,NULL,0);
 
-	
+	fd = open(OUTPUT, O_CREAT | O_RDWR | O_TRUNC, 0644);
 	ezxml_t f;
 	uint32_t f_offset;
 	#ifdef SG2042
 		f=ezxml_child(firmware,"fip");
-	#elif defined SG2044
-		f=ezxml_child(firmware,"fsbl");
-	#endif
 		p=ezxml_child(f,"offset");
 		f_offset=(uint32_t)strtoul(p->txt,NULL,16);
-
-    fd = open(OUTPUT, O_CREAT | O_RDWR | O_TRUNC, 0644);
-    int read_len;
-    unsigned char buf[BUFFER_SIZE];
-    lseek(fd, f_offset, SEEK_SET);
-	while ((read_len = read(fd, buf, BUFFER_SIZE)) > 0) {
-		write(fd, buf, read_len);
-	}
+		int read_len;
+		unsigned char buf[BUFFER_SIZE];
+		lseek(fd, f_offset, SEEK_SET);
+		while ((read_len = read(fd, buf, BUFFER_SIZE)) > 0) {
+			write(fd, buf, read_len);
+		}
+	#endif
 
     for (comp=ezxml_child(firmware,"component"),comp_count=0;comp;comp=comp->next,comp_count++){
         char *com_name=NULL, *com_file=NULL;
