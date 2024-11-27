@@ -104,32 +104,32 @@ static int spi_flash_pack(int fd_spi, struct part_info *info, const char *name)
 
 int pack_v3(int argc, char *argv[]){
 
-    char * __attribute__((unused)) firmware_name = "unknown_firmware";
-    uint32_t firmware_size;
-    ezxml_t p,comp;
-    char *file=argv[1];
-    printf("%s\n",argv[1]);
-    unsigned int comp_count;
-    int fd,ret,size;
-    // struct part_info *com_part;
+	char * __attribute__((unused)) firmware_name = "unknown_firmware";
+	uint32_t firmware_size;
+	ezxml_t p,comp;
+	char *file=argv[1];
+	printf("%s\n",argv[1]);
+	unsigned int comp_count;
+	int fd,ret,size;
+	// struct part_info *com_part;
 
-    ezxml_t firmware=ezxml_parse_file(file);
-    if (strcmp(firmware->name, "firmware")) {
-        printf("not a valid layout file\n");
+	ezxml_t firmware=ezxml_parse_file(file);
+	if (strcmp(firmware->name, "firmware")) {
+		printf("not a valid layout file\n");
 		return -1;
-    }
-    p=ezxml_child(firmware,"name");
-    firmware_name=p->txt;
-    p=ezxml_child(firmware,"size");
-    firmware_size=(uint32_t)strtoul(p->txt,NULL,16);
+	}
+	p=ezxml_child(firmware,"name");
+	firmware_name=p->txt;
+	p=ezxml_child(firmware,"size");
+	firmware_size=(uint32_t)strtoul(p->txt,NULL,16);
 
-    ezxml_t efie;
-    uint32_t efie_offset,efie_size;
-    efie=ezxml_child(firmware,"efie");
-    p=ezxml_child(efie,"offset");
-    efie_offset=strtol(p->txt,NULL,16);
-    p=ezxml_child(efie,"size");
-    efie_size=strtol(p->txt,NULL,0);
+	ezxml_t efie;
+	uint32_t efie_offset,efie_size;
+	efie=ezxml_child(firmware,"efie");
+	p=ezxml_child(efie,"offset");
+	efie_offset=strtol(p->txt,NULL,16);
+	p=ezxml_child(efie,"size");
+	efie_size=strtol(p->txt,NULL,0);
 
 	fd = open(OUTPUT, O_CREAT | O_RDWR | O_TRUNC, 0644);
 	ezxml_t f;
@@ -146,29 +146,29 @@ int pack_v3(int argc, char *argv[]){
 		}
 	#endif
 
-    for (comp=ezxml_child(firmware,"component"),comp_count=0;comp;comp=comp->next,comp_count++){
-        char *com_name=NULL, *com_file=NULL;
-        unsigned int com_type;
-        uint32_t com_offset;
-        uint64_t com_addr;
+	for (comp=ezxml_child(firmware,"component"),comp_count=0;comp;comp=comp->next,comp_count++){
+		char *com_name=NULL, *com_file=NULL;
+		unsigned int com_type;
+		uint32_t com_offset;
+		uint64_t com_addr;
 
-        p=ezxml_child(comp,"name");
-        com_name=p->txt;
-        p=ezxml_child(comp,"file");
-        com_file=p->txt;
-        p=ezxml_child(comp,"offset");
-        com_offset=strtol(p->txt,NULL,16);
-        p=ezxml_child(comp,"loader");
-        com_addr=strtol(p->txt,NULL,16);
-        struct part_info info;
-        ret=paser_and_setup_part_info(&info,com_name,com_file,com_addr,com_offset);
-        size = spi_flash_pack(fd, &info, com_file);
+		p=ezxml_child(comp,"name");
+		com_name=p->txt;
+		p=ezxml_child(comp,"file");
+		com_file=p->txt;
+		p=ezxml_child(comp,"offset");
+		com_offset=strtol(p->txt,NULL,16);
+		p=ezxml_child(comp,"loader");
+		com_addr=strtol(p->txt,NULL,16);
+		struct part_info info;
+		ret=paser_and_setup_part_info(&info,com_name,com_file,com_addr,com_offset);
+		size = spi_flash_pack(fd, &info, com_file);
 
-        lseek(fd, efie_offset+comp_count*sizeof(struct part_info), SEEK_SET);
-	    write(fd, &info, sizeof(struct part_info));
-    }
-    
-    return 0;
+		lseek(fd, efie_offset+comp_count*sizeof(struct part_info), SEEK_SET);
+		write(fd, &info, sizeof(struct part_info));
+	}
+
+	return 0;
 }
 
 int main(int argc, char *argv[]){
