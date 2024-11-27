@@ -1473,7 +1473,7 @@ function build_rv_firmware_bin()
 
 	rm -f firmware*.bin *.xml
 	./make_xml *.dtb
-	cp ./*.xml $RV_SCRIPTS_DIR/build/
+	mkdir -p $RV_SCRIPTS_DIR/build/ && cp ./*.xml $RV_SCRIPTS_DIR/build/
 	./pack *.xml
 	rm -f make_xml pack
 
