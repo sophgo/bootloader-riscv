@@ -63,45 +63,47 @@ function build_rv_image()
 {
 	echo $0
 
-    echo 'remove old image'
+	echo 'remove old image'
 	rm -f $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE
 
 	echo 'copying image'
-    cp -v $RV_DISTRO_DIR/$RV_DISTRO/$RV_OFFICIAL_IMAGE $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE
+	cp -v $RV_DISTRO_DIR/$RV_DISTRO/$RV_OFFICIAL_IMAGE $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE
 
-    # 1st partition is EFI, 2nd partition is ROOT
-    echo 'creating loop devices'
-    local loops=$(sudo kpartx -av $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE | cut -d ' ' -f 3)
+	# 1st partition is EFI, 2nd partition is ROOT
+	echo 'creating loop devices'
+	local loops=$(sudo kpartx -av $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE | cut -d ' ' -f 3)
 	local efi_part=$(echo $loops | cut -d ' ' -f 1)
 	local root_part=$(echo $loops | cut -d ' ' -f 2)
 
-    echo 'mounting partitions'
-    mkdir -p $RV_OUTPUT_DIR/root
+	echo 'mounting partitions'
+	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
-    # as far as I know, all distributions mount EFI partition to /boot/efi
+	# as far as I know, all distributions mount EFI partition to /boot/efi
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/root/boot/efi
 
-    echo 'copying bootloaders'
-    local EFI_PARTITION_DIR=$RV_OUTPUT_DIR/root/boot/efi
+	echo 'copying bootloaders'
+	local EFI_PARTITION_DIR=$RV_OUTPUT_DIR/root/boot/efi
 
-    sudo mkdir $EFI_PARTITION_DIR/riscv64
+	sudo mkdir $EFI_PARTITION_DIR/riscv64
 
-    sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $EFI_PARTITION_DIR/riscv64
+	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $EFI_PARTITION_DIR/riscv64
 
-    if [ -f $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd ]; then
-        sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd $EFI_PARTITION_DIR/riscv64
-    fi
+	if [ -f $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd ]; then
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd $EFI_PARTITION_DIR/riscv64
+	fi
 
-    if [ -f $RV_FIRMWARE_INSTALL_DIR/u-boot.bin ]; then
+	if [ -f $RV_FIRMWARE_INSTALL_DIR/u-boot.bin ]; then
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $EFI_PARTITION_DIR/riscv64
-    fi
+	fi
 
 	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/initrd.img $EFI_PARTITION_DIR/riscv64
-    sudo cp -v $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $EFI_PARTITION_DIR/riscv64
+	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $EFI_PARTITION_DIR/riscv64
 	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $EFI_PARTITION_DIR/riscv64
 
 	if [ "$CHIP" = "bm1690" ]; then
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/rp_Image $EFI_PARTITION_DIR/riscv64
+		sudo cp -v $RV_TOP_DIR/bootloader-riscv/scripts/bm1690-config.ini $RV_FIRMWARE_INSTALL_DIR/conf.ini
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/conf.ini $EFI_PARTITION_DIR/riscv64
 	else
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $EFI_PARTITION_DIR/riscv64
 	fi
@@ -114,31 +116,31 @@ function build_rv_image()
 	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
 	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/root/dev/pts
 
-    echo 'create vendor home directory'
-    sudo mkdir -p $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/root/home/sophgo
+	echo 'create vendor home directory'
+	sudo mkdir -p $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/root/home/sophgo
 
-    if [ $1 == "rpm" ]; then
-        install_rpm_packages
-    else
-        install_deb_packages
-    fi
+		if [ $1 == "rpm" ]; then
+		install_rpm_packages
+	else
+		install_deb_packages
+	fi
 
 	echo cleanup
 	sudo sync
 	sudo umount -R $RV_OUTPUT_DIR/root
 
-    sleep 0.2
+	sleep 0.2
 
 	sudo kpartx -d $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE
 
-    echo 'cleanup done, compressing'
+	echo 'cleanup done, compressing'
 
 	sudo rm -r $RV_OUTPUT_DIR/root
 
-    gen_distro_img_name $RV_OFFICIAL_IMAGE
-    mv $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE $RV_OUTPUT_DIR/$BUILD_DISTRO_IMAGE
-    # overwrite the existing one
-    xz -v --keep --force -T $(nproc) $RV_OUTPUT_DIR/$BUILD_DISTRO_IMAGE
+	gen_distro_img_name $RV_OFFICIAL_IMAGE
+	mv $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE $RV_OUTPUT_DIR/$BUILD_DISTRO_IMAGE
+	# overwrite the existing one
+	xz -v --keep --force -T $(nproc) $RV_OUTPUT_DIR/$BUILD_DISTRO_IMAGE
 
 	echo "build $RV_DISTRO successfully!"
 }

@@ -17,7 +17,7 @@ start() {
         # else
         #   /tp_daemon &
         # fi
-        /tp_daemon &
+        /tp_daemon > /dev/null 2>&1 &
         echo "OK"
 }
 stop() {

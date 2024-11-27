@@ -136,7 +136,7 @@ EOF
 
 #enable powergood service in host to adapt BMC wdt function
 echo enable powergood service
-[ -e /etc/systemd/system/powergood.service ] && systemctl enable powergood.service
+if [ -e /etc/systemd/system/powergood.service ]; then systemctl enable powergood.service; fi
 
 exit
 EOT
@@ -274,12 +274,11 @@ EOF
 
 #enable powergood service in host to adapt BMC wdt function
 echo enable powergood service
-[ -e /etc/systemd/system/powergood.service ] && systemctl enable powergood.service
+if [ -e /etc/systemd/system/powergood.service ]; then systemctl enable powergood.service; fi
 
 exit
 
 EOT
-	popd
 
 	echo cleanup...
 	sync
@@ -457,7 +456,7 @@ EOF
 
 #enable powergood service in host to adapt BMC wdt function
 echo enable powergood service
-[ -e /etc/systemd/system/powergood.service ] && systemctl enable powergood.service
+if [ -e /etc/systemd/system/powergood.service ]; then systemctl enable powergood.service; fi
 
 exit
 EOT

@@ -13,7 +13,8 @@ umask 077
 start() {
         printf "Starting cdm_daemon: "
 	ulimit -n 655360
-	/cdm_daemon &
+	cd /
+	nohup ./cdm_daemon 2> /ap_daemon.log &
         echo "OK"
 }
 stop() {

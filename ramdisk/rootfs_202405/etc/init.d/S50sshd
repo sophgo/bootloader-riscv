@@ -12,6 +12,7 @@ umask 077
 
 start() {
 	# Create any missing keys
+	chmod 600 /etc/ssh/ssh_host_*_key	
 	/usr/bin/ssh-keygen -A
 
 	printf "Starting sshd: "
