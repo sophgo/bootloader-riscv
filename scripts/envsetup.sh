@@ -783,7 +783,7 @@ function build_rv_ubuntu_kernel()
 	fi
 
 	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg dtbs
 	ret=$?
 	if [ $ret -ne 0 ]; then
 		popd
@@ -798,6 +798,9 @@ function build_rv_ubuntu_kernel()
 	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
 	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
 	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
+
+	cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
+
 	popd
 }
 
@@ -806,6 +809,7 @@ function clean_rv_ubuntu_kernel()
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/ubuntu
 	rm -rf $RV_KERNEL_BUILD_DIR
 	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
+	rm -f $RV_FIRMWARE_INSTALL_DIR/*.dtb
 }
 
 function build_rv_fedora_kernel()
@@ -916,7 +920,7 @@ EOT
 		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
 	fi
 
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg dtbs
 	ret=$?
 	rm ~/.rpmmacros
 	if [ -e ~/.rpmmacros.orig ]; then
@@ -938,6 +942,7 @@ EOT
 	fi
 
 	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	cp $RV_KERNEL_SRC_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
 	rm *.tar.gz
 	rm -rf $RPMBUILD_DIR
@@ -950,6 +955,7 @@ function clean_rv_euler_kernel()
 	make distclean
 	popd
 	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+	rm -f $RV_FIRMWARE_INSTALL_DIR/*.dtb
 }
 
 RAMDISK_CPU_TYPES=(
@@ -1446,12 +1452,14 @@ function build_rv_firmware()
 	if [ "$CHIP" = "bm1690" ];then
 		build_rv_kernel ap
 		build_rv_kernel tp
-	else
+		build_rv_uroot
+	elif [ "$CHIP" = "mango" ];then
 		build_rv_kernel
+		build_rv_uroot
+		build_rv_edk2
+	elif [ "$CHIP" = "sg2044" ];then
 		build_rv_edk2
 	fi
-
-	build_rv_uroot
 }
 
 function clean_rv_firmware()
@@ -1471,7 +1479,7 @@ function build_rv_firmware_bin()
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
 		version="1.0.0"
-	else 
+	else
 		version=$(awk 'END {split($1, a, "_"); print a[1]}' $RELEASED_NOTE_MD)
 	fi
 
@@ -1488,7 +1496,7 @@ function build_rv_firmware_bin()
 		cp firmware-$version.bin image-bmc
 		$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
 	fi
-	rm -f image-bmc *.xml 
+	rm -f image-bmc *.xml
 
 	popd
 }
