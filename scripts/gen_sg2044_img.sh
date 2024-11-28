@@ -96,19 +96,17 @@ function build_rv_image()
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $EFI_PARTITION_DIR/riscv64
 	fi
 
-	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/initrd.img $EFI_PARTITION_DIR/riscv64
 	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $EFI_PARTITION_DIR/riscv64
 	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $EFI_PARTITION_DIR/riscv64
 
 	if [ "$CHIP" = "bm1690" ]; then
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/initrd.img $EFI_PARTITION_DIR/riscv64
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/rp_Image $EFI_PARTITION_DIR/riscv64
 		sudo cp -v $RV_TOP_DIR/bootloader-riscv/scripts/bm1690-config.ini $RV_FIRMWARE_INSTALL_DIR/conf.ini
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/conf.ini $EFI_PARTITION_DIR/riscv64
-	else
-		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/riscv64_Image $EFI_PARTITION_DIR/riscv64
 	fi
 
-	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/*.dtb $EFI_PARTITION_DIR/riscv64
+	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb $EFI_PARTITION_DIR/riscv64
 
 	echo 'mount system files'
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
