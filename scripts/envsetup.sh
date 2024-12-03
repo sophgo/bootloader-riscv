@@ -923,7 +923,16 @@ EOT
 		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
 	fi
 
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg dtbs
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" dtbs
+	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+	else
+		rm -f $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb
+	fi
+
+	cp $RV_KERNEL_SRC_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
+
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
 	ret=$?
 	rm ~/.rpmmacros
 	if [ -e ~/.rpmmacros.orig ]; then
@@ -944,18 +953,8 @@ EOT
 		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
 	fi
 
-	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
-		mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	else
-		rm -f $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb
-	fi
 
 	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
-	if [[ ${KERNELRELEASE:0:4} == "6.1." ]]; then
-		cp $RPMBUILD_DIR/BUILD/kernel-${KERNELRELEASE}/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
-	else
-		cp $RV_KERNEL_SRC_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
-	fi
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
 	rm *.tar.gz
 	rm -rf $RPMBUILD_DIR
