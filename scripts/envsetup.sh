@@ -68,8 +68,8 @@ RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
 RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
 
 TPUV7_RUNTIME_DIR=$RV_TOP_DIR/tpuv7-runtime
-TPUV7_AP_DAEMON=$TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/daemon/cdm_daemon/cdm_daemon
-TPUV7_TP_DAEMON=$TPUV7_RUNTIME_DIR/build/asic/cdmlib/tp/daemon/tp_daemon
+TPUV7_AP_DAEMON=$TPUV7_RUNTIME_DIR/build/fw/ap/daemon/cdm_daemon
+TPUV7_TP_DAEMON=$TPUV7_RUNTIME_DIR/build/fw/tp/daemon/tp_daemon
 
 RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
 RV_UBUNTU_DISTRO=ubuntu
@@ -1019,8 +1019,8 @@ function build_rv_ramdisk_ci()
 		if [ -f $TPUV7_AP_DAEMON ]; then
 			echo "copy cdmlib overlay ap all to rootfs/"
 			cp $TPUV7_AP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
-			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/debug_console_clnt/debug_console_clnt $RV_RAMDISK_DIR/build/ap/rootfs/
-			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/dump_memory/dump $RV_RAMDISK_DIR/build/ap/rootfs/
+			cp $TPUV7_RUNTIME_DIR/build/fw/ap/tools/debug_console_clnt/debug_console_clnt $RV_RAMDISK_DIR/build/ap/rootfs/
+			cp $TPUV7_RUNTIME_DIR/build/fw/ap/tools/dump_memory/dump $RV_RAMDISK_DIR/build/ap/rootfs/
 		else
 			echo "no ap daemon found"
 			return 1
@@ -1109,8 +1109,8 @@ function build_rv_ramdisk()
 		if [ -f $TPUV7_AP_DAEMON ]; then
 			echo "copy cdmlib overlay ap all to rootfs/"
 			cp $TPUV7_AP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
-			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/debug_console_clnt/debug_console_clnt $RV_RAMDISK_DIR/build/ap/rootfs/
-			cp $TPUV7_RUNTIME_DIR/build/asic/cdmlib/ap/tools/dump_memory/dump $RV_RAMDISK_DIR/build/ap/rootfs/
+			cp $TPUV7_RUNTIME_DIR/build/fw/ap/tools/debug_console_clnt/debug_console_clnt $RV_RAMDISK_DIR/build/ap/rootfs/
+			cp $TPUV7_RUNTIME_DIR/build/fw/ap/tools/dump_memory/dump $RV_RAMDISK_DIR/build/ap/rootfs/
 		else
 			echo "no ap daemon found"
 		fi
