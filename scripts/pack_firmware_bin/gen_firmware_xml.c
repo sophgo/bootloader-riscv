@@ -14,7 +14,7 @@
 #define FLASHSIZE 0x4000000
 
 #ifdef SG2044R 
-    #define PARTION{"efie","0x80000",\
+    #define PARTION{"efie","0x80000","0x1000",\
                     "fsbl.bin", "0x81000" ,"0x7010080000" ,\
 		    "fw_dynamic.bin", "0x15d000", "0x82200000", \
 		    "ap_Image" ,"0x2f0000" ,"0x82400000", \
@@ -32,8 +32,8 @@
     #define PARTION {"fip.bin","0x00030000",\
                     "efie","0x600000","0x1000",\
                     "zsbl.bin","0x2a00000","0x40000000",\
-                    "fw_dynamic.bin","0x660000","0x00000000",\
-                    "riscv64_Image","0x6b0000","0x02000000",\
+                    "fw_dynamic.bin","0x670000","0x00000000",\
+                    "riscv64_Image","0x6c0000","0x02000000",\
                     "initrd.img","0x2b00000","0x30000000",\
                     "SG2042.fd","0x2000000","0x2000000"}
     #define PARTNUM 7
@@ -45,7 +45,7 @@
 #endif
 
 #ifdef SG2044
-    #define PARTION {"efie","0x80000","4096",\
+    #define PARTION {"efie","0x80000","0x1000",\
                     "zsbl.bin","0x2f0000","0x40000000",\
                     "fsbl.bin","0x81000","0x7010080000",\
                     "fw_dynamic.bin","0x15d000","0x80000000",\
