@@ -1487,11 +1487,21 @@ function build_rv_firmware_bin()
 {
 	RELEASED_NOTE_PATH=$RV_TOP_DIR/bootloader-riscv/release-note
 	build_rv_firmware
-	source $RV_SCRIPTS_DIR/make_pack_tool.sh $CHIP
 
-	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
+	gcc $RV_SCRIPTS_DIR/pack_firmware_bin/gen_firmware_xml.c -D${CHIP^^} -o $RV_FIRMWARE_INSTALL_DIR/make_xml
+    	gcc $RV_SCRIPTS_DIR/pack_firmware_bin/pack_firmware_bin.c -o $RV_FIRMWARE_INSTALL_DIR/pack
+
+	if [ "$CHIP" = "mango" ];then
+		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_release_note.md"
+		cp $RV_FIRMWARE/fip.bin  $RV_FIRMWARE_INSTALL_DIR/
+	elif [ "$CHIP" = "sg2044" ];then
+		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
+	fi	
+
+	if [ ! -e "$RELEASEDOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
 		version="1.0.0"
-	else
+	else 
+    		cp $RELEASED_NOTE_MD $RV_FIRMWARE_INSTALL_DIR/
 		version=$(awk 'END {split($1, a, "_"); print a[1]}' $RELEASED_NOTE_MD)
 	fi
 
@@ -1499,6 +1509,10 @@ function build_rv_firmware_bin()
 
 	rm -f firmware*.bin *.xml
 	./make_xml *.dtb
+	if [ $? -ne 0 ];then
+		popd
+		return
+	fi
 	mkdir -p $RV_SCRIPTS_DIR/build/ && cp ./*.xml $RV_SCRIPTS_DIR/build/
 	./pack *.xml
 	rm -f make_xml pack
@@ -1508,7 +1522,7 @@ function build_rv_firmware_bin()
 		cp firmware-$version.bin image-bmc
 		$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
 	fi
-	rm -f image-bmc *.xml
+	rm -f image-bmc *.xml *.md 
 
 	popd
 }
