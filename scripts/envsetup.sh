@@ -1498,7 +1498,7 @@ function build_rv_firmware_bin()
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
 	fi	
 
-	if [ ! -e "$RELEASEDOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
+	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
 		version="1.0.0"
 	else 
     		cp $RELEASED_NOTE_MD $RV_FIRMWARE_INSTALL_DIR/
@@ -1517,9 +1517,8 @@ function build_rv_firmware_bin()
 	./pack *.xml
 	rm -f make_xml pack
 
-	mv firmware.bin firmware-$version.bin
 	if [ "$CHIP" = "mango" ];then
-		cp firmware-$version.bin image-bmc
+		cp firmware.bin image-bmc
 		$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
 	fi
 	rm -f image-bmc *.xml *.md 

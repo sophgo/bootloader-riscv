@@ -178,11 +178,11 @@ int gen_xml(FILE *fp,ezxml_t parent, struct p_info *info, int p_num){
             }
         }
         cur_off=min_off;
-        sp_off+=LOADERSIZE;
         all_off[i]=info[tar].p_off;
         all_size[i]=strtoul(info[tar].p_size,NULL,16);
         parse_info(parent,&info[tar],sp_off);
-        printf("generate the %dth partion info name:%s offset:0x%X loader:%s size:%s\n",i,
+        sp_off+=LOADERSIZE;
+       	printf("generate the %dth partion info name:%s offset:0x%X loader:%s size:%s\n",i,
                                             info[tar].p_name,info[tar].p_off,info[tar].p_ldr,info[tar].p_size);
     }
     const char *raw_xml = ezxml_toxml(parent);
@@ -206,14 +206,18 @@ int gen_xml(FILE *fp,ezxml_t parent, struct p_info *info, int p_num){
 int get_version(char *file_name, char* version){
     FILE *file=fopen(file_name,"r");
     char buffer[64];
-    if(file == NULL || fgetc(file) == EOF){
+    if(file == NULL || ftell(file) <= 1){
         strcpy(version,"1.0.0");
         printf("generate the default version: 1.0.0\n");
         return 0;
     }
     else{
+	long size = ftell(file);
         fseek(file,0,SEEK_END);
-        long size=ftell(file);
+	if(size <= 5){
+	    printf("failed to get correct version number, release-note can't end with 'enter'\n");
+	    return -1;
+	}
         long pos;
         for (pos = size - 1; pos >= 0; pos--) {
             fseek(file, pos, SEEK_SET);
@@ -264,7 +268,10 @@ int main(int argc, char* argv[]) {
         printf("failed to pass the part information\n");
         return -1;
     }
-    get_version(RELEASENOTE,version);
+    ret=get_version(RELEASENOTE,version);
+    if(ret){
+    	return -1;
+    }
 
     FILE *fp = fopen(output, "w");
     if (fp==NULL){
