@@ -209,7 +209,7 @@ function build_rv_euler_image()
 	sudo e2label /dev/mapper/$root_part ROOT
 
 	echo mount root partition...
-	mkdir $RV_OUTPUT_DIR/root
+	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
 	if [[ "$CHIP_NUM" = "multi" ]];then
@@ -285,17 +285,12 @@ EOT
 	sleep 60
 	sudo rm $RV_OUTPUT_DIR/root/etc/hosts
 	sudo mv $RV_OUTPUT_DIR/root/etc/hosts-bak $RV_OUTPUT_DIR/root/etc/hosts
-	sudo umount $RV_OUTPUT_DIR/root/run
-	sudo umount $RV_OUTPUT_DIR/root/proc
-	sudo umount $RV_OUTPUT_DIR/root/sys
-	sudo umount $RV_OUTPUT_DIR/root/dev/pts
-	sudo umount $RV_OUTPUT_DIR/root/dev
+	sudo umount -R $RV_OUTPUT_DIR/root
 	sudo umount /dev/mapper/$efi_part
 	sudo umount /dev/mapper/$root_part
 	sudo kpartx -d $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_EULER_DISTRO/$RV_EULER_OFFICIAL_IMAGE
 	sudo rm -r $RV_OUTPUT_DIR/efi
-	#sudo umount $RV_OUTPUT_DIR/root
 	sudo rm -r $RV_OUTPUT_DIR/root
 
 	echo "build euler image successfully!"
@@ -329,7 +324,7 @@ function build_rv_fedora_image()
 	sudo mkfs.ext4 /dev/mapper/$root_part
 
 	echo copy bootloader...
-	mkdir $RV_OUTPUT_DIR/efi
+	mkdir -p $RV_OUTPUT_DIR/efi
 	sudo mount /dev/mapper/$efi_part $RV_OUTPUT_DIR/efi
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/riscv64
 	sudo mkdir -p $RV_OUTPUT_DIR/efi/EFI/BOOT
@@ -463,10 +458,7 @@ EOT
 
 	echo cleanup...
 	sync
-	sudo umount $RV_OUTPUT_DIR/root/proc
-	sudo umount $RV_OUTPUT_DIR/root/sys
-	sudo umount $RV_OUTPUT_DIR/root/dev/pts
-	sudo umount $RV_OUTPUT_DIR/root/dev
+	sudo umount -R $RV_OUTPUT_DIR/root/proc
 	sudo umount /dev/mapper/$efi_part
 	sudo umount /dev/mapper/$root_part
 	sudo kpartx -d $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE
