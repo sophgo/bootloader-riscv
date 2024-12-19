@@ -458,7 +458,7 @@ EOT
 
 	echo cleanup...
 	sync
-	sudo umount -R $RV_OUTPUT_DIR/root/proc
+	sudo umount -R $RV_OUTPUT_DIR/root
 	sudo umount /dev/mapper/$efi_part
 	sudo umount /dev/mapper/$root_part
 	sudo kpartx -d $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE
