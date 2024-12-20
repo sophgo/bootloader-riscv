@@ -285,9 +285,8 @@ EOT
 	sleep 60
 	sudo rm $RV_OUTPUT_DIR/root/etc/hosts
 	sudo mv $RV_OUTPUT_DIR/root/etc/hosts-bak $RV_OUTPUT_DIR/root/etc/hosts
+	sudo umount -R $RV_OUTPUT_DIR/efi
 	sudo umount -R $RV_OUTPUT_DIR/root
-	sudo umount /dev/mapper/$efi_part
-	sudo umount /dev/mapper/$root_part
 	sudo kpartx -d $RV_OUTPUT_DIR/$RV_EULER_SOPHGO_IMAGE
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_EULER_DISTRO/$RV_EULER_OFFICIAL_IMAGE
 	sudo rm -r $RV_OUTPUT_DIR/efi
@@ -458,9 +457,8 @@ EOT
 
 	echo cleanup...
 	sync
+	sudo umount -R $RV_OUTPUT_DIR/efi
 	sudo umount -R $RV_OUTPUT_DIR/root
-	sudo umount /dev/mapper/$efi_part
-	sudo umount /dev/mapper/$root_part
 	sudo kpartx -d $RV_OUTPUT_DIR/$RV_FEDORA_SOPHGO_IMAGE
 	sudo kpartx -d $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE
 	rm -r $RV_OUTPUT_DIR/efi
