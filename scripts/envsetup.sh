@@ -1335,9 +1335,12 @@ function build_rv_uroot()
 	pushd $RV_UROOT_DIR
 	GOARCH=riscv64 go build
 	GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
-	    -uinitcmd="boot" -files ../busybox/busybox:bin/busybox -o $RV_UROOT_DIR/initramfs.cpio \
-		-files "$RV_UROOT_DIR/firmware/:lib/firmware/" \
-	    core boot
+	    -uinitcmd="/init-boot.sh" \
+	    -files ./cmds/init/init-boot.sh:init-boot.sh \
+	    -files ../busybox/busybox:bin/busybox \
+	    -o $RV_UROOT_DIR/initramfs.cpio \
+	    -files "$RV_UROOT_DIR/firmware/:lib/firmware/" \
+	    core boot ./cmds/boot/multiboot
 	popd
 	cp $RV_UROOT_DIR/initramfs.cpio $RV_FIRMWARE_INSTALL_DIR/initrd.img
 }
