@@ -55,6 +55,34 @@ func getBootOrder(i *ipmi.IPMI, BootOrder *BootOrder) error {
 	return nil
 }
 
+func GetBootOrder(i *ipmi.IPMI) (byte, error) {
+	var bootType byte
+	recv, err := i.SendRecv(_IPMI_FB_OEM_NET_FUNCTION1, _FB_OEM_GET_BIOS_BOOT_ORDER, nil)
+	if err != nil {
+		return LOCAL_BOOT, err
+	}
+	bootType = recv[1]
+	return bootType, nil
+}
+
+func SetLocalBootOrder(i *ipmi.IPMI) error {
+	var BMCBootOrder BootOrder
+	BMCBootOrder.bootMode = LOCAL_BOOT
+	BMCBootOrder.bootSeq[0] = NETWORK_BOOT
+	BMCBootOrder.bootSeq[1] = LOCAL_BOOT
+	msg := ipmi.Msg{
+		Netfn:   _IPMI_FB_OEM_NET_FUNCTION1,
+		Cmd:     _FB_OEM_SET_BIOS_BOOT_ORDER,
+		Data:    unsafe.Pointer(&BMCBootOrder),
+		DataLen: 6,
+	}
+
+	if _, err := i.RawSendRecv(msg); err != nil {
+		return err
+	}
+	return nil
+}
+
 func setBootOrder(i *ipmi.IPMI, BootOrder *BootOrder) error {
 	msg := ipmi.Msg{
 		Netfn:   _IPMI_FB_OEM_NET_FUNCTION1,
