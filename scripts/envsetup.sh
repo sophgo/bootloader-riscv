@@ -316,7 +316,7 @@ function build_rv_pcie_zsbl()
 	local err
 
 	pushd $RV_ZSBL_SRC_DIR
-	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv bm1690_pcie_defconfig
+	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2044_defconfig
 	err=$?
 	popd
 
