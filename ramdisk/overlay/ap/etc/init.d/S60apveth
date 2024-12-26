@@ -9,8 +9,7 @@ start() {
 	printf "set ap veth: "
 	ifconfig veth0 up
 
-    sleep 15
-    ip=$(devmem 0x1a1900044)
+    ip=$(devmem 0x1efa100044)
 
     ip1=$(( (ip >> 24) & 0xFF ))
     ip2=$(( (ip >> 16) & 0xFF ))
