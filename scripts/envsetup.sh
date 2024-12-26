@@ -311,40 +311,6 @@ function clean_rv_bootrom()
 	rm -rf $RV_BOOTROM_BUILD_DIR
 }
 
-function build_rv_pcie_zsbl()
-{
-	local err
-
-	pushd $RV_ZSBL_SRC_DIR
-	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2044_defconfig
-	err=$?
-	popd
-
-	if [ $err -ne 0 ]; then
-		echo "making pcie zsbl config failed"
-		return $err
-	    fi
-
-	pushd $RV_ZSBL_BUILD_DIR
-	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
-	err=$?
-	popd
-
-	if [ $err -ne 0 ]; then
-		echo "making zsbl failed"
-		return $err
-	    fi
-
-	mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR/pcie_zsbl.bin
-}
-
-function clean_rv_pcie_zsbl()
-{
-	rm -rf $RV_FIRMWARE_INSTALL_DIR/pcie_zsbl.bin
-	rm -rf $RV_ZSBL_BUILD_DIR
-}
-
 function build_rv_tp_zsbl()
 {
 	local err
@@ -387,6 +353,8 @@ function build_rv_zsbl()
 	pushd $RV_ZSBL_SRC_DIR
 	if [ $CHIP = 'mango' ]; then
 		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
+	elif [ $CHIP == 'bm1690' ]; then
+		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2044_defconfig
 	else
 		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv ${CHIP}_defconfig
 	fi
@@ -1499,11 +1467,11 @@ function build_rv_firmware_bin()
 		cp $RV_FIRMWARE/fip.bin  $RV_FIRMWARE_INSTALL_DIR/
 	elif [ "$CHIP" = "sg2044" ];then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
-	fi	
+	fi
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
 		version="1.0.0"
-	else 
+	else
     		cp $RELEASED_NOTE_MD $RV_FIRMWARE_INSTALL_DIR/
 		version=$(awk 'END {split($1, a, "_"); print a[1]}' $RELEASED_NOTE_MD)
 	fi
@@ -1524,7 +1492,7 @@ function build_rv_firmware_bin()
 		cp firmware.bin image-bmc
 		$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
 	fi
-	rm -f image-bmc *.xml *.md 
+	rm -f image-bmc *.xml *.md
 
 	popd
 }
