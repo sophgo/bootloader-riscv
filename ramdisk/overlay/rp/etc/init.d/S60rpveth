@@ -9,7 +9,7 @@ start() {
 	printf "set rp veth: "
 	ifconfig veth0 up
 
-    ip=$(devmem 0x1efa000044)
+    ip=$(cat /proc/sgdrv/vethip)
 
     ip1=$(( (ip >> 24) & 0xFF ))
     ip2=$(( (ip >> 16) & 0xFF ))
