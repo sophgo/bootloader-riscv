@@ -1471,9 +1471,10 @@ function build_rv_firmware_bin()
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
 		version="1.0.0"
-	else
-    		cp $RELEASED_NOTE_MD $RV_FIRMWARE_INSTALL_DIR/
-		version=$(awk 'END {split($1, a, "_"); print a[1]}' $RELEASED_NOTE_MD)
+	else	
+		cp $RELEASED_NOTE_MD $RV_FIRMWARE_INSTALL_DIR/
+		LAST_MATCH=$(grep -iE '[0-9]+\.[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}' "$RELEASED_NOTE_MD" | tail -n 1)
+		version=$(echo "$LAST_MATCH" | cut -d'_' -f1)
 	fi
 
 	pushd $RV_FIRMWARE_INSTALL_DIR
