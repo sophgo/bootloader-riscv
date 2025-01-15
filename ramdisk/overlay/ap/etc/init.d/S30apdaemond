@@ -14,7 +14,7 @@ start() {
         printf "Starting cdm_daemon: "
 	ulimit -n 655360
 	cd /
-	nohup ./cdm_daemon 2> /ap_daemon.log &
+	./cdm_daemon &
         echo "OK"
 }
 stop() {
