@@ -37,9 +37,9 @@
 	"efie", "0x600000", "0x1000",               \
 	"zsbl.bin", "0x2a00000", "0x40000000",      \
 	"fw_dynamic.bin", "0x670000", "0x00000000", \
-	"riscv64_Image", "0x6c0000", "0x02000000",  \
+	"riscv64_Image", "0x700000", "0x02000000",  \
 	"initrd.img", "0x2b00000", "0x30000000",    \
-	"SG2042.fd", "0x2000000", "0x2000000"       \
+	"SG2042.fd", "0x2040000", "0x2000000"       \
 }
 #define PARTNUM 7
 #define DTB_OFFSET 0x601000
@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
 
 	ret = gen_xml(fp, xml, info, p_num + dtb_num);
 	if (ret)
-		printf("failed to get legal xml file: please check out the layer !\n");
+		printf("failed to get legal xml file: please check out the layer at 'pack_firmware_bin/gen_firmware_xml.c'\n");
 	
 	fclose(fp);
 	ezxml_free(xml);
