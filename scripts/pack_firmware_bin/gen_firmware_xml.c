@@ -232,7 +232,6 @@ int get_version(char *file_name, char *version)
 	char buffer[256];
 	char match_ver[16];
 	int start, end;
-	char *first_word;
 
 	if (file == NULL) {
 		strcpy(version, "1.0.0");
@@ -251,15 +250,13 @@ int get_version(char *file_name, char *version)
 			return -1;
 		}
 
-		while (fgets(buffer, sizeof(buffer), file)) {
-			reti = regexec(&regex, buffer, 1, matches, 0);
-			if (!reti) {
-				start = matches[0].rm_so;
-				end = matches[0].rm_eo;
-				strncpy(match_ver, buffer + start, end - start);
-				first_word = strtok(match_ver, " ");
-				strcpy(version, strtok(first_word, "_"));
-			}
+		fgets(buffer, sizeof(buffer), file);
+		reti = regexec(&regex, buffer, 1, matches, 0);
+		if (!reti) {
+			start = matches[0].rm_so;
+			end = matches[0].rm_eo;
+			strncpy(match_ver, buffer + start, end - start);
+			strcpy(version, strtok(match_ver, "_"));
 		}
 		printf("generate the firmware version: %s\n", version);
 		regfree(&regex);
