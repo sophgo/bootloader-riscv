@@ -103,11 +103,11 @@ RV_LINUX_GCC_INSTALL_DIR=$RV_GCC_DIR/gcc-riscv64-unknown-linux-gnu
 HOST_ARCH=`uname -m`
 
 if [ $HOST_ARCH = 'riscv64' ]; then
-	RISCV64_LINUX_CROSS_COMPILE=
+	RISCV64_LINUX_CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE:-""}
 else
-	RISCV64_LINUX_CROSS_COMPILE=$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-
+	RISCV64_LINUX_CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE:-"$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-"}
 fi
-RISCV64_ELF_CROSS_COMPILE=$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-
+RISCV64_ELF_CROSS_COMPILE=${RISCV64_ELF_CROSS_COMPILE:-"$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-"}
 
 TP_IMAGES=(
 	tp_zsbl.bin
@@ -861,6 +861,7 @@ function build_rv_euler_kernel()
 	local KERNELRELEASE
 	local RPMBUILD_DIR
 	local err
+	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
 
 	pushd $RV_KERNEL_SRC_DIR
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
@@ -873,6 +874,20 @@ function build_rv_euler_kernel()
 
 	if [ "$CHIP_NUM" = "multi" ];then
 		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
+	fi
+
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" dtbs
+	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+	else
+		rm -f $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb
+	fi
+
+	cp $RV_KERNEL_SRC_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
+
+	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_openEuler" ]; then
+		build_rv_euler_kernel_native
+		return $?
 	fi
 
 	if [ -e ~/.rpmmacros ]; then
@@ -890,15 +905,6 @@ EOT
 	else
 		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
 	fi
-
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" dtbs
-	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
-		mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	else
-		rm -f $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb
-	fi
-
-	cp $RV_KERNEL_SRC_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
 
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
 	ret=$?
