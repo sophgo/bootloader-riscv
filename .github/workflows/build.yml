@@ -139,7 +139,7 @@ jobs:
               popd
 
       - name: 'Upload Build Artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sophgo-bootloader-${{ matrix.M_CHIP_NUM }}-${{ matrix.LINUX_BRANCH }}
           path: firmware_*
