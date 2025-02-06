@@ -181,19 +181,19 @@ function clean_rv_euler_image()
 
 function build_rv_euler_kernel_native() {
 	local kernel_ver
-	local rpm_build_dir="~/rpmbuild"
+	local rpm_build_dir="${HOME}/rpmbuild"
 
 	pushd ${RV_TOP_DIR}
 
 	rpmdev-setuptree
-	cp bootloader-riscv/packages/openeuler-24.03/kernel/kernel.spec      ${rpm_build_dir}/SPECS/
-	cp bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.config  ${rpm_build_dir}/SOURCES/
-	cp bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.service ${rpm_build_dir}/SOURCES/
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/kernel.spec      ${rpm_build_dir}/SPECS/
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.config  ${rpm_build_dir}/SOURCES/
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.service ${rpm_build_dir}/SOURCES/
 	tar -czf ${rpm_build_dir}/SOURCES/kernel.tar.gz \
 		--exclude-vcs \
 		--transform s/linux-riscv/kernel/ \
 		linux-riscv
-	
+
 	pushd linux-riscv
 	IFS='.' read -ra kernel_ver <<< $(make kernelversion)
 	sed -i \
@@ -206,8 +206,10 @@ function build_rv_euler_kernel_native() {
 
 	pushd ${rpm_build_dir}
 	rpmbuild -bb SPECS/kernel.spec
-	cp RPMS/kernel-6*.rpm ${RV_RPM_INSTALL_DIR}
-	cp RPMS/perf-6*.rpm ${RV_RPM_INSTALL_DIR}
+
+	mkdir -p ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/kernel-6*.rpm ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/perf-6*.rpm ${RV_RPM_INSTALL_DIR}
 	popd
 
 	popd
