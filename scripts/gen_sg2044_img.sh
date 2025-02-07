@@ -37,7 +37,9 @@ function install_deb_packages()
     # following lines must not be started with space or tab.
     sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
 dpkg -i /home/sophgo/bsp-debs/linux-image-*[0-9].deb
+echo '$nrconf{kernelhints} = 0;' > /etc/needrestart/conf.d/99_disable_kernel_hint.conf
 apt autoremove -y
+rm /etc/needrestart/conf.d/99_disable_kernel_hint.conf
 apt-mark hold `find /home/sophgo/bsp-debs -name 'linux-image*' | xargs basename -s .deb`
 EOT
 }
