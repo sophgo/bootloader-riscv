@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 #######################################################################
 # global variables
 #######################################################################
@@ -630,6 +631,92 @@ function install_rp_debs()
 	cp $1 $RV_RP_DEB_INSTALL_DIR/
 }
 
+is_enabled() {
+	grep -q "^$1=y" include/config/auto.conf
+}
+
+create_package() {
+	local pname="$1" pdir="$2"
+	local dpkg_deb_opts
+
+	mkdir -m 755 -p "$pdir/DEBIAN"
+	mkdir -p "$pdir/usr/share/doc/$pname"
+	cp debian/copyright "$pdir/usr/share/doc/$pname/"
+	cp debian/changelog "$pdir/usr/share/doc/$pname/changelog.Debian"
+	gzip -n -9 "$pdir/usr/share/doc/$pname/changelog.Debian"
+	sh -c "cd '$pdir'; find . -type f ! -path './DEBIAN/*' -printf '%P\0' \
+		| xargs -r0 md5sum > DEBIAN/md5sums"
+
+	# Fix ownership and permissions
+	dpkg_deb_opts="--root-owner-group"
+
+	# a+rX in case we are in a restrictive umask environment like 0077
+	# ug-s in case we build in a setuid/setgid directory
+	chmod -R go-w,a+rX,ug-s "$pdir"
+	cp debian/control debian/control.bak
+	sed -i 's/Architecture: riscv64/Architecture: amd64/g' debian/control
+
+	# Create the package
+	dpkg-gencontrol -p$pname -P"$pdir"
+	dpkg-deb $dpkg_deb_opts ${KDEB_COMPRESS:+-Z$KDEB_COMPRESS} --build "$pdir" ..
+
+	mv debian/control.bak debian/control
+}
+
+package_kernel_headers () {
+
+
+	echo "package_kernel_headers"
+	echo "$RV_KERNEL_BUILD_DIR"
+	echo "$version"
+	pushd $RV_KERNEL_BUILD_DIR
+	SRCARCH=$2
+	pdir="./header_debs"
+	version=$1
+
+	srctree=$RV_KERNEL_SRC_DIR
+
+	rm -rf $pdir
+	mkdir -p $pdir
+	mkdir -p $pdir/debian
+	(
+		cd $srctree
+		find . -name Makefile\* -o -name Kconfig\* -o -name \*.pl
+		find arch/*/include include scripts -type f -o -type l
+		find arch/$SRCARCH -name Kbuild.platforms -o -name Platform
+		find $(find arch/$SRCARCH -name include -o -name scripts -type d) -type f
+	) > debian/hdrsrcfiles
+
+	{
+		if is_enabled CONFIG_OBJTOOL; then
+			echo tools/objtool/objtool
+		fi
+
+		find arch/$SRCARCH/include Module.symvers include scripts -type f
+
+		if is_enabled CONFIG_GCC_PLUGINS; then
+			find scripts/gcc-plugins -name \*.so
+		fi
+	} > debian/hdrobjfiles
+
+	destdir=$pdir/usr/src/linux-headers-$version
+	mkdir -p $destdir
+	tar -c -f - -C $srctree -T debian/hdrsrcfiles | tar -xf - -C $destdir
+	tar -c -f - -T debian/hdrobjfiles | tar -xf - -C $destdir
+	rm -f debian/hdrsrcfiles debian/hdrobjfiles
+
+	# copy .config manually to be where it's expected to be
+	cp $RV_KERNEL_BUILD_DIR/.config $destdir/.config
+	cp System.map $destdir/
+	cp certs/*.pem $destdir/certs/
+
+	mkdir -p $pdir/lib/modules/$version/
+	ln -s /usr/src/linux-headers-$version $pdir/lib/modules/$version/build
+	popd
+	create_package linux-headers-$version $pdir
+}
+
+
 function build_rv_kernel()
 {
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
@@ -692,9 +779,13 @@ function build_rv_kernel()
 
 		mkdir -p ./debs
 		local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+		package_kernel_headers ${KERNELRELEASE} riscv
+
 		cp ../linux-image-${KERNELRELEASE}_*.deb ./debs/linux-image-${KERNELRELEASE}.deb
 		cp ../linux-image-${KERNELRELEASE}-dbg_*.deb ./debs/linux-image-${KERNELRELEASE}-dbg.deb
-		cp ../linux-headers-${KERNELRELEASE}_*.deb ./debs/linux-headers-${KERNELRELEASE}.deb
+		cp ../linux-headers-${KERNELRELEASE}*_amd64.deb ./debs/linux-headers-${KERNELRELEASE}_amd64.deb
+		cp ../linux-headers-${KERNELRELEASE}*_riscv64.deb ./debs/linux-headers-${KERNELRELEASE}_riscv64.deb
+
 		install_rp_debs "./debs/*.deb"
 		install_rp_debs $RV_KERNEL_SRC_DIR/tools/include/tools/be_byteshift.h
 		install_rp_debs $RV_KERNEL_SRC_DIR/tools/include/tools/le_byteshift.h
@@ -1477,7 +1568,7 @@ function build_rv_firmware_bin()
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
 		version="1.0.0"
-	else	
+	else
 		cp $RELEASED_NOTE_MD $RV_FIRMWARE_INSTALL_DIR/
 		LAST_MATCH=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}' "$RELEASED_NOTE_MD" | tail -n 1)
 		version="$(echo "$LAST_MATCH" | cut -d'_' -f1)"
