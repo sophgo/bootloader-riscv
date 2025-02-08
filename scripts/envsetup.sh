@@ -708,7 +708,8 @@ package_kernel_headers () {
 	# copy .config manually to be where it's expected to be
 	cp $RV_KERNEL_BUILD_DIR/.config $destdir/.config
 	cp System.map $destdir/
-	cp certs/*.pem $destdir/certs/
+
+	find certs/ -name *.pem -exec cp {} $destdir/certs/ \;
 
 	mkdir -p $pdir/lib/modules/$version/
 	ln -s /usr/src/linux-headers-$version $pdir/lib/modules/$version/build
