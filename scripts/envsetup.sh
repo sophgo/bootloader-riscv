@@ -83,7 +83,7 @@ RV_EULER_SOPHGO_IMAGE=euler-sophgo.img
 
 if [[ "$CHIP" = "mango" ]]; then
 	source $RV_SCRIPTS_DIR/gen_sg2042_img.sh
-elif [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]]; then
+elif [[ "$CHIP" = "sg2044" ]]; then
 	source $RV_SCRIPTS_DIR/gen_sg2044_img.sh
 else
     echo "unknown chip $CHIP"
@@ -354,8 +354,6 @@ function build_rv_zsbl()
 	pushd $RV_ZSBL_SRC_DIR
 	if [ $CHIP = 'mango' ]; then
 		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
-	elif [ $CHIP == 'bm1690' ]; then
-		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2044_defconfig
 	else
 		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv ${CHIP}_defconfig
 	fi
@@ -723,9 +721,9 @@ function build_rv_kernel()
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
 	local err
 
-	if [ "$CHIP" = "bm1690" ];then
+	if [ "$CHIP" = "sg2044" ];then
 		if [ "$1" = "" ];then
-			echo "build bm1690 kernel, eg: build_rv_kernel ap|rp|tp"
+			echo "build sg2044 kernel, eg: build_rv_kernel ap|rp|tp"
 			return -1
 		fi
 		RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_$1_${KERNEL_VARIANT}_defconfig
@@ -794,7 +792,7 @@ function build_rv_kernel()
 	fi
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	if [ "$CHIP" = "bm1690" ];then
+	if [ "$CHIP" = "sg2044" ];then
 		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/$1_Image
 	else
 		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/riscv64_Image
@@ -811,7 +809,7 @@ function clean_rv_kernel()
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/vmlinux
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.dtb
 
-	if [ "$CHIP" = "bm1690" ];then
+	if [ "$CHIP" = "sg2044" ];then
 		rm -rf $RV_KERNEL_SRC_DIR/build/$CHIP/*${KERNEL_VARIANT}
 	else
 		rm -rf $RV_KERNEL_BUILD_DIR
@@ -1163,7 +1161,7 @@ function build_rv_ramdisk()
 		if [ -f $TPUV7_TP_DAEMON ]; then
 			cp $TPUV7_TP_DAEMON $RV_RAMDISK_DIR/build/$RAMDISK_CPU_TYPE/rootfs/
 		else
-			echo "no ap daemon found"
+			echo "no tp daemon found"
 		fi
 		# copy other non-generated files
 		if [ -d $TPUV7_RUNTIME_DIR/cdmlib/overlay/tp ]; then
@@ -1530,11 +1528,7 @@ function build_rv_firmware()
 {
 	build_rv_zsbl
 	build_rv_sbi
-	if [ "$CHIP" = "bm1690" ];then
-		build_rv_kernel ap
-		build_rv_kernel tp
-		build_rv_uroot
-	elif [ "$CHIP" = "mango" ];then
+	if [ "$CHIP" = "mango" ];then
 		build_rv_kernel
 		build_rv_uroot
 		build_rv_edk2
@@ -1631,7 +1625,7 @@ function build_rv_firmware_image()
 	sudo mkdir -p efi/riscv64
 
 	echo copy bootloader...
-	if [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]];then
+	if [[ "$CHIP" = "sg2044" ]];then
 	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
 	sudo cp zsbl.bin efi/riscv64
 	else
@@ -1674,7 +1668,7 @@ function build_rv_firmware_package()
 	mkdir -p firmware/riscv64
 
 	echo copy bootloader...
-	if [[ "$CHIP" = "sg2044" || "$CHIP" = "bm1690" ]];then
+	if [[ "$CHIP" = "sg2044" ]];then
 	cp $RV_FIRMWARE/fsbl.bin firmware/riscv64
 	cp zsbl.bin firmware/riscv64
 	else
