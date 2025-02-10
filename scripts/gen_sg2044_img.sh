@@ -188,6 +188,7 @@ function build_rv_euler_kernel_native() {
 	pushd ${RV_TOP_DIR}
 
 	rpmdev-setuptree
+	find ${rpm_build_dir}/RPMS -type f -delete
 	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/kernel.spec      ${rpm_build_dir}/SPECS/
 	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.config  ${rpm_build_dir}/SOURCES/
 	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.service ${rpm_build_dir}/SOURCES/
@@ -210,8 +211,9 @@ function build_rv_euler_kernel_native() {
 	rpmbuild -bb SPECS/kernel.spec
 
 	mkdir -p ${RV_RPM_INSTALL_DIR}
-	cp -f RPMS/riscv64/kernel-6*.rpm ${RV_RPM_INSTALL_DIR}
-	cp -f RPMS/riscv64/perf-6*.rpm ${RV_RPM_INSTALL_DIR}
+	kernel_ver=${kernel_ver[0]}.${kernel_ver[1]}.${kernel_ver[2]}
+	cp -f RPMS/riscv64/kernel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/perf-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
 	popd
 
 	popd
