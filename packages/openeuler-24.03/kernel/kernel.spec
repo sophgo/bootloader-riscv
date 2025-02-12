@@ -39,7 +39,7 @@ rm -f test_openEuler_sign.ko test_openEuler_sign.ko.sig
 %global debuginfodir /usr/lib/debug
 
 %global upstream_version    6.12
-%global upstream_sublevel   8
+%global upstream_sublevel   13
 %global devel_release       0
 %global maintenance_release .0.0
 %global pkg_release         .0
@@ -463,11 +463,6 @@ TargetImage=$(basename $(make -s image_name))
     fi
 %endif
 
-# aarch64 make dtbs
-%ifarch aarch64 riscv64
-    %{make} ARCH=%{Arch} dtbs
-%endif
-
 ## make tools
 %if %{with_perf}
 # perf
@@ -694,19 +689,6 @@ popd
 %{make} ARCH=%{Arch} INSTALL_HDR_PATH=$RPM_BUILD_ROOT/usr KBUILD_SRC= headers_install
 find $RPM_BUILD_ROOT/usr/include -name "\.*"  -exec rm -rf {} \;
 
-# dtbs install
-%ifarch aarch64 riscv64
-    mkdir -p $RPM_BUILD_ROOT/boot/dtb-%{KernelVer}
-    install -m 644 $(find arch/%{Arch}/boot -name "*.dtb") $RPM_BUILD_ROOT/boot/dtb-%{KernelVer}/
-    rm -f $(find arch/$Arch/boot -name "*.dtb")
-%endif
-
-# deal with riscv SoC dtb search path
-%ifarch riscv64
-    mkdir -p $RPM_BUILD_ROOT/boot/dtb-%{KernelVer}/thead
-    mv $(find $RPM_BUILD_ROOT/boot/dtb-%{KernelVer}/ -name "th1520*.dtb") $RPM_BUILD_ROOT/boot/dtb-%{KernelVer}/thead
-%endif
-
 # deal with vdso
 %ifnarch ppc64le
 %{make} -s ARCH=%{Arch} INSTALL_MOD_PATH=$RPM_BUILD_ROOT vdso_install KERNELRELEASE=%{KernelVer}
@@ -904,7 +886,7 @@ fi
 if [ -d /lib/modules/%{KernelVer} ] && [ "`ls -A  /lib/modules/%{KernelVer}`" = "" ]; then
     rm -rf /lib/modules/%{KernelVer}
 fi
-if [ `uname -i` == "loongarch64" ];then
+if [ `uname -i` == "loongarch64" ] || [ `uname -i` == "riscv64" ] ;then
 	[ -f /etc/grub2.cfg ] && GRUB_CFG=`readlink -f /etc/grub2.cfg`
 	[ "x${GRUB_CFG}" == "x" ] && [ -f /etc/grub2-efi.cfg ] && GRUB_CFG=`readlink -f /etc/grub2-efi.cfg`
 	[ "x${GRUB_CFG}" == "x" ] && [ -f /boot/efi/EFI/openEuler/grub.cfg ] && GRUB_CFG=/boot/efi/EFI/openEuler/grub.cfg
@@ -918,7 +900,7 @@ if [ `uname -i` == "aarch64" ] &&
         [ -f /boot/EFI/grub2/grub.cfg ]; then
 	/usr/bin/sh %{_sbindir}/mkgrub-menu-%{version}-%{devel_release}%{?maintenance_release}%{?pkg_release}.sh %{version}-%{release}.aarch64  /boot/EFI/grub2/grub.cfg  update
 fi
-if [ `uname -i` == "loongarch64" ];then
+if [ `uname -i` == "loongarch64" ] || [ `uname -i` == "riscv64" ] ;then
 	[ -f /etc/grub2.cfg ] && GRUB_CFG=`readlink -f /etc/grub2.cfg`
 	[ "x${GRUB_CFG}" == "x" ] && [ -f /etc/grub2-efi.cfg ] && GRUB_CFG=`readlink -f /etc/grub2-efi.cfg`
 	[ "x${GRUB_CFG}" == "x" ] && [ -f /boot/efi/EFI/openEuler/grub.cfg ] && GRUB_CFG=/boot/efi/EFI/openEuler/grub.cfg
@@ -960,9 +942,6 @@ fi
 %defattr (-, root, root)
 %doc
 /boot/config-*
-%ifarch aarch64 riscv64
-/boot/dtb-*
-%endif
 /boot/symvers-*
 /boot/System.map-*
 /boot/vmlinuz-*

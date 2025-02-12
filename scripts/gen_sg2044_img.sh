@@ -54,7 +54,6 @@ function install_rpm_packages()
     sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
 rpm -i /home/sophgo/bsp-rpms/kernel-*.rpm
 dracut --force --regenerate-all --no-hostonly
-grub2-mkconfig -o /boot/grub2/grub.cfg
 EOT
 
 }
@@ -127,7 +126,7 @@ function build_rv_image()
 	echo 'create vendor home directory'
 	sudo mkdir -p $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/root/home/sophgo
 
-		if [ $1 == "rpm" ]; then
+    if [ $1 == "rpm" ]; then
 		install_rpm_packages
 	else
 		install_deb_packages
