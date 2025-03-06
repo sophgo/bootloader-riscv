@@ -52,7 +52,7 @@ function install_rpm_packages()
     echo install linux image...
     # following lines must not be started with space or tab.
     sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
-rpm -i /home/sophgo/bsp-rpms/kernel-*.rpm
+rpm -i /home/sophgo/bsp-rpms/kernel-[0-9]*.riscv64.rpm
 dracut --force --regenerate-all --no-hostonly
 EOT
 
@@ -212,6 +212,7 @@ function build_rv_euler_kernel_native() {
 	mkdir -p ${RV_RPM_INSTALL_DIR}
 	kernel_ver=${kernel_ver[0]}.${kernel_ver[1]}.${kernel_ver[2]}
 	cp -f RPMS/riscv64/kernel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/kernel-devel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
 	cp -f RPMS/riscv64/perf-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
 	popd
 
