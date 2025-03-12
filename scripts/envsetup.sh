@@ -85,6 +85,8 @@ if [[ "$CHIP" = "mango" ]]; then
 	source $RV_SCRIPTS_DIR/gen_sg2042_img.sh
 elif [[ "$CHIP" = "sg2044" ]]; then
 	source $RV_SCRIPTS_DIR/gen_sg2044_img.sh
+elif [[ "$CHIP" = "bm1690e" ]]; then
+	echo "use bm1690e config"
 else
     echo "unknown chip $CHIP"
 fi
@@ -721,7 +723,7 @@ function build_rv_kernel()
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_${KERNEL_VARIANT}_defconfig
 	local err
 
-	if [ "$CHIP" = "sg2044" ];then
+	if [ "$CHIP" = "sg2044" -o "$CHIP" = "bm1690e" ];then
 		if [ "$1" = "" ];then
 			echo "build sg2044 kernel, eg: build_rv_kernel ap|rp|tp"
 			return -1
@@ -792,7 +794,7 @@ function build_rv_kernel()
 	fi
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	if [ "$CHIP" = "sg2044" ];then
+	if [ "$CHIP" = "sg2044" -o "$CHIP" = "bm1690e" ];then
 		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/$1_Image
 	else
 		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/Image $RV_FIRMWARE_INSTALL_DIR/riscv64_Image
@@ -809,7 +811,7 @@ function clean_rv_kernel()
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/vmlinux
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.dtb
 
-	if [ "$CHIP" = "sg2044" ];then
+	if [ "$CHIP" = "sg2044" -o "$CHIP" = "bm1690e" ];then
 		rm -rf $RV_KERNEL_SRC_DIR/build/$CHIP/*${KERNEL_VARIANT}
 	else
 		rm -rf $RV_KERNEL_BUILD_DIR
