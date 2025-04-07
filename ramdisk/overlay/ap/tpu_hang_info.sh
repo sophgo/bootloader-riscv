@@ -118,8 +118,8 @@ printf "\n\n"
 
 
 
-printf "\n# CDMA CMD ID 表格\n"
-printf "| %-6s | %-15s | %-15s |\n" "Core" "Send CMD ID" "Recv CMD ID"
+printf "\n# CDMA CMD ID Info\n"
+printf "| %-6s | %-15s | %-15s |\n" "Port" "Send CMD ID" "Recv CMD ID"
 printf "|%s|%s|%s|\n" "--------" "-----------------" "-----------------"
 
 for i in $(seq 0 10); do 
@@ -553,22 +553,23 @@ for i in $(seq 0 7); do
   if [ $i -le 3 ]; then
     # For SDMA 0-3
     addr=0x69${i}8020000
+    full_value=$(devmem $addr 128)
   else
     # For SDMA 4-7
     let addr=0x6B00080000+\($i-4\)*0x2000000
     
     # SDMA 4-7 doesn't support 128-bit reads, need to read 32 bits at a time
     val1=$(devmem $addr 32)
-    val2=$(devmem $(printf "0x%X" $((addr+8))) 32)
-    val3=$(devmem $(printf "0x%X" $((addr+16))) 32)
-    val4=$(devmem $(printf "0x%X" $((addr+24))) 32)
+    val2=$(devmem $(printf "0x%X" $((addr+4))) 32)
+    val3=$(devmem $(printf "0x%X" $((addr+8))) 32)
+    val4=$(devmem $(printf "0x%X" $((addr+12))) 32)
     
     # Remove 0x prefix and combine values (most significant bits first)
     val1=${val1#0x}
     val2=${val2#0x}
     val3=${val3#0x}
     val4=${val4#0x}
-    full_value="0x${val1}${val2}${val3}${val4}"
+    full_value="0x${val4}${val3}${val2}${val1}"
     
     # Skip the next devmem call since we already have our full_value
     continue_processing=1
@@ -698,12 +699,14 @@ get_tsk_eu_typ_desc() {
   fi
 }
 
-# Read TIU registers
-echo "TIU Register Info"
+# Read TIU CMD
+echo "TIU CMD Info"
 for i in $(seq 0 7); do
   let addr=0x6908000000+\($i\*\(1\<\<28\)\)
   full_value=$(devmem $addr 128)
-  
+
+  short_cmd=$(extract_bit_128 "$full_value" 0)
+
   # Extract dependency enable bit (bit 37)
   dep_enable_bit=$(extract_bit_128 "$full_value" 37)
   
@@ -718,19 +721,14 @@ for i in $(seq 0 7); do
   des_tsk_eu_typ=$(extract_bits_128 "$full_value" 49 45)
   des_tsk_eu_typ_desc=$(get_tsk_eu_typ_desc "$des_tsk_typ" "$des_tsk_eu_typ")
   
-  # Extract des_imm for message fields (bits 127-64)
-  des_imm=$(extract_bits_128 "$full_value" 127 64)
-  
   # Extract message ID (bits 6-0 of des_imm)
-  msg_id=$(extract_bits_128 "$des_imm" 6 0)
+  msg_id=$(extract_bits_128 "$full_value" 73 64)
   
   # Extract message count (bits 22-16 of des_imm)
-  msg_cnt=$(extract_bits_128 "$des_imm" 22 16)
-  
-  # Extract destination ID (bits 39-32 of des_imm)
-  dst_id=$(extract_bits_128 "$des_imm" 39 32)
+  msg_cnt=$(extract_bits_128 "$des_imm" 87 80)
   
   # Store the extracted values
+  eval "tiu_short_cmd_$i=\"$short_cmd\""
   eval "tiu_dep_enable_$i=\"$dep_enable_bit\""
   eval "tiu_depend_id_$i=\"$depend_id\""
   eval "tiu_des_tsk_typ_$i=\"$des_tsk_typ\""
@@ -739,12 +737,16 @@ for i in $(seq 0 7); do
   eval "tiu_des_tsk_eu_typ_desc_$i=\"$des_tsk_eu_typ_desc\""
   eval "tiu_msg_id_$i=\"$msg_id\""
   eval "tiu_msg_cnt_$i=\"$msg_cnt\""
-  eval "tiu_dst_id_$i=\"$dst_id\""
 done
 
 # Print TIU register information in a table
 printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
 printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" "TIU Field" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
+printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+
+# Print short_cmd row with the field name in the first column
+printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+  "short_cmd" "$tiu_short_cmd_0" "$tiu_short_cmd_1" "$tiu_short_cmd_2" "$tiu_short_cmd_3" "$tiu_short_cmd_4" "$tiu_short_cmd_5" "$tiu_short_cmd_6" "$tiu_short_cmd_7"
 printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
 
 # Print dependency enable/disable status row
@@ -775,9 +777,4 @@ printf "+------------------+------------+------------+------------+------------+
 # Print message count row (for send_msg/wait_msg)
 printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
   "msg_cnt" "$tiu_msg_cnt_0" "$tiu_msg_cnt_1" "$tiu_msg_cnt_2" "$tiu_msg_cnt_3" "$tiu_msg_cnt_4" "$tiu_msg_cnt_5" "$tiu_msg_cnt_6" "$tiu_msg_cnt_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
-
-# Print destination ID row (for send_msg/wait_msg)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
-  "dst_id" "$tiu_dst_id_0" "$tiu_dst_id_1" "$tiu_dst_id_2" "$tiu_dst_id_3" "$tiu_dst_id_4" "$tiu_dst_id_5" "$tiu_dst_id_6" "$tiu_dst_id_7"
 printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
