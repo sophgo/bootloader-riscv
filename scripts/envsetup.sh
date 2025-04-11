@@ -1553,40 +1553,51 @@ function build_rv_firmware_bin()
 	RELEASED_NOTE_PATH=$RV_TOP_DIR/bootloader-riscv/release-note
 	build_rv_firmware
 
-	gcc $RV_SCRIPTS_DIR/pack_firmware_bin/gen_firmware_xml.c -D${CHIP^^} -o $RV_FIRMWARE_INSTALL_DIR/make_xml
-    	gcc $RV_SCRIPTS_DIR/pack_firmware_bin/pack_firmware_bin.c -o $RV_FIRMWARE_INSTALL_DIR/pack
+    	pushd $RV_SCRIPTS_DIR/pack/
+	make clean
+	make
+	cp pack $RV_FIRMWARE_INSTALL_DIR
+	popd
+
+	pushd $RV_FIRMWARE_INSTALL_DIR
+	rm -f firmware*.bin
 
 	if [ "$CHIP" = "mango" ];then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_release_note.md"
-		cp $RV_FIRMWARE/fip.bin  $RV_FIRMWARE_INSTALL_DIR/
+		./pack -a -p fip.bin -t 0x600000 -f $RV_FIRMWARE/fip.bin -o 0x30000 firmware.bin
+		./pack -a -p SG2042.fd -t 0x600000 -f SG2042.fd -l 0x2000000 -o 0x2040000 firmware.bin
+		./pack -a -p zsbl.bin -t 0x600000 -f zsbl.bin -l 0x40000000 firmware.bin
+		./pack -a -p fw_dynamic.bin -t 0x600000 -f fw_dynamic.bin -l 0x0 firmware.bin
+		./pack -a -p riscv64_Image -t 0x600000 -f riscv64_Image -l 0x2000000 firmware.bin
+		./pack -a -p initrd.img -t 0x600000 -f initrd.img -l 0x30000000 firmware.bin
+		./pack -a -p mango-milkv-pioneer.dtb -t 0x600000 -f mango-milkv-pioneer.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-capricorn.dtb -t 0x600000 -f mango-sophgo-capricorn.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-pisces.dtb -t 0x600000 -f mango-sophgo-pisces.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x4evb.dtb -t 0x600000 -f mango-sophgo-x4evb.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x8evb.dtb -t 0x600000 -f mango-sophgo-x8evb.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
 	elif [ "$CHIP" = "sg2044" ];then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
+		./pack -a -p SG2044.fd -t 0x80000 -f SG2044.fd -l 0x80200000 -o 0x600000 firmware.bin
+		./pack -a -p fsbl.bin -t 0x80000 -f fsbl.bin -l 0x7010080000 firmware.bin
+		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
+		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
+		./pack -a -p sg2044-evb.dtb -t 0x80000 -f sg2044-evb.dtb -l 0x88000000 firmware.bin
 	fi
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
 		version="1.0.0"
 	else
-		cp $RELEASED_NOTE_MD $RV_FIRMWARE_INSTALL_DIR/
-		LAST_MATCH=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}' "$RELEASED_NOTE_MD" | tail -n 1)
-		version="$(echo "$LAST_MATCH" | cut -d'_' -f1)"
+		FIRST_MATCH=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}' "$RELEASED_NOTE_MD" | head -n 1)
+		version="$(echo "$FIRST_MATCH" | cut -d'_' -f1)"
 	fi
-	pushd $RV_FIRMWARE_INSTALL_DIR
-
-	rm -f firmware*.bin *.xml
-	./make_xml *.dtb
-	if [ $? -ne 0 ];then
-		popd
-		return
-	fi
-	mkdir -p $RV_SCRIPTS_DIR/build/ && cp ./*.xml $RV_SCRIPTS_DIR/build/
-	./pack *.xml
-	rm -f make_xml pack
-
+	echo ${version} | ./pack -a -o 0x0 firmware.bin
+	
 	if [ "$CHIP" = "mango" ];then
 		cp firmware.bin image-bmc
 		$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
 	fi
-	rm -f image-bmc *.xml *.md
+	rm -f image-bmc pack *.md
 
 	popd
 }
