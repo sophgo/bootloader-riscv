@@ -380,6 +380,7 @@ function build_rv_zsbl()
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
 	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR
+	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/*.dtbo $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
 }
 
 function clean_rv_zsbl()
@@ -1582,7 +1583,7 @@ function build_rv_firmware_bin()
 		./pack -a -p fsbl.bin -t 0x80000 -f fsbl.bin -l 0x7010080000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
-		./pack -a -p sg2044-evb.dtb -t 0x80000 -f sg2044-evb.dtb -l 0x88000000 firmware.bin
+		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
 	fi
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
