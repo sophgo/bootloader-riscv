@@ -15,13 +15,15 @@
 #define MAX_VERSION_SIZE 16
 #define OPTION_MASK 0xffffffff
 #define PARTITION_TABLE_SIZE 0x1000
-#define PARTITION_TABLE_BASE 0x80000
 #define COMMAND_SHOW_PARTITION 0x00000008
+#define DEFAULT_PARTITION_TABLE 0x80000
 
 #define SELECT(sel, x) sel = (((1 << (x)) & OPTION_MASK) | (sel))
-#define MASK(x) ((1 << x) & OPTION_MASK)
+#define MASK(x) ((1 << (x)) & OPTION_MASK)
 #define ALIGEN(x) ((x) & 0xfff)
-#define SET_ALIGEN(x) (ALIGEN(x) ? (((x) & (~0xfff)) + 0x1000) : x)
+#define SET_ALIGEN(x) (ALIGEN(x) ? (((x) & (~0xfff)) + 0x1000) : (x))
+
+#define pr_err(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
 
 enum {
 	OPTION_ADD = 0,

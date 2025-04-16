@@ -21,14 +21,14 @@ static uint8_t *load_context(int fd, uint32_t size)
 	
 	context = (uint8_t *)malloc(MAX_CONTEXT_SIZE);
 	if (!context) {
-		printf("Memory error: allocate memory for firmware context failed\n");
+		pr_err("Memory error: allocate memory for firmware context failed\n");
 		return NULL;
 	}
 	rlen = read(fd, context, MAX_CONTEXT_SIZE);
 	while (rlen < size)
 		rlen += read(fd, context + rlen, size - rlen);
 	if (rlen != size) {
-		printf("Read error: the bytes %d read from firmware not equal file size %d\n",
+		pr_err("Read error: the bytes %d read from firmware not equal file size %d\n",
 				rlen, size);
 		return NULL;
 	}
@@ -86,7 +86,7 @@ static struct part_list *gen_table(uint8_t *context, uint32_t tab_off)
 	while (temp[i].magic == DPT_MAGIC) {
 		node = (struct part_list *)malloc(sizeof(struct part_list));
 		if (!node) {
-			printf("Memory error: allocate memory for partition failed\n");
+			pr_err("Memory error: allocate memory for partition failed\n");
 			return NULL;
 		}
 		memcpy(&node->part, &temp[i], sizeof(struct part_list));
@@ -103,7 +103,7 @@ static int check_partition_name(struct part_list *part_head, const char *name)
 
 	while (cur) {
 		if (strcmp(name, cur->part.name) == 0) {
-			printf("Param error: partition name %s already exist\n", name);
+			pr_err("Param error: partition name %s already exist\n", name);
 			return -1;
 		}
 		cur = cur->next;
@@ -166,7 +166,7 @@ static int check_borders(struct part_list *part_head, uint32_t offset, uint32_t 
 {
 	struct part_list *cur = part_head;
 	if (ALIGEN(offset)) {
-		printf("Address error: offset is not aligen\n");
+		pr_err("Address error: offset is not aligen\n");
 		return -1;
 	}
 	while (cur) {
@@ -247,7 +247,7 @@ static int extract_context(uint8_t *context, struct part_list *part_head, const 
 		cur = cur->next;
 	}
 	if (!cur) {
-		printf("Partition error: partition %s is not found\n", part_name);
+		pr_err("Partition error: partition %s is not found\n", part_name);
 		return -1;
 	}
 	write(fd, context + cur->part.offset, cur->part.size);
@@ -264,15 +264,15 @@ static void list_all_partition(int fd, struct part_list *part_head)
 	lseek(fd, 0, SEEK_SET);
 	rlen = read(fd, version, sizeof(version));
 	if (rlen < 0) {
-		printf("Read error: read firmware failed\n");
+		pr_err("Read error: read firmware failed\n");
 		return;
 	}
 	printf("FIRMWARE VERSION: %s\n", version);
-	printf("%-15s %-40s %-20s %-20s %-25s\n",
-			"Index", "Part Name", "Offset","Size(Hex)", "Load Address(Hex)");
+	printf("%-15s %-35s %-20s %-20s %-25s\n",
+			"Index", "Part Name", "Offset(Hex)","Size(Hex)", "Load Address(Hex)");
 	while (cur) {
 		i++;
-		printf("%-15d %-40s %-20X %-20X %-25lX\n",
+		printf("%-15d %-35s %-20X %-20X %-25lX\n",
 			i, cur->part.name, cur->part.offset, cur->part.size, cur->part.lma);
 		cur = cur->next;
 	}
@@ -280,11 +280,11 @@ static void list_all_partition(int fd, struct part_list *part_head)
 
 int main(int argc, char *argv[])
 {
-	int ret, opt, file_fd, firm_fd;
+	int ret, opt, file_fd, firm_fd, flags;
 	int *longindex = NULL;
 	char *file_name, *firm_name, *part_name = NULL;
 	uint32_t file_size, firm_size, size, rlen, offset, sel = 0;
-	uint32_t tab_off = PARTITION_TABLE_BASE;
+	uint32_t tab_off = DEFAULT_PARTITION_TABLE;
 	uint64_t lma = 0;
 	uint8_t *context, *temp;
 	struct stat file_stat, firm_stat;
@@ -337,24 +337,24 @@ int main(int argc, char *argv[])
 				break;
 			case '?':
 			default:
-				printf("Param error: input pack '-h' to see the detailed usage\n");
+				pr_err("Param error: input pack '-h' to see the detailed usage\n");
 		}
 	}
 	if (sel & MASK(OPTION_HELP))
 		return 0;
 	firm_name = argv[optind];
 	if (!firm_name) {
-		printf("Param error: the firmware name must specific\n");
+		pr_err("Param error: the firmware name must be specific\n");
 		return -1;
 	}
 	firm_fd = open(firm_name,  O_CREAT | O_RDWR, 0644);
 	if (firm_fd < 0) {
-		printf("Open error: open file %s failed\n", firm_name);
+		pr_err("Open error: open file %s failed\n", firm_name);
 		return -1;
 	}
 	ret = stat(firm_name, &firm_stat);
 	if (ret < 0) {
-		printf("Stat error: get file %s stat failed\n", firm_name);
+		pr_err("Stat error: get file %s stat failed\n", firm_name);
 		close(firm_fd);
 		return -1;
 	}
@@ -364,6 +364,10 @@ int main(int argc, char *argv[])
 		goto failed;
 	if (sel & MASK(OPTION_TABLEINFO))
 		part_head = gen_table(context, tab_off);
+	else if (!(sel & MASK(OPTION_OFFSET))) {
+		pr_err("Param error: option '-t' must be selected except adding version infomation\n");
+		goto failed;
+	}
 	if (!sel || sel == COMMAND_SHOW_PARTITION) {
 		list_all_partition(firm_fd, part_head);
 		free(context);
@@ -371,7 +375,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	if (!(sel & MASK(OPTION_ADD)) && !(sel & MASK(OPTION_EXTRACT))) {
-		printf("Param error: option '-a' or '-e' must choose one\n");
+		pr_err("Param error: option '-a' or '-e' must choose one\n");
 		goto failed;
 	}
 	if (sel & MASK(OPTION_ADD)) {
@@ -382,43 +386,46 @@ int main(int argc, char *argv[])
 		if ((sel & MASK(OPTION_FILEPATH)) && file_name) {
 			file_fd = open(file_name, O_RDONLY, 0);
 			if (file_fd < 0) {
-				printf("Open error: file %s open failed\n", file_name);
+				pr_err("Open error: file %s open failed\n", file_name);
 				goto failed;
 			}
 			ret = stat(file_name, &file_stat);
 			if (ret < 0 || !file_stat.st_size) {
-				printf("Stat error: get file %s stat failed\n", file_name);
+				pr_err("Stat error: get file %s stat failed\n", file_name);
 				goto failed;
 			}
 			file_size = file_stat.st_size;
 			temp = (char *)malloc(file_size);
 			if (!temp) {
-				printf("Memory error: file %s allocate memory failed\n", file_name);
+				pr_err("Memory error: file %s allocate memory failed\n", file_name);
 				goto failed;
 			}
 			rlen = read(file_fd, temp, file_size);
 			if (rlen < 0) {
-				printf("Read error: read file %s failed\n", file_name);
+				pr_err("Read error: read file %s failed\n", file_name);
 				free(temp);
 				goto failed;
 			}
 		} else {
+			file_fd = STDIN_FILENO;
+			flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+			fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+
 			temp = (char *)malloc(MAX_BUFFER_SIZE);
 			if (!temp) {
-				printf("Memory error: input allocate failed\n");
+				pr_err("Memory error: input allocate failed\n");
 				goto failed;
 			}
-			file_fd = STDIN_FILENO;
 			file_size = read(file_fd, temp, MAX_BUFFER_SIZE);
-			if (file_size >= MAX_BUFFER_SIZE) {
-				printf("Input error: the size of input from stdin should less than 256\n");
+			if (file_size >= MAX_BUFFER_SIZE || file_size == 0) {
+				pr_err("Input error: the input size should between 1 and 255\n");
 				free(temp);
 				goto failed;
 			}
 		}
 		if (sel & MASK(OPTION_OFFSET)) {
 			if (check_borders(part_head, offset, file_size, tab_off)) {
-				printf("Layer error: this file is over layer\n");
+				pr_err("Overlayer: the offset %d is Invalid\n", offset);
 				free(temp);
 				goto failed;
 			}
@@ -430,11 +437,11 @@ int main(int argc, char *argv[])
 		free(temp);
 		if (sel & MASK(OPTION_FIRMWARESIZE)) {
 			if (size < firm_size) {
-				printf("Size error: input size should larger than currnt firmware\n");
+				pr_err("Size error: input size should larger than currnt firmware\n");
 				goto failed;
 			}
 			if (ftruncate(firm_fd, size) == -1) {
-				perror("Size error: ftruncate failed\n");
+				pr_err("Size error: ftruncate failed\n");
 				goto failed;
 			}
 			firm_size = size;
@@ -445,7 +452,7 @@ int main(int argc, char *argv[])
 			if (sel & MASK(OPTION_FILEPATH)) {
 				file_fd = open(file_name, O_CREAT | O_RDWR, 0644);
 				if (file_fd < 0) {
-					printf("Open error: open %s failed\n", file_name);
+					pr_err("Open error: open %s failed\n", file_name);
 					goto failed;
 				}
 			} else
@@ -453,6 +460,9 @@ int main(int argc, char *argv[])
 			ret = extract_context(context, part_head, part_name, file_fd);
 			if (ret)
 				goto failed;
+		} else {
+			pr_err("Param error: partition name must be specific\n");
+			goto failed;
 		}
 	}
 	free(context);
