@@ -1584,6 +1584,7 @@ function build_rv_firmware_bin()
 		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
 		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
+		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware.bin
 	fi
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
@@ -1642,12 +1643,13 @@ function build_rv_firmware_image()
 	if [[ "$CHIP" = "sg2044" ]];then
 	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
 	sudo cp zsbl.bin efi/riscv64
+	sudo cp *.dtbo efi/riscv64
 	else
 	sudo cp $RV_FIRMWARE/fip.bin efi/
 	sudo cp zsbl.bin efi/
+	sudo cp *.dtb efi/riscv64
 	fi
 	sudo cp riscv64_Image efi/riscv64
-	sudo cp *.dtb efi/riscv64
 	sudo cp initrd.img efi/riscv64
 	sudo cp fw_dynamic.bin efi/riscv64
 	# sudo cp uboot.bin efi/riscv64
