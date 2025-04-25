@@ -115,7 +115,7 @@ function build_rv_image()
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/conf.ini $EFI_PARTITION_DIR/riscv64
 	fi
 
-	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb $EFI_PARTITION_DIR/riscv64
+	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtbo $EFI_PARTITION_DIR/riscv64
 
 	echo 'mount system files'
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
