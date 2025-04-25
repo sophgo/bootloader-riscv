@@ -454,7 +454,7 @@ function build_rv_edk2()
 
 		make -C edk2/BaseTools -j$(nproc)
 
-		TARGET=DEBUG
+		TARGET=RELEASE
 		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
 
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
