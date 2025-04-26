@@ -222,7 +222,7 @@ function build_rv_euler_image()
 	sudo mount --bind /sys $RV_OUTPUT_DIR/root/sys
 	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
 	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/root/dev/pts
-	sudo mount --bind /run/ 	$RV_OUTPUT_DIR/root/run
+	sudo mount --bind /run/systemd/resolve 	$RV_OUTPUT_DIR/root/run/systemd/resolve
 	sudo mv $RV_OUTPUT_DIR/root/etc/hosts $RV_OUTPUT_DIR/root/etc/hosts-bak
 	sudo cp /etc/hosts $RV_OUTPUT_DIR/root/etc/
 	#echo add user euler:Sophgo12#
