@@ -1662,16 +1662,17 @@ function build_rv_firmware_image()
 	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
 	sudo cp zsbl.bin efi/riscv64
 	sudo cp *.dtbo efi/riscv64
+        sudo cp SG2044.fd efi/riscv64
 	else
 	sudo cp $RV_FIRMWARE/fip.bin efi/
 	sudo cp zsbl.bin efi/
 	sudo cp *.dtb efi/riscv64
+        sudo cp riscv64_Image efi/riscv64
+        sudo cp initrd.img efi/riscv64
+        # sudo cp uboot.bin efi/riscv64
+        sudo cp SG2042.fd efi/riscv64
 	fi
-	sudo cp riscv64_Image efi/riscv64
-	sudo cp initrd.img efi/riscv64
 	sudo cp fw_dynamic.bin efi/riscv64
-	# sudo cp uboot.bin efi/riscv64
-	sudo cp SG2042.fd efi/riscv64
 	sudo touch efi/BOOT
 
 	echo cleanup...
