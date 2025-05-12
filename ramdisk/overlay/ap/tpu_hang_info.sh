@@ -126,7 +126,7 @@ for i in $(seq 0 10); do
   if [ $i -le 7 ]; then 
     let base=0x6C00790000+\($i/4\)*0x2000000+\($i%4\)*0x10000+0x1000
   else 
-    let base=0x6C08790000+\($i-8\)*0x10000
+    let base=0x6C08790000+\($i-8\)*0x10000+0x1000
   fi
   let sendAddr=$base+68
   let recvAddr=$base+72
@@ -284,17 +284,17 @@ get_all_sdma_register() {
     case "$reg_addr" in
       "h110")
         if [ $i -le 3 ]; then
-          let addr=0x69${i}8021000+300
+          let addr=0x69${i}8021000+272
         else
-          let addr=0x6B00081000+\($i-4\)*0x2000000+300
+          let addr=0x6B00081000+\($i-4\)*0x2000000+272
         fi
         value=$(devmem $addr 32)
         ;;
       "h12c")
         if [ $i -le 3 ]; then
-          let addr=0x69${i}8021000+272
+          let addr=0x69${i}8021000+300
         else
-          let addr=0x6B00081000+\($i-4\)*0x2000000+272
+          let addr=0x6B00081000+\($i-4\)*0x2000000+300
         fi
         value=$(devmem $addr 32)
         ;;
