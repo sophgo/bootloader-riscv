@@ -89,7 +89,7 @@ elif [[ "$CHIP" = "sg2044" ]]; then
 elif [[ "$CHIP" = "bm1690e" ]]; then
 	echo "use bm1690e config"
 else
-    echo "unknown chip $CHIP"
+	echo "unknown chip $CHIP"
 fi
 
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
@@ -1559,7 +1559,7 @@ function build_rv_firmware_bin()
 
 	build_rv_firmware
 
-    	pushd $RV_SCRIPTS_DIR/pack/
+	pushd $RV_SCRIPTS_DIR/pack/
 	make clean
 	make
 	cp pack $RV_FIRMWARE_INSTALL_DIR
@@ -1662,15 +1662,15 @@ function build_rv_firmware_image()
 	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
 	sudo cp zsbl.bin efi/riscv64
 	sudo cp *.dtbo efi/riscv64
-        sudo cp SG2044.fd efi/riscv64
+	sudo cp SG2044.fd efi/riscv64
 	else
 	sudo cp $RV_FIRMWARE/fip.bin efi/
 	sudo cp zsbl.bin efi/
 	sudo cp *.dtb efi/riscv64
-        sudo cp riscv64_Image efi/riscv64
-        sudo cp initrd.img efi/riscv64
-        # sudo cp uboot.bin efi/riscv64
-        sudo cp SG2042.fd efi/riscv64
+	sudo cp riscv64_Image efi/riscv64
+	sudo cp initrd.img efi/riscv64
+	# sudo cp uboot.bin efi/riscv64
+	sudo cp SG2042.fd efi/riscv64
 	fi
 	sudo cp fw_dynamic.bin efi/riscv64
 	sudo touch efi/BOOT
@@ -1739,7 +1739,7 @@ function build_rv_ltp()
 {
 	pushd $RV_LTP_SRC_DIR
 	if [ ! -f "configure" ]; then
-	    make autotools
+		make autotools
 	fi
 
 	./configure CC=${RISCV64_LINUX_CROSS_COMPILE}gcc --prefix=$RV_LTP_OUTPUT_DIR --host=riscv64-linux-gnu  --without-tirpc
