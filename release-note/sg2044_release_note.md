@@ -1,3 +1,77 @@
+# 1.2.0_2025-05-16
+
+## sophgo-2260
+branch: master \
+tag: NA \
+commit: 66e064675c0487e0505e265cb02059a9d26f6b7f
+
++ Auto set VDDR voltage depends on different chip conner and work modes
++ Change default DDR size from 64GiB to 128GiB
++ Slow down CPU and CCN frequency and auto adaptive frequency depends on different chip conner and work modes
+
+## bootloader-riscv
+branch: master \
+tag: NA \
+commit: fe7367e21f354e1aff6c0b951708045e62fc99ac
+
++ Sign firmware by default
++ Build EDK2 as release instead of debug
+
+## zsbl
+branch: sg2044-rel-v2.1.3 \
+tag: sg2044-rel-v2.1.3 \
+commit: f7b3966692ccd68113f73bfd7de773323942e3f0
+
++ Support SoC mode
++ Support parse efi variables which stored by EDK2
++ Slow down SPIFMC clock from 25MHz to 12.5MHz
++ Add conf.ini files for SRA3-40 and SRA3-40-8
++ Support secure boot
++ Support DDR auto adaptive
++ Support DVFS
++ Support FDT overlay
++ Fix some bugs
+
+## opensbi
+branch: sg2044-1.6-v20250516 \
+tag: SG2044_OpenSBI-1.6.0_v20250516 \
+commit: 78f021d24823bd84c47cc2b68e99921fcfe14139
+
++ Support DVFS
++ Fix warning message of timer in boot phase
+
+## linux-riscv
+branch: sg2044-rel-6.12.28 \
+tag: SG2044_Linux-6.12.28_v20250516 \
+commit: 9e47841899041661caaba1903187a93ef1c58872
+
++ Update to 6.12.28
++ sophgo/tpu: Add head verify
++ sophgo/ddrc: Add error check
+
+## sophgo-edk2
+branch: release-sg2044-20250516 \
+tag: sg2044_sophgo-edk2_20250516 \
+commit: 1871c7fb8fa7316d6004332cf82e68081b63ed86
+
++ SG2044:Add MCU firmware update function for EVB
++ Sophgo/SG2044: Update SMBIOS Type 0 information
++ Sophgo/SG2044Pkg: Update reserve memory size range
++ SG2044: Support F9 reset default value for BootTimeout and ReserveMemory
++ SG2044: Workaround: Remove duplicated boot options
++ SG2044: Remove unnecessary debug log when release
++ Implement IPMI communication over UART between BIOS and BMC
++ SG2044/AcpiPlatformDxe: Fixbug, Wrong PCIe controller initialized
++ NorFlashDxe: Add a function to lock/unlock all blocks
++ Sophgo/Library: Add verification function for PK in SG2044 secure boot
++ Feature: acpi support video subsys
++ SpifmcDxe: Modify SetupDevice() function
++ Sophgo/Library: fix boot option duplication and boot order updates
++ peiDxe: Add APEI support for SG2044 platform
++ Sophgo/SG2044Pkg: Support dynamic modify frequency
++ NorFlashDxe: Add a function to lock/unlock all blocks
++ Add xt25q512f support
+
 # 1.1.0_2025-01-21
 
 ## [zsbl(sg2044-rel-v1.0.2)](https://github.com/sophgo/zsbl/tree/sg2044-rel-v1.0.2)
