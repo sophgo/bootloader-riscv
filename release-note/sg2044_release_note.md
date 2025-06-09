@@ -1,3 +1,50 @@
+# 1.3.0_2025-06-09
+
+## sophgo-2260
+branch: master \
+tag: NA \
+commit: 66e064675c0487e0505e265cb02059a9d26f6b7f
+
++ No update
+
+## bootloader-riscv
+branch: master \
+tag: NA \
+commit: c84d2a7a23a3bb48d0e29844d09a15e74ea77cc4
+
++ No update
+
+## zsbl
+branch: sg2044-rel-v2.1.4 \
+tag: sg2044-rel-v2.1.4 \
+commit: 54c5dfc3d394d71d54470b62c25a74c8fd894075
+
++ Add I2C3 node in DTS for the RTC in SG2044 socket board.
+
+## opensbi
+branch: sg2044-1.6-v20250516 \
+tag: SG2044_OpenSBI-1.6.0_v20250516 \
+commit: 78f021d24823bd84c47cc2b68e99921fcfe14139
+
++ No update
+
+## linux-riscv
+branch: sg2044-rel-6.12.32 \
+tag: SG2044_Linux-6.12.32_v20250609 \
+commit: 235bad8cb1f072912e2d38740822b252ba8852a5
+
++ Update to 6.12.32
+
+## sophgo-edk2
+branch: release-sg2044-20250609 \
+tag: sg2044_sophgo-edk2_20250609 \
+commit: cd17b8be72f66a9046912bdf7c0a22370f122791
+
++ SG2044Pkg: Support ACPI only
++ SG2044: Add SMBIOS tables based on BRS Spec
++ SG2044: Fixed password related bugs in BIOS Menu
++ efi: Fixbug, zero memory which is allocated by EDK2
+
 # 1.2.0_2025-05-16
 
 ## sophgo-2260
