@@ -218,6 +218,7 @@ function build_rv_euler_image()
 		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/power_good.sh $RV_OUTPUT_DIR/root/usr/local/
 	fi
 
+	sudo mkdir -p $RV_OUTPUT_DIR/root/run/systemd/resolve
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
 	sudo mount --bind /sys $RV_OUTPUT_DIR/root/sys
 	sudo mount --bind /dev $RV_OUTPUT_DIR/root/dev
