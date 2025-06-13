@@ -1,0 +1,90 @@
+Source: linux-meta-riscv
+Section: devel
+Priority: optional
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+Standards-Version: 3.9.8
+Build-Depends: dpkg (>= 1.13.19), debhelper (>= 9), gawk
+Build-Depends-Arch:
+ linux-riscv-headers-${KERNEL_VERSION}-${DISTRO_MAJOR},
+ linux-headers-${KERNEL_VERSION}-${DISTRO_MAJOR}-generic,
+Vcs-Git: git://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux-meta-riscv/+git/noble
+
+Package: linux-headers-generic
+Architecture: riscv64
+Section: kernel
+Depends: ${misc:Depends}, linux-headers-${kernel-abi-version}-generic
+Description: Generic Linux kernel headers
+ This package will always depend on the latest generic kernel headers
+ available.
+
+Package: linux-image-generic
+Architecture: riscv64
+Section: kernel
+Provides: ${dkms:v4l2loopback-modules} ${dkms:zfs-modules} ${dkms:virtualbox-guest-modules} ${dkms:wireguard-linux-compat-modules}
+Depends: ${misc:Depends}, linux-image-${kernel-abi-version}-generic, linux-modules-${kernel-abi-version}-generic, linux-firmware
+Description: Generic Linux kernel image
+ This package will always depend on the latest generic kernel image
+ available.
+
+Package: linux-tools-generic
+Architecture: riscv64
+Section: kernel
+Provides: linux-tools
+Depends: ${misc:Depends}, linux-tools-${kernel-abi-version}-generic
+Description: Generic Linux kernel tools
+ This package will always depend on the latest generic kernel tools
+ available.
+
+Package: linux-generic
+Architecture: riscv64
+Section: kernel
+Provides: kernel-testing--linux-riscv--full--generic, kernel-testing--linux-riscv--full--preferred,
+Depends: ${misc:Depends}, linux-image-generic (= ${binary:Version}), linux-headers-generic (= ${binary:Version})
+Recommends: linux-tools-${kernel-abi-version}-generic, ubuntu-kernel-accessories
+Description: Complete Generic Linux kernel and headers
+ This package will always depend on the latest complete generic Linux kernel
+ and headers.
+
+Package: linux-headers-virtual
+Architecture: riscv64
+Section: kernel
+Depends: ${misc:Depends}, linux-headers-generic (= ${binary:Version})
+Description: Virtual Linux kernel headers
+ This package will always depend on linux-headers-generic.
+
+Package: linux-image-virtual
+Architecture: riscv64
+Section: kernel
+Depends: ${misc:Depends}, linux-image-${kernel-abi-version}-generic
+Provides: ${dkms:zfs-modules} ${dkms:virtualbox-guest-modules} ${dkms:wireguard-linux-compat-modules}
+Description: Virtual Linux kernel image
+ This package will always depend on the latest minimal generic kernel image
+ used for virtual instances.
+
+Package: linux-tools-virtual
+Architecture: riscv64
+Section: kernel
+Provides: linux-tools
+Depends: ${misc:Depends}, linux-tools-${kernel-abi-version}-generic
+Description: Virtual Linux kernel tools
+ This package will always depend on the latest minimal generic kernel tools
+ used for virtual instances.
+
+Package: linux-virtual
+Architecture: riscv64
+Section: kernel
+Provides: kernel-testing--linux-riscv--full--virtual,
+Depends: ${misc:Depends}, linux-image-virtual (= ${binary:Version}), linux-headers-virtual (= ${binary:Version})
+Description: Minimal Generic Linux kernel and headers
+ This package will always depend on linux-image-virtual and
+ linux-headers-virtual.
+
+Package: linux-image-extra-virtual
+Architecture: riscv64
+Section: kernel
+Provides: kernel-testing--linux-riscv--modules-extra--virtual,
+Depends: ${misc:Depends}, linux-image-generic (= ${binary:Version})
+Description: Extra drivers for Virtual Linux kernel image
+ This package will always depend on linux-image-generic.
+
+

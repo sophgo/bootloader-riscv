@@ -1,0 +1,36 @@
+Package: linux-headers-generic${variant:suffix}
+Architecture: riscv64
+Section: kernel
+Depends: ${misc:Depends}, linux-headers-${kernel-abi-version}-generic
+Description: Generic Linux kernel headers
+ This package will always depend on the latest generic kernel headers
+ available.
+
+Package: linux-image-generic${variant:suffix}
+Architecture: riscv64
+Section: kernel
+Provides: ${dkms:v4l2loopback-modules} ${dkms:zfs-modules} ${dkms:virtualbox-guest-modules} ${dkms:wireguard-linux-compat-modules}
+Depends: ${misc:Depends}, linux-image-${kernel-abi-version}-generic, linux-modules-${kernel-abi-version}-generic, linux-firmware
+Description: Generic Linux kernel image
+ This package will always depend on the latest generic kernel image
+ available.
+
+Package: linux-tools-generic${variant:suffix}
+Architecture: riscv64
+Section: kernel
+Provides: linux-tools
+Depends: ${misc:Depends}, linux-tools-${kernel-abi-version}-generic
+Description: Generic Linux kernel tools
+ This package will always depend on the latest generic kernel tools
+ available.
+
+Package: linux-generic${variant:suffix}
+Architecture: riscv64
+Section: kernel
+Provides: ${test:provides-full-generic} ${test:provides-full-preferred}
+Depends: ${misc:Depends}, linux-image-generic${variant:suffix} (= ${binary:Version}), linux-headers-generic${variant:suffix} (= ${binary:Version})
+Recommends: linux-tools-${kernel-abi-version}-generic, ubuntu-kernel-accessories
+Description: Complete Generic Linux kernel and headers
+ This package will always depend on the latest complete generic Linux kernel
+ and headers.
+
