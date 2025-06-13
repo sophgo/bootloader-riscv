@@ -1,0 +1,6 @@
+arch="riscv64"
+supported="Generic"
+target="Geared toward desktop and server systems."
+desc="=HUMAN= SMP"
+bootloader=""
+provides="kvm-api-4, redhat-cluster-modules, ivtv-modules"

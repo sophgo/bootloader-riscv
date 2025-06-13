@@ -1,0 +1,27 @@
+#!/bin/bash -eu
+
+if [ -f debian/debian.env ]; then
+	# shellcheck disable=SC1091
+	. debian/debian.env
+fi
+
+if [ ! -d "$DEBIAN" ]; then
+	echo You must run this script from the top directory of this repository.
+	exit 1
+fi
+
+# shellcheck disable=SC1091
+. "$DEBIAN/etc/update.conf"
+
+#
+# Update modprobe.d from master
+#
+if [ -d "$DEBIAN/modprobe.d/" ]; then
+	rsync -avc --delete "$DEBIAN_MASTER/modprobe.d/" "$DEBIAN/modprobe.d"
+fi
+
+cp -p "$DEBIAN_MASTER/reconstruct" "$DEBIAN/reconstruct"
+
+if [ -x "$DEBIAN/scripts/helpers/local-mangle" ]; then
+	"$DEBIAN/scripts/helpers/local-mangle"
+fi
