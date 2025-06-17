@@ -825,6 +825,14 @@ function build_rv_ubuntu_kernel()
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_ubuntu_defconfig
 	local err
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/ubuntu
+	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
+
+	# on SG2044 + Ubuntu, using native build instead of cross compile build
+	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_Ubuntu" ]; then
+		echo "Build $os_name on $CHIP ($(arch)) native"
+		build_rv_ubuntu_kernel_native
+		return $?
+	fi
 
 	pushd $RV_KERNEL_SRC_DIR
 	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
