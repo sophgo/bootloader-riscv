@@ -38,7 +38,7 @@ function install_deb_packages()
 	sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
 dpkg -i /home/sophgo/bsp-debs/*.deb
 echo '$nrconf{kernelhints} = 0;' > /etc/needrestart/conf.d/99_disable_kernel_hint.conf
-apt autoremove -y
+apt autoremove -y || true
 rm /etc/needrestart/conf.d/99_disable_kernel_hint.conf
 apt-mark hold `find /home/sophgo/bsp-debs -name 'linux-image*' | xargs basename -s .deb`
 EOT
@@ -299,6 +299,9 @@ function export_rv_ubuntu_packages()
 
 	# modules
 	cp $work_space/linux-modules*.deb $RV_DEB_INSTALL_DIR
+
+    # generic
+	cp $work_space/linux-generic*.deb $RV_DEB_INSTALL_DIR
 
 	# tools  
 	cp $work_space/linux-riscv-tools-*.deb $RV_DEB_INSTALL_DIR
