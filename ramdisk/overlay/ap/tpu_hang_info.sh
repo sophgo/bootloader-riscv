@@ -1,143 +1,5 @@
 #!/bin/sh
 
-printf "| %-8s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" "类型" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
-printf "|%s|%s|%s|%s|%s|%s|%s|%s|%s|\n" "----------" "------------" "------------" "------------" "------------" "------------" "------------" "------------" "------------"
-
-# TP PC
-printf "| %-8s |" "TP PC"
-for i in $(seq 0 7); do
-  value=$(devmem 0x69${i}8050184 32)
-  printf " %-10s |" "$value"
-done
-printf "\n"
-
-# GDMA CMD ID
-printf "| %-8s |" "GDMA CMD"
-for i in $(seq 0 7); do
-  value=$(devmem 0x69${i}8011024 32)
-  printf " %-10s |" "$value"
-done
-printf "\n"
-
-# TIU CMD ID
-printf "| %-8s |" "TIU CMD"
-for i in $(seq 0 7); do
-  value=$(devmem 0x69${i}800011c 32)
-  printf " %-10s |" "$value"
-done
-printf "\n"
-
-# SDMA CMD ID
-printf "| %-8s |" "SDMA CMD"
-for i in $(seq 0 7); do
-  if [ $i -le 3 ]; then
-    addr=0x69${i}8021024
-  else
-    let addr=0x6B00081024+\($i-4\)*0x2000000
-  fi
-  value=$(devmem $addr 32)
-  printf " %-10s |" "$value"
-done
-printf "\n"
-
-# VSDMA CMD ID
-printf "| %-8s |" "VSDMA CMD"
-for i in $(seq 0 7); do
-  if [ $i -le 3 ]; then
-    addr=0x69${i}8021118
-  else
-    let addr=0x6B00081118+\($i-4\)*0x2000000
-  fi
-  value=$(devmem $addr 32)
-  printf " %-10s |" "$value"
-done
-printf "\n"
-
-printf "| %-8s |" "TIU FIFO"
-for i in $(seq 0 7); do
-  fullValue=$(devmem 0x69${i}8000104 32)
-  keyPart=$(printf "%s" "$fullValue" | sed 's/.*\(..\)$/0x\1/')
-  printf " %-10s |" "$keyPart"
-done
-printf "\n"
-
-printf "| %-8s |" "GDMA FIFO"
-for i in $(seq 0 7); do
-  fullValue=$(devmem 0x69${i}8011000 32)
-  keyPart=$(printf "%s" "$fullValue" | sed 's/.*00\(..\)00.*/0x\1/')
-  printf " %-10s |" "$keyPart"
-done
-printf "\n"
-
-printf "| %-8s |" "SDMA FIFO"
-for i in $(seq 0 7); do
-  if [ $i -le 3 ]; then
-    addr=0x69${i}8021000
-  else
-    let addr=0x6B00081000+\($i-4\)*0x2000000
-  fi
-  fullValue=$(devmem $addr 32)
-  keyPart=$(printf "%s" "$fullValue" | sed 's/.*00\(..\)00.*/0x\1/')
-  printf " %-10s |" "$keyPart"
-done
-printf "\n"
-
-printf "| %-12s |" "MSGID0-31 DIFF"
-for i in $(seq 0 7); do
-  value=$(devmem 0x69${i}804041c 32)
-  printf " %-10s |" "$value"
-done
-printf "\n"
-
-# MSGID32-63 DIFF
-printf "| %-12s |" "MSGID32-63 DIFF"
-for i in $(seq 0 7); do
-  value=$(devmem 0x69${i}8040420 32)
-  printf " %-10s |" "$value"
-done
-printf "\n"
-
-# MSGID0-31 REUSE 行
-printf "| %-12s |" "MSGID0-31 REUSE"
-for i in $(seq 0 7); do
-  value=$(devmem 0x69${i}8040424 32)
-  printf " %-10s |" "$value"
-done
-printf "\n"
-
-# MSGID32-63 REUSE 行
-printf "| %-12s |" "MSGID32-63 REUSE"
-for i in $(seq 0 7); do
-  value=$(devmem 0x69${i}8040428 32)
-  printf " %-10s |" "$value"
-done
-
-
-printf "\n\n"
-
-
-
-
-printf "\n# CDMA CMD ID Info\n"
-printf "| %-6s | %-15s | %-15s |\n" "Port" "Send CMD ID" "Recv CMD ID"
-printf "|%s|%s|%s|\n" "--------" "-----------------" "-----------------"
-
-for i in $(seq 0 10); do 
-  if [ $i -le 7 ]; then 
-    let base=0x6C00790000+\($i/4\)*0x2000000+\($i%4\)*0x10000+0x1000
-  else 
-    let base=0x6C08790000+\($i-8\)*0x10000+0x1000
-  fi
-  let sendAddr=$base+68
-  let recvAddr=$base+72
-  
-  sendValue=$(devmem $sendAddr 32)
-  recvValue=$(devmem $recvAddr 32)
-  
-  printf "| %-6d | %-15s | %-15s |\n" "$i" "$sendValue" "$recvValue"
-done
-printf "\n"
-
 # Function: Extract bit range from a hex value 
 extract_bits() {
   hex_value=$1  # hex value, e.g., 0x12345678
@@ -164,7 +26,7 @@ extract_bits() {
   fi
 }
 
-# # Function: Extract a single bit from a hex value
+# Function: Extract a single bit from a hex value
 extract_bit() {
   hex_value=$1  # hex value, e.g., 0x12345678
   bit_pos=$2    # bit position to extract (0-31)
@@ -190,7 +52,7 @@ extract_bit() {
 # Format: field_name:msb:lsb:description
 
 # h110 register definition
-H110_FIELDS="dual_thrd_nxt_state:3:0:the next state of dual therad FSM
+DMA_H110_FIELDS="dual_thrd_nxt_state:3:0:the next state of dual therad FSM
 dual_thrd_mst_period:4:4:indicate that the master thread is not over when the dual thread is opened
 dual_thrd_slv_period:5:5:indicate that the slave thread is not over when the dual thread is opened
 mst_sync_id_block:6:6:depend_id dosent pass the syncID in master thread
@@ -208,7 +70,7 @@ dma_mst_thrd_state:29:29:gdma/sdma master thread state: 0: idle; 1:active
 dma_slv_thrd_state:30:30:gdma/sdma slave thread state: 0: idle; 1:active"
 
 # h12c register definition - updated with complete fields based on example
-H12C_FIELDS="mst_invld_des:0:0:master thread invalid descriptor error
+DMA_H12C_FIELDS="mst_invld_des:0:0:master thread invalid descriptor error
 slv_invld_des:1:1:slave thread invalid descriptor error
 mst_des_rd_err:2:2:master thread descriptor read error
 slv_des_rd_err:3:3:slave thread descriptor read error
@@ -244,7 +106,7 @@ print_register_description() {
   
   printf "\n## %s Register Field Descriptions\n\n" "$reg_addr"
   printf "| %-25s | %-12s | %-50s |\n" "Field Name" "Bits[MSB:LSB]" "Description"
-  printf "|%s|%s|%s|\n" "------------------------" "--------------" "----------------------------------------------------"
+  printf "|%s|%s|%s|\n" "---------------------------" "--------------" "----------------------------------------------------"
   
   echo "$reg_fields" | while IFS=: read -r field_name msb lsb description; do
     [ -z "$field_name" ] && continue
@@ -265,8 +127,11 @@ get_all_gdma_register() {
       "h12c")
         value=$(devmem 0x69${i}801112c 32)
         ;;
+      "h0")
+        value=$(devmem 0x69${i}8011000 32)
+        ;;
       *)
-        value="0x00000000"
+        value="0xdeadbeef"
         ;;
     esac
     
@@ -287,7 +152,7 @@ get_all_sdma_register() {
           let addr=0x69${i}8021000+272
         else
           let addr=0x6B00081000+\($i-4\)*0x2000000+272
-        fi
+      fi
         value=$(devmem $addr 32)
         ;;
       "h12c")
@@ -298,8 +163,16 @@ get_all_sdma_register() {
         fi
         value=$(devmem $addr 32)
         ;;
+      "h0")
+        if [ $i -le 3 ]; then
+          let addr=0x69${i}8021000
+        else
+          let addr=0x6B00081000+\($i-4\)*0x2000000
+        fi
+        value=$(devmem $addr 32)
+        ;;
       *)
-        value="0x00000000"
+        value="0xdeadbeef"
         ;;
     esac
     
@@ -323,7 +196,7 @@ print_register_fields() {
   for i in $(seq 0 7); do
     printf " %-10s |" "Core $i"
   done
-  printf "\n|%s|%s|%s|%s|%s|%s|%s|%s|%s|\n" "------------------------" "------------" "------------" "------------" "------------" "------------" "------------" "------------" "------------"
+  printf "\n|%s|%s|%s|%s|%s|%s|%s|%s|%s|\n" "---------------------------" "------------" "------------" "------------" "------------" "------------" "------------" "------------" "------------"
   
   # For each field, extract and print values
   echo "$reg_fields" | while IFS=: read -r field_name msb lsb description; do
@@ -352,22 +225,33 @@ print_register_fields() {
 # Main execution
 
 # Print register descriptions
-print_register_description "h110" "$H110_FIELDS"
-print_register_description "h12c" "$H12C_FIELDS"
+print_register_description "h110" "$DMA_H110_FIELDS"
+print_register_description "h12c" "$DMA_H12C_FIELDS"
 
 # Get register values for all cores
 gdma_h110_values=$(get_all_gdma_register "h110")
 gdma_h12c_values=$(get_all_gdma_register "h12c")
 
+
 # Print register values tables
-print_register_fields "h110" "$H110_FIELDS" "$gdma_h110_values" "GDMA"
-print_register_fields "h12c" "$H12C_FIELDS" "$gdma_h12c_values" "GDMA"
+print_register_fields "h110" "$DMA_H110_FIELDS" "$gdma_h110_values" "GDMA"
+print_register_fields "h12c" "$DMA_H12C_FIELDS" "$gdma_h12c_values" "GDMA"
 
 sdma_h110_values=$(get_all_sdma_register "h110")
 sdma_h12c_values=$(get_all_sdma_register "h12c")
 
-print_register_fields "h110" "$H110_FIELDS" "$sdma_h110_values" "SDMA"
-print_register_fields "h12c" "$H12C_FIELDS" "$sdma_h12c_values" "SDMA"
+print_register_fields "h110" "$DMA_H110_FIELDS" "$sdma_h110_values" "SDMA"
+print_register_fields "h12c" "$DMA_H12C_FIELDS" "$sdma_h12c_values" "SDMA"
+
+get_msg_id_usage() {
+  msg_id=$1
+  msg_id=$(printf "%d" "$msg_id")
+  if [ $msg_id -ge 384 ] && [ $msg_id -le 511 ]; then
+    echo "0x$(printf "%x" $msg_id)(rt)"
+  else
+    echo "0x$(printf "%x" $msg_id)(tpu)"
+  fi
+}
 
 # Function to extract a single bit from a 128-bit hex value
 extract_bit_128() {
@@ -421,24 +305,118 @@ extract_bits_128() {
   printf "0x%X" "$result"
 }
 
+function remove_unnecessary_zero() {
+  value=$1
+  value=$(printf "%d" $value)
+  value=$(printf "0x%X" $value)
+  echo "$value"
+}
+
+printf "\n"
+printf "\n"
+
+for i in $(seq 0 7); do
+  tp_value=$(devmem 0x69${i}8050184 32)
+  msgid0_31_diff=$(devmem 0x69${i}804041c 32)
+  msgid0_31_diff=$(remove_unnecessary_zero $msgid0_31_diff)
+  msgid32_63_diff=$(devmem 0x69${i}8040420 32)
+  msgid32_63_diff=$(remove_unnecessary_zero $msgid32_63_diff)
+  msgid0_31_reuse=$(devmem 0x69${i}8040424 32)
+  msgid0_31_reuse=$(remove_unnecessary_zero $msgid0_31_reuse)
+  msgid32_63_reuse=$(devmem 0x69${i}8040428 32)
+  msgid32_63_reuse=$(remove_unnecessary_zero $msgid32_63_reuse)
+
+  eval "tp_value_$i=\"$tp_value\""
+  eval "msgid0_31_diff_$i=\"$msgid0_31_diff\""
+  eval "msgid32_63_diff_$i=\"$msgid32_63_diff\""
+  eval "msgid0_31_reuse_$i=\"$msgid0_31_reuse\""
+  eval "msgid32_63_reuse_$i=\"$msgid32_63_reuse\""
+done
+
+
+printf "\n\n"
+printf "TP Info & MSG Central Info\n"
+# Print table header with core numbers
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" "Field" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# TP PC
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "TP PC" "$tp_value_0" "$tp_value_1" "$tp_value_2" "$tp_value_3" "$tp_value_4" "$tp_value_5" "$tp_value_6" "$tp_value_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# MSGID0-31 DIFF
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "MSGID0-31 DIFF" "$msgid0_31_diff_0" "$msgid0_31_diff_1" "$msgid0_31_diff_2" "$msgid0_31_diff_3" "$msgid0_31_diff_4" "$msgid0_31_diff_5" "$msgid0_31_diff_6" "$msgid0_31_diff_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# MSGID32-63 DIFF
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "MSGID32-63 DIFF" "$msgid32_63_diff_0" "$msgid32_63_diff_1" "$msgid32_63_diff_2" "$msgid32_63_diff_3" "$msgid32_63_diff_4" "$msgid32_63_diff_5" "$msgid32_63_diff_6" "$msgid32_63_diff_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# MSGID0-31 REUSE
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "MSGID0-31 REUSE" "$msgid0_31_reuse_0" "$msgid0_31_reuse_1" "$msgid0_31_reuse_2" "$msgid0_31_reuse_3" "$msgid0_31_reuse_4" "$msgid0_31_reuse_5" "$msgid0_31_reuse_6" "$msgid0_31_reuse_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+
+# MSGID32-63 REUSE
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "MSGID32-63 REUSE" "$msgid32_63_reuse_0" "$msgid32_63_reuse_1" "$msgid32_63_reuse_2" "$msgid32_63_reuse_3" "$msgid32_63_reuse_4" "$msgid32_63_reuse_5" "$msgid32_63_reuse_6" "$msgid32_63_reuse_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+printf "\n\n"
+
+printf "CDMA CMD Info\n"
+# Print table header with core numbers
+printf "+------------------+----------------+----------------+----------------+----------------+\n"
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "Port" "Send CmdId" "Recv CmdId" "Des addr" "Base Addr"
+printf "+------------------+----------------+----------------+----------------+----------------+\n"
+
+for i in $(seq 0 10); do 
+  if [ $i -le 7 ]; then
+    let base_addr=0x6C00790000+\($i/4\)*0x2000000+\($i%4\)*0x10000
+    let base=$base_addr+0x1000
+  else 
+    let base_addr=0x6C08790000+\($i-8\)*0x10000
+    let base=$base_addr+0x1000
+  fi
+  base_addr=$(printf "0x%X" $base_addr)
+  let sendAddr=$base+68
+  let recvAddr=$base+72
+  let desAddr=$base+0x2c
+  
+  sendValue=$(devmem $sendAddr 32)
+  sendValue=$(remove_unnecessary_zero $sendValue)
+  recvValue=$(devmem $recvAddr 32)
+  recvValue=$(remove_unnecessary_zero $recvValue)
+  desValue=$(devmem $desAddr 32)
+  desValue=$((desValue << 7))
+  desValue=$(remove_unnecessary_zero $desValue)
+  printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "$i" "$sendValue" "$recvValue" "$desValue" "$base_addr"
+  printf "+------------------+----------------+----------------+----------------+----------------+\n"
+done
+
 # Function to get cmd_type description
 get_dma_cmd_type_desc() {
   cmd_type_val=$1
   case "$cmd_type_val" in
-    "0x0") echo "GDMA_tensor" ;;
-    "0x1") echo "GDMA_matrix" ;;
-    "0x2") echo "GDMA_masked_select" ;;
-    "0x3") echo "GDMA_general" ;;
-    "0x4") echo "GDMA_cv_transpose" ;;
-    "0x5") echo "GDMA_nonzero" ;;
-    "0x6") echo "GDMA_sys" ;;
-    "0x7") echo "GDMA_gather" ;;
-    "0x8") echo "GDMA_scatter" ;;
-    "0x9") echo "GDMA_reverse" ;;
-    "0xA") echo "GDMA_compress" ;;
-    "0xB") echo "GDMA_decompress" ;;
-    "0xE") echo "GDMA_randmask" ;;
-    "0x10") echo "GDMA_transfer" ;;
+    "0x0") echo "tensor" ;;
+    "0x1") echo "matrix" ;;
+    "0x2") echo "mask sel" ;;
+    "0x3") echo "general" ;;
+    "0x4") echo "cw trans" ;;
+    "0x5") echo "nonzero" ;;
+    "0x6") echo "sys" ;;
+    "0x7") echo "gather" ;;
+    "0x8") echo "scatter" ;;
+    "0x9") echo "reverse" ;;
+    "0xA") echo "compress" ;;
+    "0xB") echo "decompress" ;;
+    "0xE") echo "randmask" ;;
+    "0x10") echo "transfer" ;;
     *) echo "Unknown" ;;
   esac
 }
@@ -451,14 +429,11 @@ get_dma_special_function_desc() {
   # Only show special function descriptions for GDMA_sys (0x6), otherwise "-"
   if [ "$cmd_type" = "0x6" ]; then
     case "$func_val" in
-      "0x0") echo "chain_end" ;;
+      "0x0") echo "end" ;;
       "0x1") echo "nop" ;;
-      "0x2") echo "sys_tr_wr" ;;
-      "0x3") echo "sys_send" ;;
-      "0x4") echo "sys_wait" ;;
-      "0x5") echo "sys_fork" ;;
-      "0x6") echo "sys_join" ;;
-      "0x7") echo "sys_exit" ;;
+      "0x2") echo "tr wr" ;;
+      "0x3") echo "send" ;;
+      "0x4") echo "wait" ;;
       *) echo "Unknown" ;;
     esac
   else
@@ -466,21 +441,24 @@ get_dma_special_function_desc() {
   fi
 }
 
-# Function to get dependency enable/disable description
-get_dep_enable_desc() {
-  bit_val=$1
-  if [ "$bit_val" = "1" ]; then
-    echo "enabled"
-  else
-    echo "disabled"
-  fi
-}
+printf "\n\n"
 
 # Read data from all cores first
 echo "GDMA CMD Info"
 for i in $(seq 0 7); do
   let addr=0x6908010000+\($i\*\(1\<\<28\)\)
   full_value=$(devmem $addr 128)
+  let des_addr=0x6908011004+\($i\*\(1\<\<28\)\)
+  des_value=$(devmem $des_addr 32)
+  des_value=$((des_value << 7))
+  des_value=$(printf "0x%X" $des_value)
+  cmd_id=$(devmem 0x69${i}8011024 32)
+  cmd_id=$(remove_unnecessary_zero $cmd_id)
+  let csr=$addr+0x1000
+  csr0=$(devmem $csr 32)
+  des_enable=$(extract_bit "$csr0" 0)
+  mst_fifo=$(extract_bits "$csr0" 14 8)
+  base_msg_id=$(extract_bits "$csr0" 24 16)
   
   # Extract the fields
   cmd_short=$(extract_bit_128 "$full_value" 3)
@@ -489,75 +467,130 @@ for i in $(seq 0 7); do
   cmd_type_desc=$(get_dma_cmd_type_desc "$cmd_type")
   cmd_special_desc=$(get_dma_special_function_desc "$cmd_special_function" "$cmd_type")
   
-  # Extract cmd_id_dep field (21 bits)
-  cmd_id_dep=$(extract_bits_128 "$full_value" 60 40)
-  
   # Extract the dependency enable bit (bit 20) and depend ID (bits 19:0)
-  dep_enable_bit=$(extract_bit_128 "$full_value" 60)
-  depend_id=$(extract_bits_128 "$full_value" 59 40)
-  
-  # Extract message count and message ID fields (for sys_wait)
-  msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
-  msg_id=$(extract_bits_128 "$full_value" 105 96)     # message_id[9:0]
-  
+  dep_enable_bit=$(extract_bit_128 "$full_value" 84)
+  depend_id=$(extract_bits_128 "$full_value" 83 64)
+
+  if [ "$cmd_type_desc" = "sys" ]; then
+    # Extract message count and message ID fields (for sys_wait)
+    msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
+    msg_id=$(extract_bits_128 "$full_value" 105 96)     # message_id[9:0]
+    msg_id=$(get_msg_id_usage $msg_id)
+  else
+    msg_cnt=unused
+    msg_id=unused
+  fi
+  addr=$(printf "0x%X" $addr)
   # Store raw values
   eval "cmd_short_$i=\"$cmd_short\""
   eval "cmd_type_desc_$i=\"$cmd_type_desc\""
   eval "cmd_special_desc_$i=\"$cmd_special_desc\""
+  eval "cmd_id_$i=\"$cmd_id\""
   eval "cmd_id_dep_$i=\"$cmd_id_dep\""
   eval "dep_enable_$i=\"$dep_enable_bit\""
   eval "depend_id_$i=\"$depend_id\""
   eval "msg_cnt_$i=\"$msg_cnt\""
   eval "msg_id_$i=\"$msg_id\""
+  eval "des_value_$i=\"$des_value\""
+  eval "base_addr_$i=\"$addr\""
+  eval "des_enable_$i=\"$des_enable\""
+  eval "mst_fifo_$i=\"$mst_fifo\""
+  eval "base_msg_id_$i=\"$base_msg_id\""
 done
 
 # Print table header with core numbers
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" "Field" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" "Field" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print cmd_short row with the field name in the first column
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "cmd_short" "$cmd_short_0" "$cmd_short_1" "$cmd_short_2" "$cmd_short_3" "$cmd_short_4" "$cmd_short_5" "$cmd_short_6" "$cmd_short_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "cmd_type" "$cmd_type_desc_0" "$cmd_type_desc_1" "$cmd_type_desc_2" "$cmd_type_desc_3" "$cmd_type_desc_4" "$cmd_type_desc_5" "$cmd_type_desc_6" "$cmd_type_desc_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print cmd_special_function row with descriptions
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "cmd_special_func" "$cmd_special_desc_0" "$cmd_special_desc_1" "$cmd_special_desc_2" "$cmd_special_desc_3" "$cmd_special_desc_4" "$cmd_special_desc_5" "$cmd_special_desc_6" "$cmd_special_desc_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
 # Print dependency enable/disable status row
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "dep_id_enable" "$dep_enable_0" "$dep_enable_1" "$dep_enable_2" "$dep_enable_3" "$dep_enable_4" "$dep_enable_5" "$dep_enable_6" "$dep_enable_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print cmd_id row (raw hex value)
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "cmd_id" "$cmd_id_0" "$cmd_id_1" "$cmd_id_2" "$cmd_id_3" "$cmd_id_4" "$cmd_id_5" "$cmd_id_6" "$cmd_id_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print depend ID row (raw hex value)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "depend_id" "$depend_id_0" "$depend_id_1" "$depend_id_2" "$depend_id_3" "$depend_id_4" "$depend_id_5" "$depend_id_6" "$depend_id_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print message count row (for sys_wait)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "msg_cnt" "$msg_cnt_0" "$msg_cnt_1" "$msg_cnt_2" "$msg_cnt_3" "$msg_cnt_4" "$msg_cnt_5" "$msg_cnt_6" "$msg_cnt_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print message ID row (for sys_wait)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "msg_id" "$msg_id_0" "$msg_id_1" "$msg_id_2" "$msg_id_3" "$msg_id_4" "$msg_id_5" "$msg_id_6" "$msg_id_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print des_value row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "des_addr" "$des_value_0" "$des_value_1" "$des_value_2" "$des_value_3" "$des_value_4" "$des_value_5" "$des_value_6" "$des_value_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print base_addr row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "base_addr" "$base_addr_0" "$base_addr_1" "$base_addr_2" "$base_addr_3" "$base_addr_4" "$base_addr_5" "$base_addr_6" "$base_addr_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print des_enable row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "des_enable" "$des_enable_0" "$des_enable_1" "$des_enable_2" "$des_enable_3" "$des_enable_4" "$des_enable_5" "$des_enable_6" "$des_enable_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print mst_fifo row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "mst_fifo" "$mst_fifo_0" "$mst_fifo_1" "$mst_fifo_2" "$mst_fifo_3" "$mst_fifo_4" "$mst_fifo_5" "$mst_fifo_6" "$mst_fifo_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print base_msg_id row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "base_msg_id" "$base_msg_id_0" "$base_msg_id_1" "$base_msg_id_2" "$base_msg_id_3" "$base_msg_id_4" "$base_msg_id_5" "$base_msg_id_6" "$base_msg_id_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+printf "\n\n"
 
 echo "SDMA CMD Info"
 for i in $(seq 0 7); do
   if [ $i -le 3 ]; then
     # For SDMA 0-3
     addr=0x69${i}8020000
+    des_addr=0x69${i}8021004
+    slave_addr=0x69${i}8010008
     full_value=$(devmem $addr 128)
+    des_value=$(devmem $des_addr 32)
+    des_value=$((des_value << 7))
+    des_value=$(printf "0x%X" $des_value)
+    slave_des_value=$(devmem $slave_addr 32)
+    slave_des_value=$((slave_des_value << 7))
+    slave_des_value=$(printf "0x%X" $slave_des_value)
+    cmd_id_addr=0x69${i}8021024
   else
     # For SDMA 4-7
     let addr=0x6B00080000+\($i-4\)*0x2000000
-    
+    let des_addr=0x6B00081004+\($i-4\)*0x2000000
+    des_value=$(devmem $des_addr 32)
+    des_value=$((des_value << 7))
+    des_value=$(printf "0x%X" $des_value)
     # SDMA 4-7 doesn't support 128-bit reads, need to read 32 bits at a time
     val1=$(devmem $addr 32)
     val2=$(devmem $(printf "0x%X" $((addr+4))) 32)
@@ -570,11 +603,22 @@ for i in $(seq 0 7); do
     val3=${val3#0x}
     val4=${val4#0x}
     full_value="0x${val4}${val3}${val2}${val1}"
+    let cmd_id_addr=0x6B00081024+\($i-4\)*0x2000000
     
     # Skip the next devmem call since we already have our full_value
     continue_processing=1
   fi
-  
+  cmd_id=$(devmem $cmd_id_addr 32)
+  cmd_id=$(remove_unnecessary_zero $cmd_id)
+  let csr=$addr+0x1000
+  let vsdma_csr=$addr+0x1000+0x118
+  csr0=$(devmem $csr 32)
+  des_enable=$(extract_bit "$csr0" 0)
+  mst_fifo=$(extract_bits "$csr0" 14 8)
+  slv_fifo=$(extract_bits "$csr0" 31 25)
+  base_msg_id=$(extract_bits "$csr0" 24 16)
+  vsdma_cmd_id=$(devmem $vsdma_csr 32)
+  vsdma_cmd_id=$(remove_unnecessary_zero $vsdma_cmd_id)
   # Reset the flag for the next iteration
   unset continue_processing
   
@@ -584,87 +628,121 @@ for i in $(seq 0 7); do
   cmd_special_function=$(extract_bits_128 "$full_value" 39 37)
   cmd_type_desc=$(get_dma_cmd_type_desc "$cmd_type")
   cmd_special_desc=$(get_dma_special_function_desc "$cmd_special_function" "$cmd_type")
-  
-  # Extract cmd_id_dep field (21 bits)
-  cmd_id_dep=$(extract_bits_128 "$full_value" 60 40)
-  
-  # Extract the dependency enable bit (bit 20) and depend ID (bits 19:0)
-  dep_enable_bit=$(extract_bit_128 "$full_value" 60)
-  depend_id=$(extract_bits_128 "$full_value" 59 40)
-  
-  # Extract message count and message ID fields (for sys_wait)
-  msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
-  msg_id=$(extract_bits_128 "$full_value" 105 96)     # message_id[9:0]
-  
+  if [ "$cmd_type_desc" = "sys" ]; then
+    # Extract message count and message ID fields (for sys_wait)
+    msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
+    msg_id=$(extract_bits_128 "$full_value" 105 96)     # message_id[9:0]
+    msg_id=$(get_msg_id_usage $msg_id)
+  else
+    msg_cnt=unused
+    msg_id=unused
+  fi
+  addr=$(printf "0x%X" $addr)
   # Store raw values
   eval "cmd_short_$i=\"$cmd_short\""
   eval "cmd_type_$i=\"$cmd_type\""
   eval "cmd_type_desc_$i=\"$cmd_type_desc\""
   eval "cmd_special_$i=\"$cmd_special_function\""
   eval "cmd_special_desc_$i=\"$cmd_special_desc\""
-  eval "cmd_id_dep_$i=\"$cmd_id_dep\""
-  eval "dep_enable_$i=\"$dep_enable_bit\""
-  eval "depend_id_$i=\"$depend_id\""
+  eval "cmd_id_$i=\"$cmd_id\""
   eval "msg_cnt_$i=\"$msg_cnt\""
   eval "msg_id_$i=\"$msg_id\""
+  eval "des_value_$i=\"$des_value\""
+  eval "base_addr_$i=\"$addr\""
+  eval "des_enable_$i=\"$des_enable\""
+  eval "mst_fifo_$i=\"$mst_fifo\""
+  eval "slv_fifo_$i=\"$slv_fifo\""
+  eval "base_msg_id_$i=\"$base_msg_id\""
+  eval "vsdma_cmd_id_$i=\"$vsdma_cmd_id\""
 done
 
 # Print table header with core numbers
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" "Field" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" "Field" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print cmd_short row with the field name in the first column
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "cmd_short" "$cmd_short_0" "$cmd_short_1" "$cmd_short_2" "$cmd_short_3" "$cmd_short_4" "$cmd_short_5" "$cmd_short_6" "$cmd_short_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "cmd_type" "$cmd_type_desc_0" "$cmd_type_desc_1" "$cmd_type_desc_2" "$cmd_type_desc_3" "$cmd_type_desc_4" "$cmd_type_desc_5" "$cmd_type_desc_6" "$cmd_type_desc_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print cmd_special_function row with descriptions
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "cmd_special_func" "$cmd_special_desc_0" "$cmd_special_desc_1" "$cmd_special_desc_2" "$cmd_special_desc_3" "$cmd_special_desc_4" "$cmd_special_desc_5" "$cmd_special_desc_6" "$cmd_special_desc_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
-# Print dependency enable/disable status row
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
-  "dep_id_enable" "$dep_enable_0" "$dep_enable_1" "$dep_enable_2" "$dep_enable_3" "$dep_enable_4" "$dep_enable_5" "$dep_enable_6" "$dep_enable_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
-# Print depend ID row (raw hex value)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
-  "depend_id" "$depend_id_0" "$depend_id_1" "$depend_id_2" "$depend_id_3" "$depend_id_4" "$depend_id_5" "$depend_id_6" "$depend_id_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+# Print cmd_id row (raw hex value)
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "cmd_id" "$cmd_id_0" "$cmd_id_1" "$cmd_id_2" "$cmd_id_3" "$cmd_id_4" "$cmd_id_5" "$cmd_id_6" "$cmd_id_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print message count row (for sys_wait)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "msg_cnt" "$msg_cnt_0" "$msg_cnt_1" "$msg_cnt_2" "$msg_cnt_3" "$msg_cnt_4" "$msg_cnt_5" "$msg_cnt_6" "$msg_cnt_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print message ID row (for sys_wait)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "msg_id" "$msg_id_0" "$msg_id_1" "$msg_id_2" "$msg_id_3" "$msg_id_4" "$msg_id_5" "$msg_id_6" "$msg_id_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print des_value row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "des_addr" "$des_value_0" "$des_value_1" "$des_value_2" "$des_value_3" "$des_value_4" "$des_value_5" "$des_value_6" "$des_value_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print base_addr row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "base_addr" "$base_addr_0" "$base_addr_1" "$base_addr_2" "$base_addr_3" "$base_addr_4" "$base_addr_5" "$base_addr_6" "$base_addr_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print des_enable row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "des_enable" "$des_enable_0" "$des_enable_1" "$des_enable_2" "$des_enable_3" "$des_enable_4" "$des_enable_5" "$des_enable_6" "$des_enable_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print mst_fifo row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "mst_fifo" "$mst_fifo_0" "$mst_fifo_1" "$mst_fifo_2" "$mst_fifo_3" "$mst_fifo_4" "$mst_fifo_5" "$mst_fifo_6" "$mst_fifo_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print slv_fifo row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "slv_fifo" "$slv_fifo_0" "$slv_fifo_1" "$slv_fifo_2" "$slv_fifo_3" "$slv_fifo_4" "$slv_fifo_5" "$slv_fifo_6" "$slv_fifo_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print base_msg_id row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "base_msg_id" "$base_msg_id_0" "$base_msg_id_1" "$base_msg_id_2" "$base_msg_id_3" "$base_msg_id_4" "$base_msg_id_5" "$base_msg_id_6" "$base_msg_id_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print vsdma_cmd_id row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "vsdma_cmd_id" "$vsdma_cmd_id_0" "$vsdma_cmd_id_1" "$vsdma_cmd_id_2" "$vsdma_cmd_id_3" "$vsdma_cmd_id_4" "$vsdma_cmd_id_5" "$vsdma_cmd_id_6" "$vsdma_cmd_id_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Function to get task type description
 get_tsk_type_desc() {
   tsk_type_val=$1
   case "$tsk_type_val" in
-    "0x0") echo "CONV" ;;
-    "0x1") echo "PD" ;;
-    "0x2") echo "MM" ;;
-    "0x3") echo "AR" ;;
-    "0x4") echo "RQDQ" ;;
-    "0x5") echo "TRANS_BC" ;;
-    "0x6") echo "SG" ;;
-    "0x7") echo "LAR" ;;
-    "0x8") echo "RANDOM_GEN" ;;
-    "0x9") echo "SFU" ;;
-    "0xA") echo "LIN" ;;
-    "0xC") echo "SYS_TRWR" ;;
-    "0xD") echo "CMP" ;;
-    "0xE") echo "VC" ;;
-    "0xF") echo "SYS" ;;
+    "0x0") echo "conv" ;;
+    "0x1") echo "pd" ;;
+    "0x2") echo "mm" ;;
+    "0x3") echo "ar" ;;
+    "0x4") echo "rqdq" ;;
+    "0x5") echo "trans_bc" ;;
+    "0x6") echo "sg" ;;
+    "0x7") echo "lar" ;;
+    "0x8") echo "random_gen" ;;
+    "0x9") echo "sfu" ;;
+    "0xA") echo "lin" ;;
+    "0xC") echo "sys_trwr" ;;
+    "0xD") echo "cmp" ;;
+    "0xE") echo "vc" ;;
+    "0xF") echo "sys" ;;
     *) echo "Unknown" ;;
   esac
 }
@@ -683,11 +761,8 @@ get_tsk_eu_typ_desc() {
       "0x3") echo "swr_from_lmem" ;;
       "0x4") echo "swr_collect_from_lmem" ;;
       "0x5") echo "data_barrier" ;;
-      "0x8") echo "send_msg" ;;
-      "0x9") echo "wait_msg" ;;
-      "0xA") echo "sys_fork" ;;
-      "0xB") echo "sys_join" ;;
-      "0xC") echo "sys_exit" ;;
+      "0x8") echo "send" ;;
+      "0x9") echo "wait" ;;
       "0xD") echo "rand_seed" ;;
       "0x1E") echo "nop" ;;
       "0x1F") echo "end" ;;
@@ -699,13 +774,30 @@ get_tsk_eu_typ_desc() {
   fi
 }
 
+printf "\n\n"
+
 # Read TIU CMD
 echo "TIU CMD Info"
 for i in $(seq 0 7); do
   let addr=0x6908000000+\($i\*\(1\<\<28\)\)
   full_value=$(devmem $addr 128)
-
+  let des_addr=0x6908000100+\($i\*\(1\<\<28\)\)
+  des_value=$(devmem $des_addr 128)
+  des_value=$(extract_bits_128 "$des_value" 95 66)
+  des_value=$((des_value << 7))
+  des_value=$(printf "0x%X" $des_value)
   short_cmd=$(extract_bit_128 "$full_value" 0)
+  cmd_id=$(devmem 0x69${i}800011c 32)
+  cmd_id=$(remove_unnecessary_zero $cmd_id)
+  csr0=$(devmem 0x69${i}8000100 128)
+  csr5=$(devmem 0x69${i}8000154 32)
+  fifo=$(extract_bits_128 "$csr0" 40 32)
+  des_enable=$(extract_bit_128 "$csr0" 64)
+  des_resp_err=$(extract_bit_128 "$csr0" 126)
+  base_msg_id=$(extract_bits "$csr5" 9 0)
+
+  let true_msg_info_addr=addr+0x18
+  true_msg_info=$(devmem $true_msg_info_addr 32)
 
   # Extract dependency enable bit (bit 37)
   dep_enable_bit=$(extract_bit_128 "$full_value" 37)
@@ -720,61 +812,105 @@ for i in $(seq 0 7); do
   # Extract des_tsk_eu_typ (bits 49-45)
   des_tsk_eu_typ=$(extract_bits_128 "$full_value" 49 45)
   des_tsk_eu_typ_desc=$(get_tsk_eu_typ_desc "$des_tsk_typ" "$des_tsk_eu_typ")
-  
-  # Extract message ID (bits 6-0 of des_imm)
-  msg_id=$(extract_bits_128 "$full_value" 73 64)
-  
-  # Extract message count (bits 22-16 of des_imm)
-  msg_cnt=$(extract_bits_128 "$des_imm" 87 80)
-  
+  if [ "$des_tsk_typ_desc" = "sys" ]; then
+    msg_id=$(extract_bits "$true_msg_info" 8 0)
+    msg_id=$(remove_unnecessary_zero $msg_id)
+    msg_id=$(get_msg_id_usage $msg_id)
+    msg_cnt=$(extract_bits "$true_msg_info" 25 16)
+    msg_cnt=$(remove_unnecessary_zero $msg_cnt)
+  else
+    msg_id=unused
+    msg_cnt=unused
+  fi
+  addr=$(printf "0x%X" $addr)
   # Store the extracted values
   eval "tiu_short_cmd_$i=\"$short_cmd\""
+  eval "tiu_cmd_id_$i=\"$cmd_id\""
   eval "tiu_dep_enable_$i=\"$dep_enable_bit\""
   eval "tiu_depend_id_$i=\"$depend_id\""
-  eval "tiu_des_tsk_typ_$i=\"$des_tsk_typ\""
   eval "tiu_des_tsk_typ_desc_$i=\"$des_tsk_typ_desc\""
-  eval "tiu_des_tsk_eu_typ_$i=\"$des_tsk_eu_typ\""
   eval "tiu_des_tsk_eu_typ_desc_$i=\"$des_tsk_eu_typ_desc\""
   eval "tiu_msg_id_$i=\"$msg_id\""
   eval "tiu_msg_cnt_$i=\"$msg_cnt\""
+  eval "tiu_des_value_$i=\"$des_value\""
+  eval "tiu_base_addr_$i=\"$addr\""
+  eval "tiu_fifo_$i=\"$fifo\""
+  eval "tiu_des_enable_$i=\"$des_enable\""
+  eval "tiu_des_resp_err_$i=\"$des_resp_err\""
+  eval "tiu_base_msg_id_$i=\"$base_msg_id\""
 done
 
 # Print TIU register information in a table
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" "TIU Field" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" "TIU Field" "Core 0" "Core 1" "Core 2" "Core 3" "Core 4" "Core 5" "Core 6" "Core 7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print short_cmd row with the field name in the first column
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "short_cmd" "$tiu_short_cmd_0" "$tiu_short_cmd_1" "$tiu_short_cmd_2" "$tiu_short_cmd_3" "$tiu_short_cmd_4" "$tiu_short_cmd_5" "$tiu_short_cmd_6" "$tiu_short_cmd_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print cmd_id row (raw hex value)
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "cmd_id" "$tiu_cmd_id_0" "$tiu_cmd_id_1" "$tiu_cmd_id_2" "$tiu_cmd_id_3" "$tiu_cmd_id_4" "$tiu_cmd_id_5" "$tiu_cmd_id_6" "$tiu_cmd_id_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print dependency enable/disable status row
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "dep_id_enable" "$tiu_dep_enable_0" "$tiu_dep_enable_1" "$tiu_dep_enable_2" "$tiu_dep_enable_3" "$tiu_dep_enable_4" "$tiu_dep_enable_5" "$tiu_dep_enable_6" "$tiu_dep_enable_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print depend ID row (raw hex value)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "depend_id" "$tiu_depend_id_0" "$tiu_depend_id_1" "$tiu_depend_id_2" "$tiu_depend_id_3" "$tiu_depend_id_4" "$tiu_depend_id_5" "$tiu_depend_id_6" "$tiu_depend_id_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print des_tsk_typ_desc row (string description)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "tsk_type" "$tiu_des_tsk_typ_desc_0" "$tiu_des_tsk_typ_desc_1" "$tiu_des_tsk_typ_desc_2" "$tiu_des_tsk_typ_desc_3" "$tiu_des_tsk_typ_desc_4" "$tiu_des_tsk_typ_desc_5" "$tiu_des_tsk_typ_desc_6" "$tiu_des_tsk_typ_desc_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print des_tsk_eu_typ row with description for SYS tasks
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "tsk_eu_typ" "$tiu_des_tsk_eu_typ_desc_0" "$tiu_des_tsk_eu_typ_desc_1" "$tiu_des_tsk_eu_typ_desc_2" "$tiu_des_tsk_eu_typ_desc_3" "$tiu_des_tsk_eu_typ_desc_4" "$tiu_des_tsk_eu_typ_desc_5" "$tiu_des_tsk_eu_typ_desc_6" "$tiu_des_tsk_eu_typ_desc_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print message ID row (for send_msg/wait_msg)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "msg_id" "$tiu_msg_id_0" "$tiu_msg_id_1" "$tiu_msg_id_2" "$tiu_msg_id_3" "$tiu_msg_id_4" "$tiu_msg_id_5" "$tiu_msg_id_6" "$tiu_msg_id_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
 
 # Print message count row (for send_msg/wait_msg)
-printf "| %-16s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s | %-10s |\n" \
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "msg_cnt" "$tiu_msg_cnt_0" "$tiu_msg_cnt_1" "$tiu_msg_cnt_2" "$tiu_msg_cnt_3" "$tiu_msg_cnt_4" "$tiu_msg_cnt_5" "$tiu_msg_cnt_6" "$tiu_msg_cnt_7"
-printf "+------------------+------------+------------+------------+------------+------------+------------+------------+------------+\n"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print des_value row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "des_addr" "$tiu_des_value_0" "$tiu_des_value_1" "$tiu_des_value_2" "$tiu_des_value_3" "$tiu_des_value_4" "$tiu_des_value_5" "$tiu_des_value_6" "$tiu_des_value_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print base_addr row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "base_addr" "$tiu_base_addr_0" "$tiu_base_addr_1" "$tiu_base_addr_2" "$tiu_base_addr_3" "$tiu_base_addr_4" "$tiu_base_addr_5" "$tiu_base_addr_6" "$tiu_base_addr_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print fifo row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "fifo" "$tiu_fifo_0" "$tiu_fifo_1" "$tiu_fifo_2" "$tiu_fifo_3" "$tiu_fifo_4" "$tiu_fifo_5" "$tiu_fifo_6" "$tiu_fifo_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print des_enable row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "des_enable" "$tiu_des_enable_0" "$tiu_des_enable_1" "$tiu_des_enable_2" "$tiu_des_enable_3" "$tiu_des_enable_4" "$tiu_des_enable_5" "$tiu_des_enable_6" "$tiu_des_enable_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print des_resp_err row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "des_resp_err" "$tiu_des_resp_err_0" "$tiu_des_resp_err_1" "$tiu_des_resp_err_2" "$tiu_des_resp_err_3" "$tiu_des_resp_err_4" "$tiu_des_resp_err_5" "$tiu_des_resp_err_6" "$tiu_des_resp_err_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
+# Print base_msg_id row
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
+  "base_msg_id" "$tiu_base_msg_id_0" "$tiu_base_msg_id_1" "$tiu_base_msg_id_2" "$tiu_base_msg_id_3" "$tiu_base_msg_id_4" "$tiu_base_msg_id_5" "$tiu_base_msg_id_6" "$tiu_base_msg_id_7"
+printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
