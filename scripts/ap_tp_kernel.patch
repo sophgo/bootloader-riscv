@@ -1,0 +1,20 @@
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 0ef752d9731b..c234659daff5 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -208,7 +208,6 @@ config RISCV
+ 	select TRACE_IRQFLAGS_SUPPORT
+ 	select UACCESS_MEMCPY if !MMU
+ 	select USER_STACKTRACE_SUPPORT
+-	select ZONE_DMA32 if 64BIT
+ 
+ config RUSTC_SUPPORTS_RISCV
+ 	def_bool y
+@@ -409,7 +408,6 @@ config ARCH_RV64I
+ 	bool "RV64I"
+ 	select 64BIT
+ 	select ARCH_SUPPORTS_INT128 if CC_HAS_INT128
+-	select SWIOTLB if MMU
+ 
+ endchoice
+ 

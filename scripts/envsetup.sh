@@ -735,6 +735,11 @@ function build_rv_kernel()
 	fi
 
 	pushd $RV_KERNEL_SRC_DIR
+	if [ "$1" = "ap" -o "$1" = "tp" ]; then
+		echo "Disable ZONE_DMA32 and SWIOTLB for ap/tp kernel!"
+		cp arch/riscv/Kconfig arch/riscv/Kconfig.orig
+		patch -p1 < $RV_TOP_DIR/bootloader-riscv/scripts/ap_tp_kernel.patch
+	fi
 	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
 	err=$?
 	popd
@@ -752,7 +757,9 @@ function build_rv_kernel()
 	err=$?
 
 	popd
-
+	if [ "$1" = "ap" -o "$1" = "tp" ]; then
+		mv $RV_KERNEL_SRC_DIR/arch/riscv/Kconfig.orig $RV_KERNEL_SRC_DIR/arch/riscv/Kconfig
+	fi
 	if [ $err -ne 0 ]; then
 		echo "making kernel Image failed"
 		return $err
