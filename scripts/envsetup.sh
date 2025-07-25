@@ -1585,7 +1585,7 @@ function build_rv_firmware_bin()
 	if [ "$CHIP" = "mango" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_release_note.md"
 		./pack -a -p fip.bin -t 0x600000 -f $RV_FIRMWARE/fip.bin -o 0x30000 firmware.bin
-		./pack -a -p SG2042.fd -t 0x600000 -f SG2042.fd -l 0x2000000 -o 0x2040000 firmware.bin
+        # ./pack -a -p SG2042.fd -t 0x600000 -f SG2042.fd -l 0x2000000 -o 0x2040000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x600000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x600000 -f fw_dynamic.bin -l 0x0 firmware.bin
 		./pack -a -p riscv64_Image -t 0x600000 -f riscv64_Image -l 0x2000000 firmware.bin
