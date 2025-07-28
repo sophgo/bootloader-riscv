@@ -751,7 +751,7 @@ function build_rv_kernel()
 
 	pushd $RV_KERNEL_BUILD_DIR
 	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
+		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
 	fi
 	make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
 	err=$?
@@ -856,7 +856,7 @@ function build_rv_ubuntu_kernel()
 	rm -rf ./debs
 
 	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
+		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
 	fi
 
 	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
@@ -909,7 +909,7 @@ function build_rv_fedora_kernel()
 	fi
 
 	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
+		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
 	fi
 
 	if [ -e ~/.rpmmacros ]; then
@@ -982,7 +982,7 @@ function build_rv_euler_kernel()
 	fi
 
 	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC is not set/CONFIG_SOPHGO_MULTI_CHIP_CLOCK_SYNC=y/' .config
+		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
 	fi
 
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" dtbs
@@ -1627,7 +1627,7 @@ function build_rv_firmware_bin()
 		version="$(echo "$FIRST_MATCH" | cut -d'_' -f1)"
 	fi
 	echo ${version} | ./pack -a -o 0x0 firmware.bin
-	
+
 	if [ "$CHIP" = "mango" ];then
 		cp firmware.bin image-bmc
 		$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
