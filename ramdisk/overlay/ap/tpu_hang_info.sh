@@ -244,12 +244,34 @@ print_register_fields "h110" "$DMA_H110_FIELDS" "$sdma_h110_values" "SDMA"
 print_register_fields "h12c" "$DMA_H12C_FIELDS" "$sdma_h12c_values" "SDMA"
 
 get_msg_id_usage() {
-  msg_id=$1
-  msg_id=$(printf "%d" "$msg_id")
-  if [ $msg_id -ge 384 ] && [ $msg_id -le 511 ]; then
-    echo "0x$(printf "%x" $msg_id)(rt)"
+  local input=$1
+  input=$(printf "%d" "$input")
+  if ! [[ "$input" =~ ^[0-9]+$ ]]; then
+      echo "error: please input a valid number"
+      return 1
+  fi
+
+  if [ $input -lt 0 ] || [ $input -gt 511 ]; then
+      echo "error: number must be in 0-511 range"
+      return 1
+  fi
+
+  if [ $input -ge 384 ] && [ $input -le 511 ]; then
+      echo "0x$(printf "%x" $input)(rt)"
   else
-    echo "0x$(printf "%x" $msg_id)(tpu)"
+      local core_number=$((input / 48))
+      local position_in_core=$((input % 48))
+      if [ $position_in_core -ge 0 ] && [ $position_in_core -le 23 ]; then
+          echo "0x$(printf "%x" $input)(prv)"
+      elif [ $position_in_core -ge 24 ] && [ $position_in_core -le 31 ]; then
+          echo "0x$(printf "%x" $input)(glb)"
+      elif [ $position_in_core -ge 32 ] && [ $position_in_core -le 39 ]; then
+          echo "0x$(printf "%x" $input)(crs)"
+      elif [ $position_in_core -ge 40 ] && [ $position_in_core -le 45 ]; then
+          echo "0x$(printf "%x" $input)(c2c)"
+      elif [ $position_in_core -ge 46 ] && [ $position_in_core -le 47 ]; then
+          echo "0x$(printf "%x" $input)(sch)"
+      fi
   fi
 }
 
@@ -474,7 +496,7 @@ for i in $(seq 0 7); do
   if [ "$cmd_type_desc" = "sys" ]; then
     # Extract message count and message ID fields (for sys_wait)
     msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
-    msg_id=$(extract_bits_128 "$full_value" 105 96)     # message_id[9:0]
+    msg_id=$(extract_bits_128 "$full_value" 104 96)     # message_id[9:0]
     msg_id=$(get_msg_id_usage $msg_id)
   else
     msg_cnt=unused
@@ -631,7 +653,7 @@ for i in $(seq 0 7); do
   if [ "$cmd_type_desc" = "sys" ]; then
     # Extract message count and message ID fields (for sys_wait)
     msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
-    msg_id=$(extract_bits_128 "$full_value" 105 96)     # message_id[9:0]
+    msg_id=$(extract_bits_128 "$full_value" 104 96)     # message_id[9:0]
     msg_id=$(get_msg_id_usage $msg_id)
   else
     msg_cnt=unused
@@ -914,3 +936,4 @@ printf "+------------------+----------------+----------------+----------------+-
 printf "| %-16s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s | %-14s |\n" \
   "base_msg_id" "$tiu_base_msg_id_0" "$tiu_base_msg_id_1" "$tiu_base_msg_id_2" "$tiu_base_msg_id_3" "$tiu_base_msg_id_4" "$tiu_base_msg_id_5" "$tiu_base_msg_id_6" "$tiu_base_msg_id_7"
 printf "+------------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+----------------+\n"
+
