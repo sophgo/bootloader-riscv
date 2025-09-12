@@ -1,0 +1,28 @@
+diff --git a/arch/riscv/kernel/entry.S b/arch/riscv/kernel/entry.S
+index af483de85dfc..eaaf293499c9 100644
+--- a/arch/riscv/kernel/entry.S
++++ b/arch/riscv/kernel/entry.S
+@@ -262,6 +262,12 @@ SYM_CODE_START_NOALIGN(ret_from_exception)
+ 	REG_L  a2, PT_EPC(sp)
+ 	REG_SC x0, a2, PT_EPC(sp)
+ 
++	la x1, timer_enter_print
++	lw x3, 0(x1)
++	beqz x3, dis_sche
++	andi a0, a0, 0xffffffffffffff00
++	csrw CSR_SIE, zero
++dis_sche:
+ 	csrw CSR_STATUS, a0
+ 	csrw CSR_EPC, a2
+ 
+diff --git a/drivers/soc/sophgo/map_memory/Makefile b/drivers/soc/sophgo/map_memory/Makefile
+index 26c48551c4bc..2008b9394dc5 100644
+--- a/drivers/soc/sophgo/map_memory/Makefile
++++ b/drivers/soc/sophgo/map_memory/Makefile
+@@ -1,2 +1,3 @@
+ 
+-obj-$(CONFIG_SOPHGO_MAP_MEMORY)	+= bm1690_map.o
+\ No newline at end of file
++obj-$(CONFIG_SOPHGO_MAP_MEMORY)	+= bm1690_map.o
++obj-y += disable_sche.o
+\ No newline at end of file

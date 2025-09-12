@@ -740,6 +740,11 @@ function build_rv_kernel()
 		cp arch/riscv/Kconfig arch/riscv/Kconfig.orig
 		patch -p1 < $RV_TOP_DIR/bootloader-riscv/scripts/ap_tp_kernel.patch
 	fi
+	if [ "$1" = "tp" ]; then
+		echo "Disable schedule for tp kernel!"
+		cp $RV_TOP_DIR/bootloader-riscv/scripts/disable_sche.c drivers/soc/sophgo/map_memory
+		patch -p1 < $RV_TOP_DIR/bootloader-riscv/scripts/tp_disable_sche.patch
+	fi
 	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
 	err=$?
 	popd
@@ -757,9 +762,15 @@ function build_rv_kernel()
 	err=$?
 
 	popd
+	pushd $RV_KERNEL_SRC_DIR
 	if [ "$1" = "ap" -o "$1" = "tp" ]; then
 		mv $RV_KERNEL_SRC_DIR/arch/riscv/Kconfig.orig $RV_KERNEL_SRC_DIR/arch/riscv/Kconfig
 	fi
+	if [ "$1" = "tp" ]; then
+		rm -rf drivers/soc/sophgo/map_memory/disable_sche.c
+		patch -R -p1 < $RV_TOP_DIR/bootloader-riscv/scripts/tp_disable_sche.patch
+	fi
+	popd
 	if [ $err -ne 0 ]; then
 		echo "making kernel Image failed"
 		return $err
