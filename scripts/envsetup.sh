@@ -94,6 +94,7 @@ fi
 
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
+RV_DEBIAN_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debian-debs
 RV_FIRMWARE_INSTALL_DIR=$RV_OUTPUT_DIR/firmware
 RV_RP_DEB_INSTALL_DIR=$RV_FIRMWARE_INSTALL_DIR/rp_ramdisk_debs
 RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
@@ -895,11 +896,76 @@ function build_rv_ubuntu_kernel()
 	popd
 }
 
+function build_rv_debian_kernel()
+{
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_debian_defconfig
+	local err
+	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/debian
+	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
+
+	# on SG2044 + Debian, using native build instead of cross compile build
+	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_Debian GNU/Linux" ]; then
+		echo "Build $os_name on $CHIP ($(arch)) native"
+        build_rv_debian_kernel_native
+		return $?
+	fi
+
+	pushd $RV_KERNEL_SRC_DIR
+	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making kernel config failed"
+		return $err
+	fi
+
+	pushd $RV_KERNEL_BUILD_DIR
+	rm -f ../linux-*
+	rm -rf ./debs
+
+	if [ "$CHIP_NUM" = "multi" ];then
+		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
+	fi
+
+	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg dtbs
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		popd
+		echo "making deb package failed"
+		return $ret
+	fi
+
+	if [ ! -d $RV_DEB_INSTALL_DIR ]; then
+		mkdir -p $RV_DEB_INSTALL_DIR
+	fi
+	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
+	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
+	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
+	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
+
+	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+	fi
+	cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
+
+	popd
+}
+
 function clean_rv_ubuntu_kernel()
 {
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/ubuntu
 	rm -rf $RV_KERNEL_BUILD_DIR
 	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
+	rm -f $RV_FIRMWARE_INSTALL_DIR/*.dtb
+}
+
+function clean_rv_debian_kernel()
+{
+	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/debian
+	rm -rf $RV_KERNEL_BUILD_DIR
+	rm -f $RV_DEBIAN_DEB_INSTALL_DIR/linux-*.deb
 	rm -f $RV_FIRMWARE_INSTALL_DIR/*.dtb
 }
 

@@ -1,0 +1,58 @@
+From: Ben Hutchings <benh@debian.org>
+Date: Tue, 8 Jul 2025 22:41:37 +0200
+Subject: Revert "cgroup: Do not report unavailable v1 controllers in
+ /proc/cgroups"
+Bug-Debian: https://bugs.debian.org/1108294
+
+This reverts commit af000ce85293b8e608f696f0c6c280bc3a75887f.
+
+Starting in version 11, OpenJDK supports both cgroups v1 and v2 APIs,
+but relies on /proc/groups (part of the v1 API) to detect which
+controllers are enabled.  The VM detects and adjusts its behaviour for
+cgroups cpuset and memory limits.  The GC will be configured to
+collect before hitting the memory limit.  I think the cpuset limit is
+used to decide how many threads to create in some places.
+
+If it does not detect such limits, it may defer GC so long that it
+triggers OOM despite not needing all the allocated memory, or may
+create too many threads that use the available CPU resources
+inefficiently.
+
+The upstream change restricts /proc/cgroups to only show controllers
+that support the v1 API.  We have disabled CONFIG_CPUSETS_V1 and
+CONFIG_MEMCG_V1 per upstream default, so these controllers do not
+support the v1 API and OpenJDK fails to detect them entirely. This
+easily results in triggering OOM when running in a container.
+
+OpenJDK 25 (at least the HotSpot VM) has been fixed to detect the
+cgroups v2 API without depending on /proc/cgroups, but we also ship
+older versions in trixie and bookworm, and this primarily affects
+containers which may include OpenJDK from an older release or non-
+Debian source.
+
+Revert the upstream change for compatibility with older versions of
+OpenJDK.
+---
+ kernel/cgroup/cgroup-v1.c | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/kernel/cgroup/cgroup-v1.c b/kernel/cgroup/cgroup-v1.c
+index e28d5f0d20ed..784337694a4b 100644
+--- a/kernel/cgroup/cgroup-v1.c
++++ b/kernel/cgroup/cgroup-v1.c
+@@ -681,14 +681,11 @@ int proc_cgroupstats_show(struct seq_file *m, void *v)
+ 	 * cgroup_mutex contention.
+ 	 */
+ 
+-	for_each_subsys(ss, i) {
+-		if (cgroup1_subsys_absent(ss))
+-			continue;
++	for_each_subsys(ss, i)
+ 		seq_printf(m, "%s\t%d\t%d\t%d\n",
+ 			   ss->legacy_name, ss->root->hierarchy_id,
+ 			   atomic_read(&ss->root->nr_cgrps),
+ 			   cgroup_ssid_enabled(i));
+-	}
+ 
+ 	return 0;
+ }

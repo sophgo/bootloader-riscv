@@ -1,0 +1,55 @@
+From c3abf6ef0c709e53350c6becd17e6f3c2e12ddbc Mon Sep 17 00:00:00 2001
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Mon, 1 Jul 2024 12:56:55 +0200
+Subject: [PATCH 33/43] ARM: vfp: Use vfp_state_hold() in vfp_support_entry().
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/6.12/older/patches-6.12.43-rt12.tar.xz
+
+vfp_entry() is invoked from exception handler and is fully preemptible.
+It uses local_bh_disable() to remain uninterrupted while checking the
+VFP state.
+This is not working on PREEMPT_RT because local_bh_disable()
+synchronizes the relevant section but the context remains fully
+preemptible.
+
+Use vfp_state_hold() for uninterrupted access.
+
+Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+ arch/arm/vfp/vfpmodule.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/vfp/vfpmodule.c b/arch/arm/vfp/vfpmodule.c
+index 1726db050076..28dafae7758b 100644
+--- a/arch/arm/vfp/vfpmodule.c
++++ b/arch/arm/vfp/vfpmodule.c
+@@ -708,7 +708,7 @@ static int vfp_support_entry(struct pt_regs *regs, u32 trigger)
+ 	if (!user_mode(regs))
+ 		return vfp_kmode_exception(regs, trigger);
+ 
+-	local_bh_disable();
++	vfp_state_hold();
+ 	fpexc = fmrx(FPEXC);
+ 
+ 	/*
+@@ -787,7 +787,7 @@ static int vfp_support_entry(struct pt_regs *regs, u32 trigger)
+ 			if (!(fpscr & FPSCR_IXE)) {
+ 				if (!(fpscr & FPSCR_LENGTH_MASK)) {
+ 					pr_debug("not VFP\n");
+-					local_bh_enable();
++					vfp_state_release();
+ 					return -ENOEXEC;
+ 				}
+ 				fpexc |= FPEXC_DEX;
+@@ -797,7 +797,7 @@ bounce:		regs->ARM_pc += 4;
+ 		VFP_bounce(trigger, fpexc, regs);
+ 	}
+ 
+-	local_bh_enable();
++	vfp_state_release();
+ 	return 0;
+ }
+ 
+-- 
+2.50.1
+

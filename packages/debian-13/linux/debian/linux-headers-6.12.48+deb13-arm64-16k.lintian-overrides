@@ -1,0 +1,4 @@
+# This 'executable' file intentionally contains only BTF sections
+linux-headers-6.12.48+deb13-arm64-16k: statically-linked-binary [usr/src/*/vmlinux]
+linux-headers-6.12.48+deb13-arm64-16k: unstripped-binary-or-object [usr/src/*/vmlinux]
+linux-headers-6.12.48+deb13-arm64-16k: shared-library-lacks-prerequisites [usr/src/*/vmlinux]

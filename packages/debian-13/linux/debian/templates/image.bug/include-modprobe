@@ -1,0 +1,9 @@
+add_modprobe() {
+  echo '** Configuration for modprobe:' >&3
+  modprobe -c | sed -r -e '/^(alias|softdep|#|$)/d' >&3
+  echo >&3
+}
+
+ask_modprobe() {
+  add_modprobe
+}

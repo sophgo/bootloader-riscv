@@ -1,0 +1,37 @@
+From 733e71f919a5417e59ddee061e4302bdeabd85dd Mon Sep 17 00:00:00 2001
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Fri, 11 Oct 2019 13:14:41 +0200
+Subject: [PATCH 41/43] POWERPC: Allow to enable RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/6.12/older/patches-6.12.43-rt12.tar.xz
+
+Allow to select RT.
+
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/powerpc/Kconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 1bd5a9ff8505..3d72545eac3e 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -169,6 +169,7 @@ config PPC
+ 	select ARCH_STACKWALK
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_SUPPORTS_DEBUG_PAGEALLOC	if PPC_BOOK3S || PPC_8xx
++	select ARCH_SUPPORTS_RT			if HAVE_POSIX_CPU_TIMERS_TASK_WORK
+ 	select ARCH_USE_BUILTIN_BSWAP
+ 	select ARCH_USE_CMPXCHG_LOCKREF		if PPC64
+ 	select ARCH_USE_MEMTEST
+@@ -270,6 +271,7 @@ config PPC
+ 	select HAVE_PERF_EVENTS_NMI		if PPC64
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
++	select HAVE_POSIX_CPU_TIMERS_TASK_WORK	if !KVM
+ 	select HAVE_RETHOOK			if KPROBES
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_RELIABLE_STACKTRACE
+-- 
+2.50.1
+

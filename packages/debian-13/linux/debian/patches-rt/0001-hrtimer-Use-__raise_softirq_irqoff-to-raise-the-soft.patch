@@ -1,0 +1,44 @@
+From c308df5df378b4b2b3306255004799f8707f4d92 Mon Sep 17 00:00:00 2001
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Wed, 23 Oct 2024 15:36:15 +0200
+Subject: [PATCH 01/43] hrtimer: Use __raise_softirq_irqoff() to raise the
+ softirq.
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/6.12/older/patches-6.12.43-rt12.tar.xz
+
+As an optimisation use __raise_softirq_irqoff() to raise the softirq.
+This is always called from an interrupt handler so it can be reduced to
+just or set softirq flag and let softirq be invoked on return from
+interrupt.
+
+Use __raise_softirq_irqoff() to raise the softirq.
+
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+ kernel/time/hrtimer.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
+index 06fbc226341f..47e636c31cf2 100644
+--- a/kernel/time/hrtimer.c
++++ b/kernel/time/hrtimer.c
+@@ -1869,7 +1869,7 @@ void hrtimer_interrupt(struct clock_event_device *dev)
+ 	if (!ktime_before(now, cpu_base->softirq_expires_next)) {
+ 		cpu_base->softirq_expires_next = KTIME_MAX;
+ 		cpu_base->softirq_activated = 1;
+-		raise_softirq_irqoff(HRTIMER_SOFTIRQ);
++		__raise_softirq_irqoff(HRTIMER_SOFTIRQ);
+ 	}
+ 
+ 	__hrtimer_run_queues(cpu_base, now, flags, HRTIMER_ACTIVE_HARD);
+@@ -1964,7 +1964,7 @@ void hrtimer_run_queues(void)
+ 	if (!ktime_before(now, cpu_base->softirq_expires_next)) {
+ 		cpu_base->softirq_expires_next = KTIME_MAX;
+ 		cpu_base->softirq_activated = 1;
+-		raise_softirq_irqoff(HRTIMER_SOFTIRQ);
++		__raise_softirq_irqoff(HRTIMER_SOFTIRQ);
+ 	}
+ 
+ 	__hrtimer_run_queues(cpu_base, now, flags, HRTIMER_ACTIVE_HARD);
+-- 
+2.50.1
+

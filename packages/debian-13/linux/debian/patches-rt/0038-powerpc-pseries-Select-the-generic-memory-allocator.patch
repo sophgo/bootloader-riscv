@@ -1,0 +1,33 @@
+From a1343b52bc7718796286dcd7681604e991e7f6c5 Mon Sep 17 00:00:00 2001
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Thu, 9 Mar 2023 09:13:52 +0100
+Subject: [PATCH 38/43] powerpc/pseries: Select the generic memory allocator.
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/6.12/older/patches-6.12.43-rt12.tar.xz
+
+The RTAS work area allocator is using the generic memory allocator and
+as such it must select it.
+
+Select the generic memory allocator on pseries.
+
+Fixes: 43033bc62d349 ("powerpc/pseries: add RTAS work area allocator")
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Link: https://lore.kernel.org/20230309135110.uAxhqRFk@linutronix.de
+---
+ arch/powerpc/platforms/pseries/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/powerpc/platforms/pseries/Kconfig b/arch/powerpc/platforms/pseries/Kconfig
+index afc0f6a61337..dc3f63c2687d 100644
+--- a/arch/powerpc/platforms/pseries/Kconfig
++++ b/arch/powerpc/platforms/pseries/Kconfig
+@@ -2,6 +2,7 @@
+ config PPC_PSERIES
+ 	depends on PPC64 && PPC_BOOK3S
+ 	bool "IBM pSeries & new (POWER5-based) iSeries"
++	select GENERIC_ALLOCATOR
+ 	select HAVE_PCSPKR_PLATFORM
+ 	select MPIC
+ 	select OF_DYNAMIC
+-- 
+2.50.1
+

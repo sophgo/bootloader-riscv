@@ -1,0 +1,18 @@
+#include <kernel-image>
+
+# ACPI drivers
+fan
+thermal
+
+# Optimised CRC32
+crc32_pclmul
+
+# pmem drivers for UEFI HTTP boot
+nd_pmem
+nfit
+
+# Intel pinctrl drivers
+drivers/pinctrl/intel/**
+
+# SPI devices
+drivers/spi/**

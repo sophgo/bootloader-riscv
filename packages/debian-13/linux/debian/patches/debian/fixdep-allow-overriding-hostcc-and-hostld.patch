@@ -1,0 +1,26 @@
+From: Ben Hutchings <benh@debian.org>
+Date: Sat, 13 May 2023 13:03:26 +0200
+Subject: fixdep: Allow overriding HOSTCC and HOSTLD
+Forwarded: not-needed
+
+objtool always uses HOSTCC, HOSTLD, and HOSTAR, so we need to override
+these on the command line for cross-builds of linux-kbuild.  But it
+also builds fixdep which still needs to be native in a cross-build.
+Add support for REALHOSTCC and REALHOSTLD variables which, if set,
+override HOSTCC and HOSTLD for fixdep only.
+
+---
+--- a/tools/build/Makefile.include
++++ b/tools/build/Makefile.include
+@@ -12,7 +12,10 @@ else
+ endif
+ 
+ fixdep:
+-	$(SILENT_MAKE) -C $(srctree)/tools/build $(OUTPUT)fixdep
++	$(SILENT_MAKE) -C $(srctree)/tools/build \
++		$(if $(REALHOSTCC),HOSTCC=$(REALHOSTCC) KBUILD_HOSTCFLAGS=) \
++		$(if $(REALHOSTLD),HOSTLD=$(REALHOSTLD) KBUILD_HOSTLDFLAGS=) \
++		$(OUTPUT)fixdep
+ 
+ fixdep-clean:
+ 	$(Q)$(MAKE) -C $(srctree)/tools/build clean

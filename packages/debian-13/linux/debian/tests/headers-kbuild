@@ -1,0 +1,34 @@
+#!/bin/sh -eu
+
+KERNEL_RELEASE="$1"
+
+mkdir "$AUTOPKGTEST_TMP"/foo
+cat >"$AUTOPKGTEST_TMP"/foo/foo.c <<EOF
+#include <linux/kernel.h>
+#include <linux/module.h>
+
+static int __init foo_init(void)
+{
+	pr_info("foo initialised\n");
+	return 0;
+}
+module_init(foo_init);
+
+static void __exit foo_exit(void)
+{
+}
+module_exit(foo_exit);
+
+MODULE_LICENSE("GPL");
+EOF
+cat >"$AUTOPKGTEST_TMP"/foo/Kbuild <<EOF
+obj-m += foo.o
+EOF
+
+echo "I: Build for $KERNEL_RELEASE"
+# Next, run the build with stdout sent to the original stdout and
+# stderr sent through tee to both the original stdout and a file
+make -C /lib/modules/"$KERNEL_RELEASE"/build M="$AUTOPKGTEST_TMP"/foo V=1
+
+echo "I: Clean"
+make -C /lib/modules/"$KERNEL_RELEASE"/build M="$AUTOPKGTEST_TMP"/foo V=1 clean
