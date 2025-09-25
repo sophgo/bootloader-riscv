@@ -432,10 +432,10 @@ function build_rv_edk2()
 
 		if [ "$CHIP_NUM" = "multi" ];then
 			TARGET=DEBUG
-			build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/SG2042_EVB_Board/SG2042.dsc
+			build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/SG2042_Server/SG2042.dsc
 		else
-			TARGET=RELEASE
-			build -a RISCV64 -t GCC5 -b $TARGET -D X64EMU_ENABLE -p Platform/Sophgo/SG2042_EVB_Board/SG2042.dsc
+			TARGET=DEBUG
+			build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/SG2042_X4EVB/SG2042.dsc
 		fi
 
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
