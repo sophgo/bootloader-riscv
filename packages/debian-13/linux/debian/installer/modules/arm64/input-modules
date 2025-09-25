@@ -1,0 +1,4 @@
+#include <input-modules>
+
+leds_qcom_lpg
+elan_i2c

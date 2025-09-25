@@ -1,0 +1,33 @@
+From: Ben Hutchings <benh@debian.org>
+Date: Sun, 23 Mar 2025 21:04:02 +0100
+Subject: [PATCH] perf docs: Fix perf-check manual page built with asciidoctor
+Forwarded: https://lore.kernel.org/linux-perf-users/Z-BxCE8WrcRmR_5f@decadent.org.uk/
+
+asciidoctor is more picky than asciidoc about the length of heading
+underlines, and currently mis-parses perf-check.txt:
+
+  ASCIIDOC perf-check.1
+asciidoctor: ERROR: perf-check.txt: line 1: non-conforming manpage title
+asciidoctor: ERROR: perf-check.txt: line 1: name section expected
+asciidoctor: WARNING: perf-check.txt: line 2: unterminated example block
+asciidoctor: WARNING: perf-check.txt: line 5: unterminated listing block
+
+Fix the length of the title underline so it works properly.
+
+Fixes: 98ad0b77323c ("perf check: Introduce 'check' subcommand")
+Signed-off-by: Ben Hutchings <benh@debian.org>
+---
+ tools/perf/Documentation/perf-check.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/perf/Documentation/perf-check.txt b/tools/perf/Documentation/perf-check.txt
+index a764a4629220..80eb1de4eee0 100644
+--- a/tools/perf/Documentation/perf-check.txt
++++ b/tools/perf/Documentation/perf-check.txt
+@@ -1,5 +1,5 @@
+ perf-check(1)
+-===============
++=============
+ 
+ NAME
+ ----

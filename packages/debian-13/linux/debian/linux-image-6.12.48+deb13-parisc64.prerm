@@ -1,0 +1,14 @@
+#!/bin/sh -e
+
+version=6.12.48+deb13-parisc64
+image_path=/boot/vmlinuz-$version
+
+if [ "$1" != remove ]; then
+    exit 0
+fi
+
+linux-check-removal $version
+
+linux-run-hooks image prerm $version $image_path -- "$@"
+
+exit 0

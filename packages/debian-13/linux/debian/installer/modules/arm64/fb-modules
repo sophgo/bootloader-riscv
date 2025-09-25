@@ -1,0 +1,60 @@
+#include <fb-modules>
+
+ast
+tegra-drm
+rockchipdrm
+hibmc-drm
+
+# For panel/backlight on some chromeos devices
+panel-simple
+panel-edp
+panel-samsung-atna33xc20
+panel-himax-hx83102
+panel-ilitek-ili9882t
+pwm_bl
+pwm-cros-ec
+
+# For panel/backlight on Pinebook
+analogix-anx6345
+pwm-sun4i
+sun4i-drm
+sun8i-mixer
+
+# For panel/backlight on Pinebook Pro
+pwm-rockchip
+
+# For HDMI on some sunxi platforms (e.g. Orange Pi 1+)
+sun8i-drm-hdmi
+
+# For HDMI on some rockchip platforms (e.g. rock64-rk3328)
+nvmem-rockchip-efuse
+phy-rockchip-inno-hdmi
+
+# For panel/backlight on MNT Reform 2
+pwm-imx27
+nwl-dsi
+ti-sn65dsi86
+imx-dcss
+mxsfb
+mux-mmio
+imx8mq-interconnect
+
+# Qualcomm devices
+msm
+gpu-sched
+
+# Mediatek devices
+mediatek-drm
+mediatek-drm-hdmi
+mtk_dp
+mtk_iommu
+mtk-smi
+phy-mtk-dp
+phy-mtk-hdmi-drv
+phy-mtk-mipi-dsi-drv
+pwm-mtk-disp
+
+# DRM bridges
+anx7625
+parade-ps8640
+ite-it6505

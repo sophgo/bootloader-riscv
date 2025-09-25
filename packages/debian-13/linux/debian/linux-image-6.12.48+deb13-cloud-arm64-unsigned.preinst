@@ -1,0 +1,18 @@
+#!/bin/sh -e
+
+version=6.12.48+deb13-cloud-arm64
+image_path=/boot/vmlinuz-$version
+
+if [ "$1" = abort-upgrade ]; then
+    exit 0
+fi
+
+if [ "$1" = install ]; then
+    # Create a flag file for postinst
+    mkdir -p /lib/modules/$version
+    touch /lib/modules/$version/.fresh-install
+fi
+
+linux-run-hooks image preinst $version $image_path -- "$@"
+
+exit 0

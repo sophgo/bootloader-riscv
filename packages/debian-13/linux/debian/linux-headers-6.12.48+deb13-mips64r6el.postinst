@@ -1,0 +1,7 @@
+#!/bin/sh -e
+
+version=6.12.48+deb13-mips64r6el
+
+linux-run-hooks headers postinst $version -- "$@"
+
+exit 0

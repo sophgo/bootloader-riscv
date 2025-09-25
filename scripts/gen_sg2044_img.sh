@@ -223,13 +223,15 @@ function build_rv_euler_kernel_native()
 # $1 repository dir
 # $2 package name
 # $3 version
-# $4 changelog file
+# $4 code name
+# $5 changelog file
 function gen_changelog()
 {
 	local repo=$1
 	local name=$2
 	local version=$3
-	local file=$4
+    local code=$4
+	local file=$5
 
 	echo "Generating change log $name ($version) [$repo]"
 
@@ -244,7 +246,7 @@ function gen_changelog()
 	popd
 
 	cat << EOF > $file
-$name ($version) noble; urgency=medium
+$name ($version) $code; urgency=medium
 
   * $name: $version
 
@@ -340,11 +342,11 @@ function build_rv_ubuntu_kernel_native()
 	echo 'Setup debian build environment for linux-riscv package'
 	cp -r ${RV_TOP_DIR}/bootloader-riscv/packages/ubuntu-24.04/linux-riscv/* $linux_riscv
 	echo 'Generating changelog for linux-riscv package'
-	gen_changelog $RV_KERNEL_SRC_DIR linux-riscv "$kernel_version-$distro_major.$distro_minar.$distro_patch" \
+	gen_changelog $RV_KERNEL_SRC_DIR linux-riscv "$kernel_version-$distro_major.$distro_minar.$distro_patch" noble \
 		$linux_riscv/debian/changelog
-	gen_changelog $RV_KERNEL_SRC_DIR linux-riscv "$kernel_version-$distro_major.$distro_minar.$distro_patch" \
+	gen_changelog $RV_KERNEL_SRC_DIR linux-riscv "$kernel_version-$distro_major.$distro_minar.$distro_patch" noble \
 		$linux_riscv/debian.riscv/changelog
-	gen_changelog $RV_KERNEL_SRC_DIR linux-riscv "$kernel_version-$distro_major.$distro_minar" \
+	gen_changelog $RV_KERNEL_SRC_DIR linux-riscv "$kernel_version-$distro_major.$distro_minar" noble \
 		$linux_riscv/debian.master/changelog
 	# change version information in debian/control
 	sed -e "s/\${KERNEL_VERSION}/$kernel_version/g" -i $linux_riscv/debian/control
@@ -354,14 +356,14 @@ function build_rv_ubuntu_kernel_native()
 	echo 'Setup debian build environment for linux package'
 	cp -r ${RV_TOP_DIR}/bootloader-riscv/packages/ubuntu-24.04/linux/* $linux
 	echo 'Generating changelog for linux package'
-	gen_changelog $RV_KERNEL_SRC_DIR linux "$kernel_version-$distro_major.$distro_minar" $linux/debian/changelog
-	gen_changelog $RV_KERNEL_SRC_DIR linux "$kernel_version-$distro_major.$distro_minar" $linux/debian.master/changelog
+	gen_changelog $RV_KERNEL_SRC_DIR linux "$kernel_version-$distro_major.$distro_minar" noble $linux/debian/changelog
+	gen_changelog $RV_KERNEL_SRC_DIR linux "$kernel_version-$distro_major.$distro_minar" noble $linux/debian.master/changelog
 	# change version information in debian/control
 	sed -e "s/\${KERNEL_VERSION}/$kernel_version/g" -i $linux/debian/control
 	sed -e "s/\${DISTRO_MAJOR}/$distro_major/g" -i $linux/debian/control
 
 	echo 'Generating changelog for linux-meta-riscv package'
-	gen_changelog $RV_KERNEL_SRC_DIR linux-meta-riscv "$kernel_version-$distro_major.$distro_minar.$distro_patch" \
+	gen_changelog $RV_KERNEL_SRC_DIR linux-meta-riscv "$kernel_version-$distro_major.$distro_minar.$distro_patch" noble \
 		$linux_meta_riscv/debian/changelog
 	# change version information in debian/control
 	sed -e "s/\${KERNEL_VERSION}/$kernel_version/g" -i $linux_meta_riscv/debian/control
@@ -383,4 +385,109 @@ function build_rv_ubuntu_kernel_native()
 	popd
 
 	export_rv_ubuntu_packages
+}
+
+function clean_rv_debian_kernel_native()
+{
+	local work_space=$RV_TOP_DIR/build/$CHIP/debian
+
+    if [[ ! -d $work_space ]]; then
+        return
+    fi
+
+	echo 'Remove legacy source code'
+    pushd $work_space
+	rm -rf linux* *.log
+	echo 'Cleanup deb files'
+	rm -rf $work_space/*.deb
+	rm -f $RV_DEBIAN_DEB_INSTALL_DIR/*.deb
+    popd
+}
+
+# $1 repository dir
+# $2 exported source path
+function prepare_debian_kernel()
+{
+	local repo=$1
+	local dest=$2
+
+	# clean source repository before syncing
+	pushd $repo
+	make ARCH=riscv distclean
+	make ARCH=riscv mrproper
+	popd
+
+    rm -rf $dest
+
+    cp -r $repo $dest
+}
+
+function export_rv_debian_packages()
+{
+	local work_space=$RV_TOP_DIR/build/$CHIP/debian
+
+	mkdir -p $RV_DEBIAN_DEB_INSTALL_DIR
+
+	cp $work_space/*.deb $RV_DEBIAN_DEB_INSTALL_DIR
+	cp $work_space/*.udeb $RV_DEBIAN_DEB_INSTALL_DIR
+}
+
+# $1: kernel source dir
+function patch_debian_kernel()
+{
+    pushd $1
+    git apply debian/patches/debian/perf-traceevent-support-asciidoctor-for-documentatio.patch
+    git apply debian/patches/debian/documentation-drop-sphinx-version-check.patch
+    git apply debian/patches/bugfix/all/revert-tools-build-clean-cflags-and-ldflags-for-fixdep.patch
+    git apply debian/patches/debian/fixdep-allow-overriding-hostcc-and-hostld.patch
+    git apply debian/patches/debian/gitignore.patch
+    git apply debian/patches/debian/kbuild-abort-build-if-subdirs-used.patch
+    git apply debian/patches/debian/kbuild-look-for-module.lds-under-arch-directory-too.patch
+    git apply debian/patches/debian/kernelvariables.patch
+    git apply debian/patches/debian/linux-perf-remove-remaining-source-filenames-from-executable.patch
+    git apply debian/patches/debian/makefile-make-compiler-version-comparison-optional.patch
+    git apply debian/patches/debian/tools-perf-install-python-bindings.patch
+    git apply debian/patches/debian/tools-perf-perf-read-vdso-in-libexec.patch
+    git apply debian/patches/debian/uname-version-timestamp.patch
+    git apply debian/patches/debian/version.patch
+    popd
+}
+
+function build_rv_debian_kernel_native()
+{
+	local work_space=$RV_TOP_DIR/build/$CHIP/debian
+
+	local distro_major=1
+
+	clean_rv_debian_kernel_native
+
+	pushd $RV_KERNEL_SRC_DIR
+	local kernel_version=`make kernelversion`
+	popd
+	echo "Get kernel version $kernel_version"
+
+	local linux=$work_space/linux-$kernel_version
+
+	mkdir -p $work_space
+
+	echo 'Prepare source code for linux package'
+	prepare_debian_kernel $RV_KERNEL_SRC_DIR $linux
+
+	echo 'Setup debian build environment for linux package'
+	cp -r ${RV_TOP_DIR}/bootloader-riscv/packages/debian-13/linux/. $linux
+
+	echo 'Generating changelog for linux package'
+	gen_changelog $RV_KERNEL_SRC_DIR linux-$kernel_version "$kernel_version-$distro_major" trixie $linux/debian/changelog
+
+    echo 'Applying debian kernel patches'
+    patch_debian_kernel $linux
+
+	echo 'Build linux package'
+	pushd $linux
+    export DEB_BUILD_OPTIONS="parallel=$(nproc)"
+    fakeroot debian/rules debian/control-real
+	fakeroot debian/rules binary 2>&1 | tee ../compile-linux.log
+	popd
+
+	export_rv_debian_packages
 }

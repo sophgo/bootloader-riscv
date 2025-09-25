@@ -1,0 +1,3 @@
+# This 'executable' file intentionally contains only BTF sections
+linux-headers-6.12.48+deb13-powerpc-smp: statically-linked-binary [usr/src/*/vmlinux]
+linux-headers-6.12.48+deb13-powerpc-smp: unstripped-binary-or-object [usr/src/*/vmlinux]

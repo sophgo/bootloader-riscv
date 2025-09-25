@@ -1,0 +1,3 @@
+# This 'executable' file intentionally contains only BTF sections
+linux-headers-6.12.48+deb13-sh7751r: statically-linked-binary [usr/src/*/vmlinux]
+linux-headers-6.12.48+deb13-sh7751r: unstripped-binary-or-object [usr/src/*/vmlinux]

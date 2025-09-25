@@ -1,0 +1,40 @@
+{
+  "packages": {
+    "linux-image-6.12.48+deb13-arm64-unsigned": {
+      "trusted_certs": [],
+      "files": [
+        {
+          "sig_type": "efi",
+          "file": "boot/vmlinuz-6.12.48+deb13-arm64"
+        }
+      ]
+    },
+    "linux-image-6.12.48+deb13-cloud-arm64-unsigned": {
+      "trusted_certs": [],
+      "files": [
+        {
+          "sig_type": "efi",
+          "file": "boot/vmlinuz-6.12.48+deb13-cloud-arm64"
+        }
+      ]
+    },
+    "linux-image-6.12.48+deb13-arm64-16k-unsigned": {
+      "trusted_certs": [],
+      "files": [
+        {
+          "sig_type": "efi",
+          "file": "boot/vmlinuz-6.12.48+deb13-arm64-16k"
+        }
+      ]
+    },
+    "linux-image-6.12.48+deb13-rt-arm64-unsigned": {
+      "trusted_certs": [],
+      "files": [
+        {
+          "sig_type": "efi",
+          "file": "boot/vmlinuz-6.12.48+deb13-rt-arm64"
+        }
+      ]
+    }
+  }
+}

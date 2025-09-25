@@ -1,0 +1,22 @@
+#!/bin/sh -e
+
+version=6.12.48+deb13-mips32r2el
+image_path=/boot/vmlinuz-$version
+
+if [ "$1" != configure ]; then
+    exit 0
+fi
+
+depmod $version
+
+if [ -f /lib/modules/$version/.fresh-install ]; then
+    change=install
+else
+    change=upgrade
+fi
+linux-update-symlinks $change $version $image_path
+rm -f /lib/modules/$version/.fresh-install
+
+linux-run-hooks image postinst $version $image_path -- "$@"
+
+exit 0
