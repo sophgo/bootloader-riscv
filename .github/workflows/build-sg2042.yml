@@ -51,6 +51,7 @@ jobs:
         with:
           repository: sophgo/sophgo-edk2
           path: sophgo-edk2
+          ref: devel-sg2044
 
       - name: Checkout linux-riscv
         uses: actions/checkout@v4
