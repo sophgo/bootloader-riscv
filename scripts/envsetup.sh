@@ -432,15 +432,16 @@ function build_rv_edk2()
 
 		if [ "$CHIP_NUM" = "multi" ];then
 			TARGET=DEBUG
-			build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/SG2042_Server/SG2042.dsc
+			PRODUCT_TYPE=Server
 		else
 			TARGET=DEBUG
-			build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/SG2042_X4EVB/SG2042.dsc
+			PRODUCT_TYPE=X4EVB
 		fi
 
+		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/SG2042Pkg/SG2042_$PRODUCT_TYPE/SG2042.dsc
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-		cp $RV_EDKII_SRC_DIR/Build/SG2042_EVB/$TARGET\_GCC5/FV/SG2042.fd $RV_FIRMWARE_INSTALL_DIR
+		cp $RV_EDKII_SRC_DIR/Build/SG2042_$PRODUCT_TYPE/$TARGET\_GCC5/FV/SG2042.fd $RV_FIRMWARE_INSTALL_DIR
 	else
 		git submodule sync
 		git submodule update --init --recursive
