@@ -757,9 +757,6 @@ function build_rv_kernel()
 	fi
 
 	pushd $RV_KERNEL_BUILD_DIR
-	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
-	fi
 	make -j$(nproc) O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" Image dtbs modules
 	err=$?
 
@@ -868,10 +865,6 @@ function build_rv_ubuntu_kernel()
 	rm -f ../linux-*
 	rm -rf ./debs
 
-	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
-	fi
-
 	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg dtbs
 	ret=$?
@@ -924,10 +917,6 @@ function build_rv_debian_kernel()
 	pushd $RV_KERNEL_BUILD_DIR
 	rm -f ../linux-*
 	rm -rf ./debs
-
-	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
-	fi
 
 	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg dtbs
@@ -984,10 +973,6 @@ function build_rv_fedora_kernel()
 		echo "making kernel config failed"
 		popd
 		return $err
-	fi
-
-	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
 	fi
 
 	if [ -e ~/.rpmmacros ]; then
@@ -1057,10 +1042,6 @@ function build_rv_euler_kernel()
 		echo "making kernel config failed"
 		popd
 		return $err
-	fi
-
-	if [ "$CHIP_NUM" = "multi" ];then
-		sed -i 's/# CONFIG_SOPHGO_SG2042_MULTI_SOCKETS is not set/CONFIG_SOPHGO_SG2042_MULTI_SOCKETS=y/' .config
 	fi
 
 	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" dtbs
