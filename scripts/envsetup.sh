@@ -1027,6 +1027,48 @@ function clean_rv_fedora_kernel()
 	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
 }
 
+function build_rv_euler_kernel_native()
+{
+	local kernel_ver
+	local rpm_build_dir="${HOME}/rpmbuild"
+    local config_file="sophgo_${CHIP}_openeuler_defconfig"
+
+	pushd ${RV_TOP_DIR}
+
+	rpmdev-setuptree
+	find ${rpm_build_dir}/RPMS -type f -delete
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/kernel.spec      ${rpm_build_dir}/SPECS/
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.config  ${rpm_build_dir}/SOURCES/
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.service ${rpm_build_dir}/SOURCES/
+	tar -czf ${rpm_build_dir}/SOURCES/kernel.tar.gz \
+		--exclude-vcs \
+		--transform s/linux-riscv/kernel/ \
+		linux-riscv
+
+	pushd linux-riscv
+	IFS='.' read -ra kernel_ver <<< $(make kernelversion)
+	sed -i \
+		"/%global upstream_version/c\%global upstream_version ${kernel_ver[0]}.${kernel_ver[1]}" \
+		${rpm_build_dir}/SPECS/kernel.spec
+	sed -i \
+		"/%global upstream_sublevel/c\%global upstream_sublevel ${kernel_ver[2]}" \
+		${rpm_build_dir}/SPECS/kernel.spec
+    sed -i "s/sophgo_sg2044_openeuler_defconfig/${config_file}/g" ${rpm_build_dir}/SPECS/kernel.spec
+	popd
+
+	pushd ${rpm_build_dir}
+	rpmbuild -bb SPECS/kernel.spec
+
+	mkdir -p ${RV_RPM_INSTALL_DIR}
+	kernel_ver=${kernel_ver[0]}.${kernel_ver[1]}.${kernel_ver[2]}
+	cp -f RPMS/riscv64/kernel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/kernel-devel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/perf-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	popd
+
+	popd
+}
+
 function build_rv_euler_kernel()
 {
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_openeuler_defconfig
@@ -1053,7 +1095,8 @@ function build_rv_euler_kernel()
 
 	cp $RV_KERNEL_SRC_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
 
-	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_openEuler" ]; then
+	if [ "$(arch)_${os_name}" == "riscv64_openEuler" ]; then
+        echo "Build ${os_name} natively"
 		build_rv_euler_kernel_native
 		return $?
 	fi
