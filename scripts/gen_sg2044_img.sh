@@ -93,13 +93,16 @@ function build_rv_image()
 		if [ ! -f "$RV_FIRMWARE_INSTALL_DIR/fsbl.bin" ]; then
 			wget -O "$RV_FIRMWARE_INSTALL_DIR/fsbl.bin" "$RV_SG2044_FSBL_BIN"
 		fi
+		if [ -f $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd ]; then
+			sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd $EFI_PARTITION_DIR/riscv64/${CHIP^^}.fd
+		fi
+	else
+		if [ -f $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd ]; then
+			sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd $EFI_PARTITION_DIR/riscv64/
+		fi
 	fi
 
 	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $EFI_PARTITION_DIR/riscv64
-
-	if [ -f $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd ]; then
-		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd $EFI_PARTITION_DIR/riscv64
-	fi
 
 	if [ -f $RV_FIRMWARE_INSTALL_DIR/u-boot.bin ]; then
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $EFI_PARTITION_DIR/riscv64

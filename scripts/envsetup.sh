@@ -34,14 +34,14 @@ function get_rv_top()
 
 CHIP=${CHIP}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
-PLAT_NAME=${PLAT_NAME:-SRA1-20} # SRA1-20, SRA3-40
+PLAT=${PLAT:-SRA1-20} # SRA1-20, SRA3-40
 VENDOR=${VENDOR:-sophgo}
 TPUV7_RP_DAEMON=${TPUV7_RP_DAEMON:-rp_dir} # receive import path
 # absolute path
 RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
-RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/$PLAT_NAME
+RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/$PLAT
 
 RV_BOOTROM_SRC_DIR=$RV_TOP_DIR/sophgo-2260/bootrom
 RV_BOOTROM_BUILD_DIR=$RV_BOOTROM_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
@@ -433,11 +433,11 @@ function build_rv_edk2()
 		make -C edk2/BaseTools -j$(nproc)
 
 		TARGET=DEBUG
-		build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/${PLAT_NAME}/${PLAT_NAME}.dsc
+		build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/${PLAT}/${PLAT}.dsc
 
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-		cp $RV_EDKII_SRC_DIR/Build/${PLAT_NAME}/$TARGET\_GCC5/FV/${PLAT_NAME^^}.fd $RV_FIRMWARE_INSTALL_DIR
+		cp $RV_EDKII_SRC_DIR/Build/${PLAT}/$TARGET\_GCC5/FV/${PLAT^^}.fd $RV_FIRMWARE_INSTALL_DIR
 
 	else
 		git submodule sync
@@ -453,11 +453,11 @@ function build_rv_edk2()
 		make -C edk2/BaseTools -j$(nproc)
 
 		TARGET=RELEASE
-		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
+		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${PLAT}/${PLAT^^}.dsc
 
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-		cp $RV_EDKII_SRC_DIR/Build/${CHIP^^}/$TARGET\_GCC5/FV/${CHIP^^}.fd $RV_FIRMWARE_INSTALL_DIR
+		cp $RV_EDKII_SRC_DIR/Build/${PLAT}/$TARGET\_GCC5/FV/${PLAT^^}.fd $RV_FIRMWARE_INSTALL_DIR
 	fi
 
 	popd
@@ -466,9 +466,9 @@ function build_rv_edk2()
 function clean_rv_edk2()
 {
 	if [ $CHIP = 'mango' ]; then
-		rm -rf $RV_FIRMWARE_INSTALL_DIR/${PLAT_NAME^^}.fd
+		rm -rf $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd
 	else
-		rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd
+		rm -rf $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd
 	fi
 
 	pushd $RV_EDKII_SRC_DIR
@@ -1683,7 +1683,7 @@ function build_rv_firmware_bin()
 	if [ "$CHIP" = "mango" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_release_note.md"
 		./pack -a -p fip.bin -t 0x600000 -f $RV_FIRMWARE/fip.bin -o 0x30000 firmware.bin
-		./pack -a -p ${PLAT_NAME}.fd -t 0x600000 -f ${PLAT_NAME^^}.fd -l 0x2000000 -o 0x2040000 firmware.bin
+		./pack -a -p ${PLAT}.fd -t 0x600000 -f ${PLAT^^}.fd -l 0x2000000 -o 0x2040000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x600000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x600000 -f fw_dynamic.bin -l 0x0 firmware.bin
 		#./pack -a -p riscv64_Image -t 0x600000 -f riscv64_Image -l 0x2000000 firmware.bin
@@ -1700,20 +1700,20 @@ function build_rv_firmware_bin()
 		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
 	elif [ "$CHIP" = "sg2044" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
-		./pack -a -p SG2044.fd -t 0x80000 -f SG2044.fd -l 0x80200000 -o 0x600000 firmware.bin
+		./pack -a -p SG2044.fd -t 0x80000 -f ${PLAT^^}.fd -l 0x80200000 -o 0x600000 firmware.bin
 		./pack -a -p fsbl.bin -t 0x80000 -f fsbl.bin -l 0x7010080000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
 		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
 		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware.bin
 		export_key $PRIVKEY_PATH $PUBKEY_PATH
-		sign $PRIVKEY_PATH SG2044.fd
+		sign $PRIVKEY_PATH ${PLAT^^}.fd
 		sign $PRIVKEY_PATH fsbl.bin
 		sign $PRIVKEY_PATH zsbl.bin
 		sign $PRIVKEY_PATH fw_dynamic.bin
 		sign $PRIVKEY_PATH sg2044-evb.dtbo
 		sign $PRIVKEY_PATH sg2044-sra3.dtbo
-		./pack -a -p SG2044.fd.sig -t 0x80000 -f SG2044.fd.sig firmware.bin
+		./pack -a -p SG2044.fd.sig -t 0x80000 -f ${PLAT^^}.fd.sig firmware.bin
 		./pack -a -p fsbl.bin.sig -t 0x80000 -f fsbl.bin.sig firmware.bin
 		./pack -a -p zsbl.bin.sig -t 0x80000 -f zsbl.bin.sig firmware.bin
 		./pack -a -p fw_dynamic.bin.sig -t 0x80000 -f fw_dynamic.bin.sig firmware.bin
@@ -1779,7 +1779,7 @@ function build_rv_firmware_image()
 	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
 	sudo cp zsbl.bin efi/riscv64
 	sudo cp *.dtbo efi/riscv64
-	sudo cp SG2044.fd efi/riscv64
+	sudo cp ${PLAT^^}.fd efi/riscv64/SG2044.fd
 	else
 	sudo cp $RV_FIRMWARE/fip.bin efi/
 	sudo cp zsbl.bin efi/
@@ -1787,7 +1787,7 @@ function build_rv_firmware_image()
 	sudo cp riscv64_Image efi/riscv64
 	sudo cp initrd.img efi/riscv64
 	# sudo cp uboot.bin efi/riscv64
-	sudo cp SG2042.fd efi/riscv64
+	sudo cp ${PLAT^^}.fd efi/riscv64
 	fi
 	sudo cp fw_dynamic.bin efi/riscv64
 	sudo touch efi/BOOT
@@ -1823,15 +1823,17 @@ function build_rv_firmware_package()
 	if [[ "$CHIP" = "sg2044" ]];then
 	cp $RV_FIRMWARE/fsbl.bin firmware/riscv64
 	cp zsbl.bin firmware/riscv64
+	cp ${PLAT^^}.fd firmware/riscv64/SG2044.fd
 	else
 	cp $RV_FIRMWARE/fip.bin firmware
 	cp zsbl.bin firmware
+	cp *.fd firmware/riscv64
 	fi
 	# cp u-boot.bin firmware/riscv64
-	cp SG2042.fd firmware/riscv64
-	cp riscv64_Image firmware/riscv64
+	# cp riscv64_Image firmware/riscv64
+	# cp initrd.img firmware/riscv64
 	cp *.dtb firmware/riscv64
-	cp initrd.img firmware/riscv64
+	cp *.dtbo firmware/riscv64
 	cp fw_dynamic.bin firmware/riscv64
 	touch firmware/BOOT
 
