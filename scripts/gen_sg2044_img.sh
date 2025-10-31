@@ -97,8 +97,8 @@ function build_rv_image()
 
 	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $EFI_PARTITION_DIR/riscv64
 
-	if [ -f $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd ]; then
-		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd $EFI_PARTITION_DIR/riscv64
+	if [ -f $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd ]; then
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd $EFI_PARTITION_DIR/riscv64/${CHIP^^}.fd
 	fi
 
 	if [ -f $RV_FIRMWARE_INSTALL_DIR/u-boot.bin ]; then
