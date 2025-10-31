@@ -34,14 +34,14 @@ function get_rv_top()
 
 CHIP=${CHIP}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
-CHIP_NUM=${CHIP_NUM:-single} # single, multi
+PLAT_NAME=${PLAT_NAME:-SRA1-20} # SRA1-20, SRA3-40
 VENDOR=${VENDOR:-sophgo}
 TPUV7_RP_DAEMON=${TPUV7_RP_DAEMON:-rp_dir} # receive import path
 # absolute path
 RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
-RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/"$CHIP_NUM"_chip
+RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/$PLAT_NAME
 
 RV_BOOTROM_SRC_DIR=$RV_TOP_DIR/sophgo-2260/bootrom
 RV_BOOTROM_BUILD_DIR=$RV_BOOTROM_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
@@ -382,12 +382,13 @@ function build_rv_zsbl()
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
 	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR
-	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/*.dtbo $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
+	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/${CHIP}*.dtbo $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
 }
 
 function clean_rv_zsbl()
 {
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/zsbl.bin
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP}*.dtbo
 	rm -rf $RV_ZSBL_BUILD_DIR
 }
 
@@ -431,18 +432,13 @@ function build_rv_edk2()
 
 		make -C edk2/BaseTools -j$(nproc)
 
-		if [ "$CHIP_NUM" = "multi" ];then
-			TARGET=DEBUG
-			PRODUCT_TYPE=Server
-		else
-			TARGET=DEBUG
-			PRODUCT_TYPE=X4EVB
-		fi
+		TARGET=DEBUG
+		build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/${PLAT_NAME}/${PLAT_NAME}.dsc
 
-		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/SG2042Pkg/SG2042_$PRODUCT_TYPE/SG2042.dsc
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-		cp $RV_EDKII_SRC_DIR/Build/SG2042_$PRODUCT_TYPE/$TARGET\_GCC5/FV/SG2042.fd $RV_FIRMWARE_INSTALL_DIR
+		cp $RV_EDKII_SRC_DIR/Build/${PLAT_NAME}/$TARGET\_GCC5/FV/${PLAT_NAME^^}.fd $RV_FIRMWARE_INSTALL_DIR
+
 	else
 		git submodule sync
 		git submodule update --init --recursive
@@ -470,7 +466,7 @@ function build_rv_edk2()
 function clean_rv_edk2()
 {
 	if [ $CHIP = 'mango' ]; then
-		rm -rf $RV_FIRMWARE_INSTALL_DIR/SG2042.fd
+		rm -rf $RV_FIRMWARE_INSTALL_DIR/${PLAT_NAME^^}.fd
 	else
 		rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd
 	fi
@@ -1687,16 +1683,20 @@ function build_rv_firmware_bin()
 	if [ "$CHIP" = "mango" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_release_note.md"
 		./pack -a -p fip.bin -t 0x600000 -f $RV_FIRMWARE/fip.bin -o 0x30000 firmware.bin
-        # ./pack -a -p SG2042.fd -t 0x600000 -f SG2042.fd -l 0x2000000 -o 0x2040000 firmware.bin
+		./pack -a -p ${PLAT_NAME}.fd -t 0x600000 -f ${PLAT_NAME^^}.fd -l 0x2000000 -o 0x2040000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x600000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x600000 -f fw_dynamic.bin -l 0x0 firmware.bin
-		./pack -a -p riscv64_Image -t 0x600000 -f riscv64_Image -l 0x2000000 firmware.bin
-		./pack -a -p initrd.img -t 0x600000 -f initrd.img -l 0x30000000 firmware.bin
+		#./pack -a -p riscv64_Image -t 0x600000 -f riscv64_Image -l 0x2000000 firmware.bin
+		#./pack -a -p initrd.img -t 0x600000 -f initrd.img -l 0x30000000 firmware.bin
 		./pack -a -p mango-milkv-pioneer.dtb -t 0x600000 -f mango-milkv-pioneer.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-capricorn.dtb -t 0x600000 -f mango-sophgo-capricorn.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-milkv-pioneer.dtbo -t 0x600000 -f mango-milkv-pioneer.dtbo -l 0x20000000 firmware.bin
 		./pack -a -p mango-sophgo-pisces.dtb -t 0x600000 -f mango-sophgo-pisces.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-pisces.dtbo -t 0x600000 -f mango-sophgo-pisces.dtbo -l 0x20000000 firmware.bin
 		./pack -a -p mango-sophgo-x4evb.dtb -t 0x600000 -f mango-sophgo-x4evb.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x4evb.dtbo -t 0x600000 -f mango-sophgo-x4evb.dtbo -l 0x20000000 firmware.bin
 		./pack -a -p mango-sophgo-x8evb.dtb -t 0x600000 -f mango-sophgo-x8evb.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x8evb.dtbo -t 0x600000 -f mango-sophgo-x8evb.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-capricorn.dtb -t 0x600000 -f mango-sophgo-capricorn.dtb -l 0x20000000 firmware.bin
 		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
 	elif [ "$CHIP" = "sg2044" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
