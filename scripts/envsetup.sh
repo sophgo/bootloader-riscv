@@ -416,6 +416,7 @@ function clean_rv_sbi()
 
 function build_rv_edk2()
 {
+	local SG2044_PLATFORM_ARR=( "SD3-10" "SRA3-40" "SRA3-40-8" )
 	pushd $RV_EDKII_SRC_DIR
 
 	if [ $CHIP = 'mango' ]; then
@@ -457,11 +458,17 @@ function build_rv_edk2()
 		make -C edk2/BaseTools -j$(nproc)
 
 		TARGET=RELEASE
-		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${CHIP^^}.dsc
+		for PLATFORM in ${SG2044_PLATFORM_ARR[@]}
+		do
+			build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/$PLATFORM/${PLATFORM}.dsc
+		done
 
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
-		cp $RV_EDKII_SRC_DIR/Build/${CHIP^^}/$TARGET\_GCC5/FV/${CHIP^^}.fd $RV_FIRMWARE_INSTALL_DIR
+		for PLATFORM in ${SG2044_PLATFORM_ARR[@]}
+		do
+			cp $RV_EDKII_SRC_DIR/Build/$PLATFORM/$TARGET\_GCC5/FV/${PLATFORM}.fd $RV_FIRMWARE_INSTALL_DIR
+		done
 	fi
 
 	popd
@@ -469,10 +476,14 @@ function build_rv_edk2()
 
 function clean_rv_edk2()
 {
+	local SG2044_PLATFORM_ARR=( "SD3-10" "SRA3-40" "SRA3-40-8" )
 	if [ $CHIP = 'mango' ]; then
 		rm -rf $RV_FIRMWARE_INSTALL_DIR/SG2042.fd
 	else
-		rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP^^}.fd
+		for PLATFORM in ${SG2044_PLATFORM_ARR[@]}
+		do
+			rm -rf $RV_FIRMWARE_INSTALL_DIR/${PLATFORM}.fd
+		done
 	fi
 
 	pushd $RV_EDKII_SRC_DIR
@@ -1673,6 +1684,7 @@ function build_rv_firmware_bin()
 	local PRIVKEY_PATH="$RV_SCRIPTS_DIR/key/sophgo-root-private-key.pem"
 	local PUBKEY_PATH="$RV_SCRIPTS_DIR/key/sophgo-root-public-key.pem"
 	local PUBKEY_DER_PATH="public_key.der"
+	local SG2044_PLATFORM_ARR=( "SD3-10" "SRA3-40" "SRA3-40-8" )
 
 	build_rv_firmware
 
@@ -1700,26 +1712,29 @@ function build_rv_firmware_bin()
 		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
 	elif [ "$CHIP" = "sg2044" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
-		./pack -a -p SG2044.fd -t 0x80000 -f SG2044.fd -l 0x80200000 -o 0x600000 firmware.bin
-		./pack -a -p fsbl.bin -t 0x80000 -f fsbl.bin -l 0x7010080000 firmware.bin
-		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
-		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
-		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
-		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware.bin
-		export_key $PRIVKEY_PATH $PUBKEY_PATH
-		sign $PRIVKEY_PATH SG2044.fd
-		sign $PRIVKEY_PATH fsbl.bin
-		sign $PRIVKEY_PATH zsbl.bin
-		sign $PRIVKEY_PATH fw_dynamic.bin
-		sign $PRIVKEY_PATH sg2044-evb.dtbo
-		sign $PRIVKEY_PATH sg2044-sra3.dtbo
-		./pack -a -p SG2044.fd.sig -t 0x80000 -f SG2044.fd.sig firmware.bin
-		./pack -a -p fsbl.bin.sig -t 0x80000 -f fsbl.bin.sig firmware.bin
-		./pack -a -p zsbl.bin.sig -t 0x80000 -f zsbl.bin.sig firmware.bin
-		./pack -a -p fw_dynamic.bin.sig -t 0x80000 -f fw_dynamic.bin.sig firmware.bin
-		./pack -a -p sg2044-evb.dtbo.sig -t 0x80000 -f sg2044-evb.dtbo.sig firmware.bin
-		./pack -a -p sg2044-sra3.dtbo.sig -t 0x80000 -f sg2044-sra3.dtbo.sig firmware.bin
-		./pack -a -p public_key.der -t 0x80000 -f $PUBKEY_DER_PATH firmware.bin
+		for PLATFORM in ${SG2044_PLATFORM_ARR[@]}
+		do
+		    ./pack -a -p ${PLATFORM}.fd -t 0x80000 -f ${PLATFORM}.fd -l 0x80200000 -o 0x600000 firmware_${PLATFORM}.bin
+		    ./pack -a -p fsbl.bin -t 0x80000 -f fsbl.bin -l 0x7010080000 firmware_${PLATFORM}.bin
+		    ./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware_${PLATFORM}.bin
+		    ./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware_${PLATFORM}.bin
+		    ./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware_${PLATFORM}.bin
+		    ./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware_${PLATFORM}.bin
+		    export_key $PRIVKEY_PATH $PUBKEY_PATH
+		    sign $PRIVKEY_PATH ${PLATFORM}.fd
+		    sign $PRIVKEY_PATH fsbl.bin
+		    sign $PRIVKEY_PATH zsbl.bin
+		    sign $PRIVKEY_PATH fw_dynamic.bin
+		    sign $PRIVKEY_PATH sg2044-evb.dtbo
+		    sign $PRIVKEY_PATH sg2044-sra3.dtbo
+		    ./pack -a -p ${PLATFORM}.fd.sig -t 0x80000 -f ${PLATFORM}.fd.sig firmware_${PLATFORM}.bin
+		    ./pack -a -p fsbl.bin.sig -t 0x80000 -f fsbl.bin.sig firmware_${PLATFORM}.bin
+		    ./pack -a -p zsbl.bin.sig -t 0x80000 -f zsbl.bin.sig firmware_${PLATFORM}.bin
+		    ./pack -a -p fw_dynamic.bin.sig -t 0x80000 -f fw_dynamic.bin.sig firmware_${PLATFORM}.bin
+		    ./pack -a -p sg2044-evb.dtbo.sig -t 0x80000 -f sg2044-evb.dtbo.sig firmware_${PLATFORM}.bin
+		    ./pack -a -p sg2044-sra3.dtbo.sig -t 0x80000 -f sg2044-sra3.dtbo.sig firmware_${PLATFORM}.bin
+		    ./pack -a -p public_key.der -t 0x80000 -f $PUBKEY_DER_PATH firmware_${PLATFORM}.bin
+		done
 	fi
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
@@ -1779,7 +1794,7 @@ function build_rv_firmware_image()
 	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
 	sudo cp zsbl.bin efi/riscv64
 	sudo cp *.dtbo efi/riscv64
-	sudo cp SG2044.fd efi/riscv64
+	# sudo cp SG2044.fd efi/riscv64
 	else
 	sudo cp $RV_FIRMWARE/fip.bin efi/
 	sudo cp zsbl.bin efi/
