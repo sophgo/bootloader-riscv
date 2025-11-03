@@ -78,7 +78,7 @@ function build_rv_ubuntu_image()
 	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
-	if [[ "$CHIP_NUM" = "multi" ]];then
+	if [[ "$PLAT" = "SRA1-20" ]];then
 		echo cp power good scripts
 		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/powergood.service $RV_OUTPUT_DIR/root/etc/systemd/system/
 		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/power_good.sh $RV_OUTPUT_DIR/root/usr/local/
@@ -212,7 +212,7 @@ function build_rv_euler_image()
 	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
-	if [[ "$CHIP_NUM" = "multi" ]];then
+	if [[ "$PLAT" = "SRA1-20" ]];then
 		echo cp power good scripts
 		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/powergood.service $RV_OUTPUT_DIR/root/etc/systemd/system/
 		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/power_good.sh $RV_OUTPUT_DIR/root/usr/local/
@@ -366,7 +366,7 @@ function build_rv_fedora_image()
 	mkdir -p $RV_OUTPUT_DIR/root
 	sudo mount /dev/mapper/$root_part $RV_OUTPUT_DIR/root
 
-	if [[ "$CHIP_NUM" = "multi" ]];then
+	if [[ "$PLAT" = "SRA1-20" ]];then
 		echo cp power good scripts
 		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/powergood.service $RV_OUTPUT_DIR/root/etc/systemd/system/
 		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/power_good.sh $RV_OUTPUT_DIR/root/usr/local/

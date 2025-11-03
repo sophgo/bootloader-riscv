@@ -8,8 +8,12 @@ on:
     - cron: "0 2 * * *"
 
 jobs:
-  sg2044-firmware:
+  build-bootloader:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        M_PLAT_NAME: [SRA3-40, SRA3-40-8, SD3-10]
+        LINUX_BRANCH: [sg2044-dev-6.12]
 
     env:
       mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.03.01
@@ -20,6 +24,7 @@ jobs:
       KBUILD_BUILD_HOST: riscv-builder
       KDEB_COMPRESS: xz
       CHIP: sg2044
+      PLAT: ${{ matrix.M_PLAT_NAME }}
       BRANCH: ${{ matrix.LINUX_BRANCH }}
       TOOLCHAIN_HOME: /opt/riscv/
       RV_SG2044_FSBL_BIN: https://github.com/sophgo/bootloader-riscv/releases/download/sg2044-v0.1/fsbl.bin
@@ -84,7 +89,7 @@ jobs:
       - name: Compile edk2
         run: |
               pushd bootloader-riscv
-                sed -i 's/build -a RISCV64 -t GCC5 -b/build -a RISCV64 -t GCC5 -D FLASH_ENABLE=FALSE -b/g' scripts/envsetup.sh
+                # sed -i 's/build -a RISCV64 -t GCC5 -b/build -a RISCV64 -t GCC5 -D FLASH_ENABLE=FALSE -b/g' scripts/envsetup.sh
                 source scripts/envsetup.sh
                 # fix build variable in github action
                 source scripts/github_env.sh
@@ -103,13 +108,13 @@ jobs:
                 build_rv_firmware_image
 
                 mkdir ~/firmware_artifact
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware*.bin $GITHUB_WORKSPACE/firmware_sg2044.bin
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_sg2044.img
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware*.bin $GITHUB_WORKSPACE/firmware_${PLAT}_${BRANCH}.bin
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_${PLAT}_${BRANCH}.img
               popd
 
       - name: 'Upload Build Artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: sg2044-bootloader
+          name: sophgo-bootloader-${{ matrix.M_PLAT_NAME }}-${{ matrix.LINUX_BRANCH }}
           path: firmware_*
           retention-days: 30
