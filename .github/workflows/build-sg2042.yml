@@ -1,4 +1,4 @@
-name: sophgo-bootloader
+name: sg2042-firmware
 
 on:
   push:
@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        M_CHIP_NUM: [single, multi]
-        LINUX_BRANCH: [sg2042-rel-6.1.31, sg2042-dev-6.6]
+        M_PLAT_NAME: [SG2042-EVB, MilkV-Pioneer, SRA1-20]
+        LINUX_BRANCH: [sg2042-dev-6.6]
 
     env:
       mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.03.01
@@ -24,7 +24,7 @@ jobs:
       KBUILD_BUILD_HOST: riscv-builder
       KDEB_COMPRESS: xz
       CHIP: mango
-      CHIP_NUM: ${{ matrix.M_CHIP_NUM }}
+      PLAT: ${{ matrix.M_PLAT_NAME }}
       BRANCH: ${{ matrix.LINUX_BRANCH }}
       TOOLCHAIN_HOME: /opt/riscv/
 
@@ -51,7 +51,7 @@ jobs:
         with:
           repository: sophgo/sophgo-edk2
           path: sophgo-edk2
-          ref: devel-sg2044
+          ref: devel-sg2042
 
       - name: Checkout linux-riscv
         uses: actions/checkout@v4
@@ -135,13 +135,13 @@ jobs:
                 build_rv_firmware_image
 
                 mkdir ~/firmware_artifact
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware*.bin $GITHUB_WORKSPACE/firmware_${CHIP_NUM}_${BRANCH}.bin
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_${CHIP_NUM}_${BRANCH}.img
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware*.bin $GITHUB_WORKSPACE/firmware_${PLAT}_${BRANCH}.bin
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_${PLAT}_${BRANCH}.img
               popd
 
       - name: 'Upload Build Artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: sophgo-bootloader-${{ matrix.M_CHIP_NUM }}-${{ matrix.LINUX_BRANCH }}
+          name: sophgo-bootloader-${{ matrix.M_PLAT_NAME }}-${{ matrix.LINUX_BRANCH }}
           path: firmware_*
           retention-days: 30
