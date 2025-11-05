@@ -53,19 +53,6 @@ jobs:
           path: sophgo-edk2
           ref: devel-sg2042
 
-      - name: Checkout linux-riscv
-        uses: actions/checkout@v4
-        with:
-          repository: sophgo/linux-riscv
-          path: linux-riscv
-          ref: ${{ matrix.LINUX_BRANCH }}
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.21.13'
-
-      - run: go version
-
       - name: Install software
         run: |
               sudo apt update && \
@@ -103,25 +90,6 @@ jobs:
                 source scripts/github_env.sh
 
                 build_rv_edk2
-              popd
-
-      - name: Compile kernel
-        run: |
-              pushd bootloader-riscv
-                source scripts/envsetup.sh
-                # fix build variable in github action
-                source scripts/github_env.sh
-                build_rv_kernel
-              popd
-
-      - name: Compile u-root
-        run: |
-              pushd bootloader-riscv
-                source scripts/envsetup.sh
-                # fix build variable in github action
-                source scripts/github_env.sh
-
-                build_rv_uroot
               popd
 
       - name: Packege firmware
