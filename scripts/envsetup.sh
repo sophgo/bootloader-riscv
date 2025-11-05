@@ -383,12 +383,14 @@ function build_rv_zsbl()
 
 	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR
 	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/${CHIP}*.dtbo $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
+	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dts/${CHIP}*.dtb $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
 }
 
 function clean_rv_zsbl()
 {
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/zsbl.bin
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP}*.dtbo
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP}*.dtb
 	rm -rf $RV_ZSBL_BUILD_DIR
 }
 
@@ -477,6 +479,7 @@ function clean_rv_edk2()
 	make clean
 	popd
 	popd
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.fd
 }
 
 function build_rv_uboot()
@@ -1645,13 +1648,7 @@ function build_rv_firmware()
 {
 	build_rv_zsbl
 	build_rv_sbi
-	if [ "$CHIP" = "mango" ];then
-		build_rv_kernel
-		build_rv_uroot
-		build_rv_edk2
-	elif [ "$CHIP" = "sg2044" ];then
-		build_rv_edk2
-	fi
+	build_rv_edk2
 }
 
 function clean_rv_firmware()
@@ -1659,8 +1656,6 @@ function clean_rv_firmware()
 	clean_rv_zsbl
 	clean_rv_sbi
 	clean_rv_edk2
-	clean_rv_kernel
-	clean_rv_uroot
 }
 
 function build_rv_firmware_bin()
@@ -1686,8 +1681,6 @@ function build_rv_firmware_bin()
 		./pack -a -p ${PLAT}.fd -t 0x600000 -f ${PLAT^^}.fd -l 0x2000000 -o 0x2040000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x600000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x600000 -f fw_dynamic.bin -l 0x0 firmware.bin
-		#./pack -a -p riscv64_Image -t 0x600000 -f riscv64_Image -l 0x2000000 firmware.bin
-		#./pack -a -p initrd.img -t 0x600000 -f initrd.img -l 0x30000000 firmware.bin
 		./pack -a -p mango-milkv-pioneer.dtb -t 0x600000 -f mango-milkv-pioneer.dtb -l 0x20000000 firmware.bin
 		./pack -a -p mango-milkv-pioneer.dtbo -t 0x600000 -f mango-milkv-pioneer.dtbo -l 0x20000000 firmware.bin
 		./pack -a -p mango-sophgo-pisces.dtb -t 0x600000 -f mango-sophgo-pisces.dtb -l 0x20000000 firmware.bin
@@ -1784,10 +1777,8 @@ function build_rv_firmware_image()
 	sudo cp $RV_FIRMWARE/fip.bin efi/
 	sudo cp zsbl.bin efi/
 	sudo cp *.dtb efi/riscv64
-	sudo cp riscv64_Image efi/riscv64
-	sudo cp initrd.img efi/riscv64
-	# sudo cp uboot.bin efi/riscv64
-	sudo cp ${PLAT^^}.fd efi/riscv64
+	sudo cp *.dtbo efi/riscv64
+	sudo cp ${PLAT^^}.fd efi/riscv64/${PLAT}.fd
 	fi
 	sudo cp fw_dynamic.bin efi/riscv64
 	sudo touch efi/BOOT
@@ -1829,9 +1820,6 @@ function build_rv_firmware_package()
 	cp zsbl.bin firmware
 	cp *.fd firmware/riscv64
 	fi
-	# cp u-boot.bin firmware/riscv64
-	# cp riscv64_Image firmware/riscv64
-	# cp initrd.img firmware/riscv64
 	cp *.dtb firmware/riscv64
 	cp *.dtbo firmware/riscv64
 	cp fw_dynamic.bin firmware/riscv64
