@@ -833,6 +833,11 @@ function build_rv_euler_kernel_native()
 	local rpm_build_dir="${HOME}/rpmbuild"
 	local config_file="sophgo_${CHIP}_openeuler_defconfig"
 
+	# clean up kernel source
+	pushd $RV_KERNEL_SRC_DIR
+	make distclean
+	popd
+
 	pushd ${RV_TOP_DIR}
 
 	rpmdev-setuptree
@@ -869,7 +874,7 @@ function build_rv_euler_kernel_native()
 	popd
 }
 
-function build_rv_euler_kernel()
+function build_rv_euler_kernel_cross()
 {
 	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_openeuler_defconfig
 	local KERNELRELEASE
@@ -884,21 +889,6 @@ function build_rv_euler_kernel()
 		echo "making kernel config failed"
 		popd
 		return $err
-	fi
-
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" dtbs
-	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
-		mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	else
-		rm -f $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb
-	fi
-
-	cp $RV_KERNEL_SRC_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
-
-	if [ "$(arch)_${os_name}" == "riscv64_openEuler" ]; then
-		echo "Build ${os_name} natively"
-		build_rv_euler_kernel_native
-		return $?
 	fi
 
 	if [ -e ~/.rpmmacros ]; then
@@ -944,6 +934,21 @@ EOT
 	rm *.tar.gz
 	rm -rf $RPMBUILD_DIR
 	popd
+}
+
+function build_rv_euler_kernel()
+{
+	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
+
+	if [ "$(arch)_${os_name}" == "riscv64_openEuler" ]; then
+		echo "Build ${os_name} natively"
+		build_rv_euler_kernel_native
+		return $?
+	else
+		echo "Build ${os_name} cross platform"
+		build_rv_euler_kernel_cross
+		return $?
+	fi
 }
 
 function clean_rv_euler_kernel()
