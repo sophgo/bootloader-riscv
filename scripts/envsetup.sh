@@ -59,7 +59,6 @@ RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/$KERNEL_VARIANT
 RV_RAMDISK_DIR=$RV_TOP_DIR/bootloader-riscv/ramdisk
 
 RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
-RV_UROOT_DIR=$RV_TOP_DIR/bootloader-riscv/u-root
 
 RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
 RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
@@ -203,9 +202,8 @@ function show_rv_functions()
 	echo "build_rv_ubuntu_kernel		-build ubuntu kernel"
 	echo "build_rv_euler_kernel		-build euler kernel"
 	echo "build_rv_ramfs			-build buildroot"
-	echo "build_rv_uroot			-build u-root for linuxboot"
 	echo "build_rv_ltp			-build ltp"
-	echo "build_rv_firmware		-build firmware(zsbl,sbi,edk2,kernel,uroot)"
+	echo "build_rv_firmware		-build firmware(zsbl,sbi,edk2,kernel)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
 	echo "build_rv_firmware_package 	-build firmware package"
@@ -229,9 +227,8 @@ function show_rv_functions()
 	echo "clean_rv_ubuntu_kernel		-clean ubuntu kernel obj files"
 	echo "clean_rv_euler_kernel		-clean euler kernel obj files"
 	echo "clean_rv_ramfs			-clean buildroot obj files"
-	echo "clean_rv_uroot			-clean uroot obj files"
 	echo "clean_rv_ltp			-clean ltp obj files"
-	echo "clean_rv_firmware		-clean firmware(zsbl,sbi,edk2,kernel,uroot)"
+	echo "clean_rv_firmware		-clean firmware(zsbl,sbi,edk2,kernel)"
 	echo "clean_rv_firmware_bin		-clean firmware bin"
 	echo "clean_rv_firmware_image		-clean firmware image"
 	echo "clean_rv_firmware_package 	-clean firmware package"
@@ -1338,26 +1335,6 @@ function clean_rv_ramfs()
 	make clean
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/rootfs.cpio
 	rm -rf $RV_BUILDROOT_DIR/output
-}
-
-function build_rv_uroot()
-{
-	pushd $RV_UROOT_DIR
-	GOARCH=riscv64 go build
-	GOOS=linux GOARCH=riscv64 $RV_UROOT_DIR/u-root -uroot-source $RV_UROOT_DIR -build bb \
-	    -uinitcmd="/init-boot.sh" \
-	    -files ./cmds/init/init-boot.sh:init-boot.sh \
-	    -files ../busybox/busybox:bin/busybox \
-	    -o $RV_UROOT_DIR/initramfs.cpio \
-	    -files "$RV_UROOT_DIR/firmware/:lib/firmware/" \
-	    core boot ./cmds/boot/multiboot
-	popd
-	cp $RV_UROOT_DIR/initramfs.cpio $RV_FIRMWARE_INSTALL_DIR/initrd.img
-}
-
-function clean_rv_uroot()
-{
-	rm $RV_FIRMWARE_INSTALL_DIR/initrd.img
 }
 
 function build_rv_ubuntu_distro()
