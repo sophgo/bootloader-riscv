@@ -34,7 +34,7 @@ function get_rv_top()
 
 CHIP=${CHIP}
 KERNEL_VARIANT=${KERNEL_VARIANT:-normal} # normal, mininum, debug
-PLAT=${PLAT:-SRA1-20} # SRA1-20, SRA3-40
+PLAT=${PLAT}
 VENDOR=${VENDOR:-sophgo}
 TPUV7_RP_DAEMON=${TPUV7_RP_DAEMON:-rp_dir} # receive import path
 # absolute path
@@ -81,16 +81,64 @@ RV_UBUNTU_SOPHGO_IMAGE=ubuntu-sophgo.img
 RV_FEDORA_SOPHGO_IMAGE=fedora-sophgo.img
 RV_EULER_SOPHGO_IMAGE=euler-sophgo.img
 
+# check parameters
+
+CHIP_LIST='mango sg2044 bm1690e'
+MANGO_PLAT_LIST='SG2042-EVB MilkV-Pioneer SRA1-20'
+SG2044_PLAT_LIST='SD3-10 SRA3-40 SRA3-40-8'
+
+# $1: variable
+# $2: list
+function is_in_list()
+{
+	local DELIMITER=' '
+		local LIST=$2
+		local VALUE=$1
+		[[ "$LIST" =~ ($DELIMITER|^)$VALUE($DELIMITER|$) ]]
+}
+
+if [[ x$CHIP == x ]]; then
+	echo 'No chip is selected'
+	echo "Valid chips are: $CHIP_LIST"
+	return
+elif ! is_in_list $CHIP "$CHIP_LIST"; then
+	echo "Invalid chip $CHIP"
+	echo "Valid chips are: $CHIP_LIST"
+	return
+fi
+
+# check chip
 if [[ "$CHIP" = "mango" ]]; then
+	# check platform
+	if [[ x$PLAT == x ]]; then
+		PLAT=SRA1-20
+	elif ! is_in_list $PLAT "$MANGO_PLAT_LIST"; then
+		echo "Invalid platform $PLAT"
+		echo "Valid platforms are: $MANGO_PLAT_LIST"
+		return
+	fi
+
 	source $RV_SCRIPTS_DIR/gen_sg2042_img.sh
 elif [[ "$CHIP" = "sg2044" ]]; then
+	# check platform
+	if [[ x$PLAT == x ]]; then
+		PLAT=SRA3-40
+	elif ! is_in_list $PLAT "$SG2044_PLAT_LIST"; then
+		echo "Invalid platform $PLAT"
+		echo "Valid platforms are: $SG2044_PLAT_LIST"
+		return
+	fi
+
 	source $RV_SCRIPTS_DIR/gen_sg2044_img.sh
 	source $RV_SCRIPTS_DIR/sign.sh
 elif [[ "$CHIP" = "bm1690e" ]]; then
 	echo "use bm1690e config"
 else
 	echo "unknown chip $CHIP"
+	echo "Valid chips are: $CHIP_LIST"
 fi
+
+echo "Build environment for chip $CHIP and platform $PLAT setups done"
 
 RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
 RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
@@ -129,6 +177,7 @@ TP_IMAGES=(
 function show_rv_env()
 {
 	echo "CHIP: $CHIP"
+	echo "PLAT: $PLAT"
 	echo "KERNEL_VARIANT: $KERNEL_VARIANT"
 	echo "VENDOR: $VENDOR"
 	echo "RISCV64_LINUX_CROSS_COMPILE: $RISCV64_LINUX_CROSS_COMPILE"
@@ -148,9 +197,11 @@ function show_rv_functions()
 {
 	echo "show_rv_env			-print build environment"
 	echo "show_rv_functions     		-print all funtions "
+	echo "show_rv_chips     		-print all chips "
+	echo "show_rv_platforms     		-print all platforms "
 	echo ""
 	echo "build_rv_gcc			-build gcc from source"
-	echo "build_rv_bootrom			-build bootrom bin"
+	echo "build_rv_bootrom		-build bootrom bin"
 	echo "build_rv_zsbl			-build zsbl bin"
 	echo "build_rv_sbi			-build sbi bin"
 	echo "build_rv_edk2			-build EDKII bin"
@@ -167,7 +218,7 @@ function show_rv_functions()
 	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
 	echo "build_rv_fedora_perf_tool     	-build fedora perf tool source package"
 	echo "build_rv_euler_perf_tool     	-build euler perf tool source package"
-	echo "build_rv_firmware                 -build firmware(zsbl,sbi,edk2,kernel,uroot,uboot,grub2)"
+	echo "build_rv_firmware		-build firmware(zsbl,sbi,edk2,kernel,uroot,uboot,grub2)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
 	echo "build_rv_firmware_package 	-build firmware package"
@@ -186,7 +237,7 @@ function show_rv_functions()
 	echo "build_tpuv7_runtime		-build tpuv7 runtime for sdk"
 	echo ""
 	echo "clean_rv_gcc			-clean gcc obj files"
-	echo "clean_rv_bootrom			-clean bootrom obj files"
+	echo "clean_rv_bootrom		-clean bootrom obj files"
 	echo "clean_rv_zsbl			-clean zsbl obj files"
 	echo "clean_rv_sbi			-clean sbi obj files"
 	echo "clean_rv_edk2			-clean EDKII obj files"
@@ -202,7 +253,7 @@ function show_rv_functions()
 	echo "clean_rv_ltp			-clean ltp obj files"
 	echo "clean_rv_ubuntu_perf_tool     	-clean ubuntu perf tool files"
 	echo "clean_rv_fedora_perf_tool     	-clean fedora perf tool files"
-	echo "clean_rv_firmware                 -clean firmware(zsbl,sbi,edk2,kernel,uroot,uboot,grub2)"
+	echo "clean_rv_firmware		-clean firmware(zsbl,sbi,edk2,kernel,uroot,uboot,grub2)"
 	echo "clean_rv_firmware_bin		-clean firmware bin"
 	echo "clean_rv_firmware_image		-clean firmware image"
 	echo "clean_rv_firmware_package 	-clean firmware package"
@@ -216,6 +267,17 @@ function show_rv_functions()
 	echo "clean_rv_fedora			-clean feodra image"
 	echo "clean_rv_all			-clean all bin and image(default: ubuntu)"
 	echo "clean_tpuv7_runtime		-clean tpuv7 runtime for sdk"
+}
+
+function show_rv_chips()
+{
+	echo "$CHIP_LIST"
+}
+
+function show_rv_platforms()
+{
+	echo "mango: $MANGO_PLAT_LIST"
+	echo "sg2044: $SG2044_PLAT_LIST"
 }
 
 #######################################################################
@@ -899,7 +961,7 @@ function build_rv_debian_kernel()
 	# on SG2044 + Debian, using native build instead of cross compile build
 	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_Debian GNU/Linux" ]; then
 		echo "Build $os_name on $CHIP ($(arch)) native"
-        build_rv_debian_kernel_native
+		build_rv_debian_kernel_native
 		return $?
 	fi
 
@@ -1030,7 +1092,7 @@ function build_rv_euler_kernel_native()
 {
 	local kernel_ver
 	local rpm_build_dir="${HOME}/rpmbuild"
-    local config_file="sophgo_${CHIP}_openeuler_defconfig"
+	local config_file="sophgo_${CHIP}_openeuler_defconfig"
 
 	pushd ${RV_TOP_DIR}
 
@@ -1052,7 +1114,7 @@ function build_rv_euler_kernel_native()
 	sed -i \
 		"/%global upstream_sublevel/c\%global upstream_sublevel ${kernel_ver[2]}" \
 		${rpm_build_dir}/SPECS/kernel.spec
-    sed -i "s/sophgo_sg2044_openeuler_defconfig/${config_file}/g" ${rpm_build_dir}/SPECS/kernel.spec
+	sed -i "s/sophgo_sg2044_openeuler_defconfig/${config_file}/g" ${rpm_build_dir}/SPECS/kernel.spec
 	popd
 
 	pushd ${rpm_build_dir}
@@ -1095,7 +1157,7 @@ function build_rv_euler_kernel()
 	cp $RV_KERNEL_SRC_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
 
 	if [ "$(arch)_${os_name}" == "riscv64_openEuler" ]; then
-        echo "Build ${os_name} natively"
+		echo "Build ${os_name} natively"
 		build_rv_euler_kernel_native
 		return $?
 	fi
