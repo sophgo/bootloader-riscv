@@ -205,8 +205,6 @@ function show_rv_functions()
 	echo "build_rv_ramfs			-build buildroot"
 	echo "build_rv_uroot			-build u-root for linuxboot"
 	echo "build_rv_ltp			-build ltp"
-	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
-	echo "build_rv_euler_perf_tool     	-build euler perf tool source package"
 	echo "build_rv_firmware		-build firmware(zsbl,sbi,edk2,kernel,uroot)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
@@ -233,7 +231,6 @@ function show_rv_functions()
 	echo "clean_rv_ramfs			-clean buildroot obj files"
 	echo "clean_rv_uroot			-clean uroot obj files"
 	echo "clean_rv_ltp			-clean ltp obj files"
-	echo "clean_rv_ubuntu_perf_tool     	-clean ubuntu perf tool files"
 	echo "clean_rv_firmware		-clean firmware(zsbl,sbi,edk2,kernel,uroot)"
 	echo "clean_rv_firmware_bin		-clean firmware bin"
 	echo "clean_rv_firmware_image		-clean firmware image"
@@ -1397,55 +1394,6 @@ function clean_rv_euler_distro()
 	rm $RV_DISTRO_DIR/$RV_EULER_DISTRO/$RV_EULER_OFFICIAL_IMAGE
 }
 
-function build_rv_ubuntu_perf_tool()
-{
-	echo make perf package and script...
-	pushd $RV_KERNEL_SRC_DIR
-	make perf-tar-src-pkg
-	popd
-
-	if [ ! -d $RV_TOOLS_DIR/perf ]; then
-		mkdir -p $RV_TOOLS_DIR/perf
-	fi
-
-	sudo mv $RV_KERNEL_SRC_DIR/perf-*.tar $RV_TOOLS_DIR/perf
-
-	pushd $RV_TOOLS_DIR/perf
-	tar -xvf perf-*.tar
-	echo -e "#! /bin/bash\n" > build-perf.sh
-	echo -e "echo install dependencies..." >> build-perf.sh
-	echo -e "sudo apt update" >> build-perf.sh
-	echo -e "sudo apt install -y make gcc flex bison libdwarf-dev libbfd-dev libcap-dev" >> build-perf.sh
-	echo -e "sudo apt install -y libelf-dev libnuma-dev libperl-dev liblzma-dev python2" >> build-perf.sh
-	echo -e "sudo apt install -y python2-dev python-dev-is-python3 python-setuptools" >> build-perf.sh
-	echo -e "sudo apt install -y libssl-dev libunwind-dev zlib1g-dev libaio-dev" >> build-perf.sh
-	echo -e "sudo apt install -y libdw-dev binutils-dev binutils-multiarch-dev elfutils" >> build-perf.sh
-	echo -e "sudo apt install -y libiberty-dev libzstd-dev libaudit-dev libslang2-dev" >> build-perf.sh
-	echo -e "sudo apt install -y systemtap-sdt-dev libbabeltrace-dev libbabeltrace-ctf-dev\n" >> build-perf.sh
-	echo -e "echo make perf tool..." >> build-perf.sh
-	echo -e "pushd perf-*/tools/perf" >> build-perf.sh
-	echo -e "sudo make clean" >> build-perf.sh
-	echo -e "sudo make" >> build-perf.sh
-	echo -e "sudo make install prefix=/usr/local" >> build-perf.sh
-	echo -e "popd\n" >> build-perf.sh
-	popd
-}
-
-function clean_rv_ubuntu_perf_tool()
-{
-	rm -rf $RV_TOOLS_DIR/perf
-}
-
-function build_rv_euler_perf_tool()
-{
-	echo "build_rv_euler_perf_tool is not implemented"
-}
-
-function clean_rv_euler_perf_tool()
-{
-	echo "clean_rv_euler_perf_tool is not implemented"
-}
-
 function build_rv_firmware()
 {
 	build_rv_zsbl
@@ -1669,7 +1617,6 @@ function clean_rv_ltp()
 function build_rv_ubuntu()
 {
 	build_rv_ubuntu_kernel
-	build_rv_ubuntu_perf_tool
 	build_rv_ubuntu_distro
 	build_rv_ubuntu_image
 }
@@ -1677,7 +1624,6 @@ function build_rv_ubuntu()
 function clean_rv_ubuntu()
 {
 	clean_rv_ubuntu_kernel
-	clean_rv_ubuntu_perf_tool
 	clean_rv_ubuntu_distro
 	clean_rv_ubuntu_image
 }
@@ -1685,7 +1631,6 @@ function clean_rv_ubuntu()
 function build_rv_euler()
 {
 	build_rv_euler_kernel
-	build_rv_euler_perf_tool
 	build_rv_euler_distro
 	build_rv_euler_image
 }
@@ -1693,7 +1638,6 @@ function build_rv_euler()
 function clean_rv_euler()
 {
 	clean_rv_euler_kernel
-	clean_rv_euler_perf_tool
 	clean_rv_euler_distro
 	clean_rv_euler_image
 }
