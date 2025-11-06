@@ -70,11 +70,9 @@ TPUV7_TP_DAEMON=$TPUV7_RUNTIME_DIR/build/fw/tp/daemon/tp_daemon
 
 RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
 RV_UBUNTU_DISTRO=ubuntu
-RV_FEDORA_DISTRO=fedora
 RV_EULER_DISTRO=euler
 
 RV_UBUNTU_SOPHGO_IMAGE=ubuntu-sophgo.img
-RV_FEDORA_SOPHGO_IMAGE=fedora-sophgo.img
 RV_EULER_SOPHGO_IMAGE=euler-sophgo.img
 
 # check parameters
@@ -203,26 +201,21 @@ function show_rv_functions()
 	echo "build_rv_edk2			-build EDKII bin"
 	echo "build_rv_kernel			-build linuxboot kernel"
 	echo "build_rv_ubuntu_kernel		-build ubuntu kernel"
-	echo "build_rv_fedora_kernel		-build fedora kernel"
 	echo "build_rv_euler_kernel		-build euler kernel"
 	echo "build_rv_ramfs			-build buildroot"
 	echo "build_rv_uroot			-build u-root for linuxboot"
 	echo "build_rv_ltp			-build ltp"
 	echo "build_rv_ubuntu_perf_tool     	-build ubuntu perf tool source package"
-	echo "build_rv_fedora_perf_tool     	-build fedora perf tool source package"
 	echo "build_rv_euler_perf_tool     	-build euler perf tool source package"
 	echo "build_rv_firmware		-build firmware(zsbl,sbi,edk2,kernel,uroot)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
 	echo "build_rv_firmware_package 	-build firmware package"
 	echo "build_rv_ubuntu_distro		-dowload ubuntu image from offical"
-	echo "build_rv_fedora_distro		-download fedora image from offical"
 	echo "build_rv_euler_distro		-download euler image from offical"
 	echo "build_rv_ubuntu_image		-only build sophgo ubuntu image"
-	echo "build_rv_fedora_image		-only build sophgo fedora image"
 	echo "build_rv_euler_image		-only build sophgo euler image"
 	echo "build_rv_ubuntu			-build sophgo ubuntu image"
-	echo "build_rv_fedora			-build sophgo fedora image"
 	echo "build_rv_euler			-build sophgo euler image"
 	echo "build_rv_all			-build all bin and image(default: ubuntu)"
 	echo "build_ap_ramfs			-build tpuv7 cdm ap rootfs"
@@ -236,25 +229,20 @@ function show_rv_functions()
 	echo "clean_rv_edk2			-clean EDKII obj files"
 	echo "clean_rv_kernel			-clean linuxboot kernel obj files"
 	echo "clean_rv_ubuntu_kernel		-clean ubuntu kernel obj files"
-	echo "clean_rv_fedora_kernel		-clean fedora kernel obj files"
 	echo "clean_rv_euler_kernel		-clean euler kernel obj files"
 	echo "clean_rv_ramfs			-clean buildroot obj files"
 	echo "clean_rv_uroot			-clean uroot obj files"
 	echo "clean_rv_ltp			-clean ltp obj files"
 	echo "clean_rv_ubuntu_perf_tool     	-clean ubuntu perf tool files"
-	echo "clean_rv_fedora_perf_tool     	-clean fedora perf tool files"
 	echo "clean_rv_firmware		-clean firmware(zsbl,sbi,edk2,kernel,uroot)"
 	echo "clean_rv_firmware_bin		-clean firmware bin"
 	echo "clean_rv_firmware_image		-clean firmware image"
 	echo "clean_rv_firmware_package 	-clean firmware package"
 	echo "clean_rv_ubuntu_distro		-clean ubuntu image"
-	echo "clean_rv_fedora_distro		-clean fedora image"
-	echo "clean_rv_euler_distro		-clean fedora image"
+	echo "clean_rv_euler_distro		-clean openEuler image"
 	echo "clean_rv_ubuntu_image		-clean ubuntu image"
-	echo "clean_rv_fedora_image		-clean fedora image"
 	echo "clean_rv_euler_image		-clean euler image"
 	echo "clean_rv_ubuntu			-clean ubuntu image"
-	echo "clean_rv_fedora			-clean feodra image"
 	echo "clean_rv_all			-clean all bin and image(default: ubuntu)"
 	echo "clean_tpuv7_runtime		-clean tpuv7 runtime for sdk"
 }
@@ -867,74 +855,6 @@ function clean_rv_debian_kernel()
 	rm -f $RV_FIRMWARE_INSTALL_DIR/*.dtb
 }
 
-function build_rv_fedora_kernel()
-{
-	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_fedora_defconfig
-	local KERNELRELEASE
-	local RPMBUILD_DIR
-	local err
-
-	pushd $RV_KERNEL_SRC_DIR
-	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
-	err=$?
-	if [ $err -ne 0 ]; then
-		echo "making kernel config failed"
-		popd
-		return $err
-	fi
-
-	if [ -e ~/.rpmmacros ]; then
-		mv ~/.rpmmacros ~/.rpmmacros.orig
-	fi
-
-# following lines must not be started with space or tab.
-cat >> ~/.rpmmacros << "EOT"
-%_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
-EOT
-
-	KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
-	if [[ ${KERNELRELEASE:0:4} == "6.1." ]]; then
-		RPMBUILD_DIR=$HOME/rpmbuild
-	else
-		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
-	fi
-
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
-	ret=$?
-	rm ~/.rpmmacros
-	if [ -e ~/.rpmmacros.orig ]; then
-		mv ~/.rpmmacros.orig ~/.rpmmacros
-	fi
-	if [ $ret -ne 0 ]; then
-		echo "making rpm package failed"
-		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
-		rm *.tar.gz
-		rm -rf $RPMBUILD_DIR
-		popd
-		return $ret
-	fi
-
-	if [ ! -d $RV_RPM_INSTALL_DIR ]; then
-		mkdir -p $RV_RPM_INSTALL_DIR
-	else
-		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
-	fi
-
-	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
-	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
-	rm *.tar.gz
-	rm -rf $RPMBUILD_DIR
-	popd
-}
-
-function clean_rv_fedora_kernel()
-{
-	pushd $RV_KERNEL_SRC_DIR
-	make distclean
-	popd
-	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
-}
-
 function build_rv_euler_kernel_native()
 {
 	local kernel_ver
@@ -1460,23 +1380,6 @@ function clean_rv_ubuntu_distro()
 	rm $RV_DISTRO_DIR/$RV_UBUNTU_DISTRO/$RV_UBUNTU_OFFICIAL_IMAGE
 }
 
-function build_rv_fedora_distro()
-{
-	mkdir -p $RV_DISTRO_DIR/$RV_FEDORA_DISTRO
-
-	pushd $RV_DISTRO_DIR/$RV_FEDORA_DISTRO
-	if [ ! -f $RV_FEDORA_OFFICIAL_IMAGE ] ; then
-		$DOWNLOAD_RV_FEDORA_OFFICIAL_IMAGE
-		$UNCOMPRESS_RV_FEDORA_OFFICIAL_IMAGE
-	fi
-	popd
-}
-
-function clean_rv_fedora_distro()
-{
-	rm $RV_DISTRO_DIR/$RV_FEDORA_DISTRO/$RV_FEDORA_OFFICIAL_IMAGE
-}
-
 function build_rv_euler_distro()
 {
 	mkdir -p $RV_DISTRO_DIR/$RV_EULER_DISTRO
@@ -1531,16 +1434,6 @@ function build_rv_ubuntu_perf_tool()
 function clean_rv_ubuntu_perf_tool()
 {
 	rm -rf $RV_TOOLS_DIR/perf
-}
-
-function build_rv_fedora_perf_tool()
-{
-	echo "build_rv_fedora_perf_tool is not implemented"
-}
-
-function clean_rv_fedora_perf_tool()
-{
-	echo "clean_rv_fedora_perf_tool is not implemented"
 }
 
 function build_rv_euler_perf_tool()
@@ -1787,22 +1680,6 @@ function clean_rv_ubuntu()
 	clean_rv_ubuntu_perf_tool
 	clean_rv_ubuntu_distro
 	clean_rv_ubuntu_image
-}
-
-function build_rv_fedora()
-{
-	build_rv_fedora_kernel
-	build_rv_fedora_perf_tool
-	build_rv_fedora_distro
-	build_rv_fedora_image
-}
-
-function clean_rv_fedora()
-{
-	clean_rv_fedora_kernel
-	clean_rv_fedora_perf_tool
-	clean_rv_fedora_distro
-	clean_rv_fedora_image
 }
 
 function build_rv_euler()
