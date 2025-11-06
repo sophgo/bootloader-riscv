@@ -401,7 +401,7 @@ function build_rv_zsbl()
 	if [ $err -ne 0 ]; then
 		echo "making zsbl config failed"
 		return $err
-	    fi
+	fi
 
 	pushd $RV_ZSBL_BUILD_DIR
 	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
@@ -455,57 +455,35 @@ function build_rv_edk2()
 {
 	pushd $RV_EDKII_SRC_DIR
 
+	git submodule sync
+	git submodule update --init --recursive
+
+	export WORKSPACE=$RV_EDKII_SRC_DIR
+	export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi:$WORKSPACE/external-modules
+	export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
+	export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
+
+	source edk2/edksetup.sh
+
+	make -C edk2/BaseTools -j$(nproc)
+
+	TARGET=RELEASE
+
 	if [ $CHIP = 'mango' ]; then
-		git submodule sync
-		git submodule update --init --recursive
-
-		export WORKSPACE=$RV_EDKII_SRC_DIR
-		export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi
-		export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
-		export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
-
-		source edk2/edksetup.sh
-
-		make -C edk2/BaseTools -j$(nproc)
-
-		TARGET=DEBUG
 		build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/${PLAT}/${PLAT}.dsc
-
-		mkdir -p $RV_FIRMWARE_INSTALL_DIR
-
-		cp $RV_EDKII_SRC_DIR/Build/${PLAT}/$TARGET\_GCC5/FV/${PLAT^^}.fd $RV_FIRMWARE_INSTALL_DIR
-
 	else
-		git submodule sync
-		git submodule update --init --recursive
-
-		export WORKSPACE=$RV_EDKII_SRC_DIR
-		export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi:$WORKSPACE/external-modules
-		export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
-		export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
-
-		source edk2/edksetup.sh
-
-		make -C edk2/BaseTools -j$(nproc)
-
-		TARGET=RELEASE
 		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${PLAT}/${PLAT^^}.dsc
-
-		mkdir -p $RV_FIRMWARE_INSTALL_DIR
-
-		cp $RV_EDKII_SRC_DIR/Build/${PLAT}/$TARGET\_GCC5/FV/${PLAT^^}.fd $RV_FIRMWARE_INSTALL_DIR
 	fi
+
+	mkdir -p $RV_FIRMWARE_INSTALL_DIR
+	cp $RV_EDKII_SRC_DIR/Build/${PLAT}/$TARGET\_GCC5/FV/${PLAT^^}.fd $RV_FIRMWARE_INSTALL_DIR
 
 	popd
 }
 
 function clean_rv_edk2()
 {
-	if [ $CHIP = 'mango' ]; then
-		rm -rf $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd
-	else
-		rm -rf $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd
-	fi
+	rm -rf $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd
 
 	pushd $RV_EDKII_SRC_DIR
 	rm -rf Build
