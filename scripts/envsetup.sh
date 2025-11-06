@@ -205,7 +205,6 @@ function show_rv_functions()
 	echo "build_rv_zsbl			-build zsbl bin"
 	echo "build_rv_sbi			-build sbi bin"
 	echo "build_rv_edk2			-build EDKII bin"
-	echo "build_rv_uboot			-build u-boot bin"
 	echo "build_rv_ubuntu_grub		-build ubuntu grub2 bin"
 	echo "build_rv_fedora_grub		-build fedora grub2 bin"
 	echo "build_rv_kernel			-build linuxboot kernel"
@@ -542,18 +541,6 @@ function clean_rv_edk2()
 	popd
 	popd
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.fd
-}
-
-function build_rv_uboot()
-{
-	pushd $RV_UBOOT_SRC_DIR
-	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv sophgo_sg2042_defconfig
-	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv all
-	popd
-
-	mkdir -p $RV_FIRMWARE_INSTALL_DIR
-
-	cp $RV_UBOOT_SRC_DIR/u-boot.bin $RV_FIRMWARE_INSTALL_DIR
 }
 
 function clean_rv_uboot()
