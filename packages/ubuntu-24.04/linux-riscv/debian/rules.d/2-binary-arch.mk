@@ -20,7 +20,7 @@ $(stampdir)/stamp-prepare-tree-%: debian/scripts/fix-filenames
 	sed -i 's/.*CONFIG_VERSION_SIGNATURE.*/CONFIG_VERSION_SIGNATURE="Ubuntu $(release)-$(revision)-$* $(raw_kernelversion)"/' $(builddir)/build-$*/.config
 	find $(builddir)/build-$* -name "*.ko" | xargs rm -f
 	# $(kmake) O=$(builddir)/build-$* $(conc_level) rustavailable || true
-	$(kmake) O=$(builddir)/build-$* $(conc_level) sophgo_sg2044_ubuntu_defconfig
+	$(kmake) O=$(builddir)/build-$* $(conc_level) ${SOPHGO_TARGET_DEFCONFIG}
 	$(stamp)
 
 # Used by developers as a shortcut to prepare a tree for compilation.
@@ -656,7 +656,7 @@ ifeq ($(do_tools_acpidbg),true)
 	cd $(builddirpa)/tools/power/acpi && make clean && make CFLAGS="-g -O2 -static -I$(builddirpa)/include" CROSS_COMPILE=$(CROSS_COMPILE) acpidbg
 endif
 ifeq ($(do_tools_rtla),true)
-	cd $(builddirpa)/tools/tracing/rtla && make clean && make LD=ld CFLAGS='-g -O -Wall -I/usr/include/tracefs -I/usr/include/traceevent -DVERSION="\"6.8.1\""' static
+	cd $(builddirpa)/tools/tracing/rtla && env -u MAKEFLAGS make clean && env -u MAKEFLAGS make LD=ld CFLAGS='-g -O -Wall -I/usr/include/tracefs -I/usr/include/traceevent -DVERSION="\"6.8.1\""' static
 endif
 ifeq ($(do_tools_cpupower),true)
 	make -C $(builddirpa)/tools/power/cpupower \
