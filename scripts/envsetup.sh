@@ -111,7 +111,7 @@ if [[ "$CHIP" = "mango" ]]; then
 		return
 	fi
 
-	source $RV_SCRIPTS_DIR/gen_sg2042_img.sh
+	source $RV_SCRIPTS_DIR/gen_distro_img.sh
 elif [[ "$CHIP" = "sg2044" ]]; then
 	# check platform
 	if [[ x$PLAT == x ]]; then
@@ -122,7 +122,7 @@ elif [[ "$CHIP" = "sg2044" ]]; then
 		return
 	fi
 
-	source $RV_SCRIPTS_DIR/gen_sg2044_img.sh
+	source $RV_SCRIPTS_DIR/gen_distro_img.sh
 	source $RV_SCRIPTS_DIR/sign.sh
 elif [[ "$CHIP" = "bm1690e" ]]; then
 	echo "use bm1690e config"
@@ -150,10 +150,11 @@ HOST_ARCH=`uname -m`
 
 if [ $HOST_ARCH = 'riscv64' ]; then
 	RISCV64_LINUX_CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE:-""}
+	RISCV64_ELF_CROSS_COMPILE=${RISCV64_ELF_CROSS_COMPILE:-"riscv64-unknown-elf-"}
 else
 	RISCV64_LINUX_CROSS_COMPILE=${RISCV64_LINUX_CROSS_COMPILE:-"$RV_LINUX_GCC_INSTALL_DIR/bin/riscv64-unknown-linux-gnu-"}
+	RISCV64_ELF_CROSS_COMPILE=${RISCV64_ELF_CROSS_COMPILE:-"$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-"}
 fi
-RISCV64_ELF_CROSS_COMPILE=${RISCV64_ELF_CROSS_COMPILE:-"$RV_ELF_GCC_INSTALL_DIR/bin/riscv64-unknown-elf-"}
 
 TP_IMAGES=(
 	tp_zsbl.bin
@@ -189,21 +190,22 @@ function show_rv_env()
 function show_rv_functions()
 {
 	echo "show_rv_env			-print build environment"
-	echo "show_rv_functions     		-print all funtions "
-	echo "show_rv_chips     		-print all chips "
-	echo "show_rv_platforms     		-print all platforms "
+	echo "show_rv_functions			-print all funtions "
+	echo "show_rv_chips			-print all chips "
+	echo "show_rv_platforms			-print all platforms "
 	echo ""
 	echo "build_rv_gcc			-build gcc from source"
-	echo "build_rv_bootrom		-build bootrom bin"
+	echo "build_rv_bootrom			-build bootrom bin"
 	echo "build_rv_zsbl			-build zsbl bin"
 	echo "build_rv_sbi			-build sbi bin"
 	echo "build_rv_edk2			-build EDKII bin"
 	echo "build_rv_kernel			-build linuxboot kernel"
 	echo "build_rv_ubuntu_kernel		-build ubuntu kernel"
 	echo "build_rv_euler_kernel		-build euler kernel"
+	echo "build_rv_debian_kernel		-build debian kernel"
 	echo "build_rv_ramfs			-build buildroot"
 	echo "build_rv_ltp			-build ltp"
-	echo "build_rv_firmware		-build firmware(zsbl,sbi,edk2,kernel)"
+	echo "build_rv_firmware			-build firmware(zsbl,sbi,edk2)"
 	echo "build_rv_firmware_bin		-build firmware bin"
 	echo "build_rv_firmware_image		-build firmware image"
 	echo "build_rv_firmware_package 	-build firmware package"
@@ -219,16 +221,17 @@ function show_rv_functions()
 	echo "build_tpuv7_runtime		-build tpuv7 runtime for sdk"
 	echo ""
 	echo "clean_rv_gcc			-clean gcc obj files"
-	echo "clean_rv_bootrom		-clean bootrom obj files"
+	echo "clean_rv_bootrom			-clean bootrom obj files"
 	echo "clean_rv_zsbl			-clean zsbl obj files"
 	echo "clean_rv_sbi			-clean sbi obj files"
 	echo "clean_rv_edk2			-clean EDKII obj files"
 	echo "clean_rv_kernel			-clean linuxboot kernel obj files"
 	echo "clean_rv_ubuntu_kernel		-clean ubuntu kernel obj files"
 	echo "clean_rv_euler_kernel		-clean euler kernel obj files"
+	echo "clean_rv_debian_kernel		-clean debian kernel obj files"
 	echo "clean_rv_ramfs			-clean buildroot obj files"
 	echo "clean_rv_ltp			-clean ltp obj files"
-	echo "clean_rv_firmware		-clean firmware(zsbl,sbi,edk2,kernel)"
+	echo "clean_rv_firmware			-clean firmware(zsbl,sbi,edk2,kernel)"
 	echo "clean_rv_firmware_bin		-clean firmware bin"
 	echo "clean_rv_firmware_image		-clean firmware image"
 	echo "clean_rv_firmware_package 	-clean firmware package"
@@ -262,7 +265,7 @@ function build_rv_linux_gcc()
 
 	pushd $RV_GCC_DIR
 	if [ ! -d riscv-gnu-toolchain ]; then
-	    git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
+		git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
 	fi
 	pushd riscv-gnu-toolchain
 	rm -rf $RV_LINU_GCC_INSTALL_DIR
@@ -280,7 +283,7 @@ function build_rv_elf_gcc()
 
 	pushd $RV_GCC_DIR
 	if [ ! -d riscv-gnu-toolchain ]; then
-	    git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
+		git clone https://github.com/riscv-collab/riscv-gnu-toolchain.git
 	fi
 	pushd riscv-gnu-toolchain
 	rm -rf $RV_ELF_GCC_INSTALL_DIR
@@ -301,9 +304,9 @@ function build_rv_gcc()
 function clean_rv_gcc()
 {
 	if [ -d $RV_GCC_DIR/riscv-gnu-toolchain ]; then
-	    pushd $RV_GCC_DIR/riscv-gnu-toolchain
-	    make clean
-	    popd
+		pushd $RV_GCC_DIR/riscv-gnu-toolchain
+		make clean
+		popd
 	fi
 }
 
@@ -362,7 +365,7 @@ function build_rv_tp_zsbl()
 	if [ $err -ne 0 ]; then
 		echo "making tp zsbl config failed"
 		return $err
-	    fi
+	fi
 
 	pushd $RV_ZSBL_BUILD_DIR
 	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE ARCH=riscv
@@ -372,7 +375,7 @@ function build_rv_tp_zsbl()
 	if [ $err -ne 0 ]; then
 		echo "making zsbl failed"
 		return $err
-	    fi
+	fi
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
@@ -411,7 +414,7 @@ function build_rv_zsbl()
 	if [ $err -ne 0 ]; then
 		echo "making zsbl failed"
 		return $err
-	    fi
+	fi
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
@@ -491,7 +494,6 @@ function clean_rv_edk2()
 	make clean
 	popd
 	popd
-	rm -rf $RV_FIRMWARE_INSTALL_DIR/*.fd
 }
 
 function install_rp_debs()
@@ -688,7 +690,7 @@ function build_rv_kernel()
 	fi
 
 	if [ $CHIP != 'qemu' ]; then
-	    cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_FIRMWARE_INSTALL_DIR
+		cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/*.dtb $RV_FIRMWARE_INSTALL_DIR
 	fi
 }
 
@@ -707,108 +709,17 @@ function clean_rv_kernel()
 
 function build_rv_ubuntu_kernel()
 {
-	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_ubuntu_defconfig
-	local err
-	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/ubuntu
 	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
 
-	# on SG2044 + Ubuntu, using native build instead of cross compile build
-	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_Ubuntu" ]; then
-		echo "Build $os_name on $CHIP ($(arch)) native"
+	if [ "$(arch)_${os_name}" == "riscv64_Ubuntu" ]; then
+		echo "Build $os_name natively"
 		build_rv_ubuntu_kernel_native
 		return $?
-	fi
-
-	pushd $RV_KERNEL_SRC_DIR
-	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
-	err=$?
-	popd
-
-	if [ $err -ne 0 ]; then
-		echo "making kernel config failed"
-		return $err
-	fi
-
-	pushd $RV_KERNEL_BUILD_DIR
-	rm -f ../linux-*
-	rm -rf ./debs
-
-	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg dtbs
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		popd
-		echo "making deb package failed"
-		return $ret
-	fi
-
-	if [ ! -d $RV_DEB_INSTALL_DIR ]; then
-		mkdir -p $RV_DEB_INSTALL_DIR
-	fi
-	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
-	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
-	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
-	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
-
-	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
-		mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	fi
-	cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
-
-	popd
-}
-
-function build_rv_debian_kernel()
-{
-	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_debian_defconfig
-	local err
-	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/debian
-	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
-
-	# on SG2044 + Debian, using native build instead of cross compile build
-	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_Debian GNU/Linux" ]; then
-		echo "Build $os_name on $CHIP ($(arch)) native"
-		build_rv_debian_kernel_native
+	else
+		echo "Build $os_name cross platform"
+		build_rv_ubuntu_kernel_cross
 		return $?
 	fi
-
-	pushd $RV_KERNEL_SRC_DIR
-	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
-	err=$?
-	popd
-
-	if [ $err -ne 0 ]; then
-		echo "making kernel config failed"
-		return $err
-	fi
-
-	pushd $RV_KERNEL_BUILD_DIR
-	rm -f ../linux-*
-	rm -rf ./debs
-
-	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg dtbs
-	ret=$?
-	if [ $ret -ne 0 ]; then
-		popd
-		echo "making deb package failed"
-		return $ret
-	fi
-
-	if [ ! -d $RV_DEB_INSTALL_DIR ]; then
-		mkdir -p $RV_DEB_INSTALL_DIR
-	fi
-	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
-	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
-	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
-	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
-
-	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
-		mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	fi
-	cp $RV_KERNEL_BUILD_DIR/arch/riscv/boot/dts/sophgo/${CHIP}-*.dtb $RV_FIRMWARE_INSTALL_DIR
-
-	popd
 }
 
 function clean_rv_ubuntu_kernel()
@@ -816,124 +727,28 @@ function clean_rv_ubuntu_kernel()
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/ubuntu
 	rm -rf $RV_KERNEL_BUILD_DIR
 	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
-	rm -f $RV_FIRMWARE_INSTALL_DIR/*.dtb
+}
+
+function build_rv_debian_kernel()
+{
+	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
+
+	# on SG2044 + Debian, using native build instead of cross compile build
+	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_Debian GNU/Linux" ]; then
+		echo "Build $os_name on $CHIP ($(arch)) native"
+		build_rv_debian_kernel_native
+		return $?
+	else
+		echo "Build Build $os_name on cross platform"
+		build_rv_debian_kernel_cross
+		return $?
+	fi
 }
 
 function clean_rv_debian_kernel()
 {
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/debian
 	rm -rf $RV_KERNEL_BUILD_DIR
-	rm -f $RV_DEBIAN_DEB_INSTALL_DIR/linux-*.deb
-	rm -f $RV_FIRMWARE_INSTALL_DIR/*.dtb
-}
-
-function build_rv_euler_kernel_native()
-{
-	local kernel_ver
-	local rpm_build_dir="${HOME}/rpmbuild"
-	local config_file="sophgo_${CHIP}_openeuler_defconfig"
-
-	# clean up kernel source
-	pushd $RV_KERNEL_SRC_DIR
-	make distclean
-	popd
-
-	pushd ${RV_TOP_DIR}
-
-	rpmdev-setuptree
-	find ${rpm_build_dir}/RPMS -type f -delete
-	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/kernel.spec      ${rpm_build_dir}/SPECS/
-	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.config  ${rpm_build_dir}/SOURCES/
-	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.service ${rpm_build_dir}/SOURCES/
-	tar -czf ${rpm_build_dir}/SOURCES/kernel.tar.gz \
-		--exclude-vcs \
-		--transform s/linux-riscv/kernel/ \
-		linux-riscv
-
-	pushd linux-riscv
-	IFS='.' read -ra kernel_ver <<< $(make kernelversion)
-	sed -i \
-		"/%global upstream_version/c\%global upstream_version ${kernel_ver[0]}.${kernel_ver[1]}" \
-		${rpm_build_dir}/SPECS/kernel.spec
-	sed -i \
-		"/%global upstream_sublevel/c\%global upstream_sublevel ${kernel_ver[2]}" \
-		${rpm_build_dir}/SPECS/kernel.spec
-	sed -i "s/sophgo_sg2044_openeuler_defconfig/${config_file}/g" ${rpm_build_dir}/SPECS/kernel.spec
-	popd
-
-	pushd ${rpm_build_dir}
-	rpmbuild -bb SPECS/kernel.spec
-
-	mkdir -p ${RV_RPM_INSTALL_DIR}
-	kernel_ver=${kernel_ver[0]}.${kernel_ver[1]}.${kernel_ver[2]}
-	cp -f RPMS/riscv64/kernel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
-	cp -f RPMS/riscv64/kernel-devel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
-	cp -f RPMS/riscv64/perf-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
-	popd
-
-	popd
-}
-
-function build_rv_euler_kernel_cross()
-{
-	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_openeuler_defconfig
-	local KERNELRELEASE
-	local RPMBUILD_DIR
-	local err
-	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
-
-	pushd $RV_KERNEL_SRC_DIR
-	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
-	err=$?
-	if [ $err -ne 0 ]; then
-		echo "making kernel config failed"
-		popd
-		return $err
-	fi
-
-	if [ -e ~/.rpmmacros ]; then
-		mv ~/.rpmmacros ~/.rpmmacros.orig
-	fi
-
-# following lines must not be started with space or tab.
-cat >> ~/.rpmmacros << "EOT"
-%_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
-EOT
-
-	KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
-	if [[ ${KERNELRELEASE:0:4} == "6.1." ]]; then
-		RPMBUILD_DIR=$HOME/rpmbuild
-	else
-		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
-	fi
-
-	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
-	ret=$?
-	rm ~/.rpmmacros
-	if [ -e ~/.rpmmacros.orig ]; then
-		mv ~/.rpmmacros.orig ~/.rpmmacros
-	fi
-	if [ $ret -ne 0 ]; then
-		echo "making rpm package failed"
-		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
-		rm *.tar.gz
-		rm -rf $RPMBUILD_DIR
-		popd
-		return $ret
-	fi
-
-	if [ ! -d $RV_RPM_INSTALL_DIR ]; then
-		mkdir -p $RV_RPM_INSTALL_DIR
-	else
-		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
-	fi
-
-
-	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
-	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
-	rm *.tar.gz
-	rm -rf $RPMBUILD_DIR
-	popd
 }
 
 function build_rv_euler_kernel()
@@ -957,7 +772,6 @@ function clean_rv_euler_kernel()
 	make distclean
 	popd
 	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
-	rm -f $RV_FIRMWARE_INSTALL_DIR/*.dtb
 }
 
 RAMDISK_CPU_TYPES=(
@@ -1163,8 +977,8 @@ function build_tp_ramfs()
 	popd
 
 	if [ $err -ne 0 ]; then
-	    echo 'config buildroot failed'
-	    return $err
+		echo 'config buildroot failed'
+		return $err
 	fi
 
 	pushd $RV_BUILDROOT_DIR
@@ -1173,8 +987,8 @@ function build_tp_ramfs()
 	popd
 
 	if [ $err -ne 0 ]; then
-	    echo 'build buildroot failed'
-	    return $err
+		echo 'build buildroot failed'
+		return $err
 	fi
 
 	cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_FIRMWARE_INSTALL_DIR/tp_rootfs.cpio
@@ -1237,8 +1051,8 @@ function build_ap_ramfs()
 	popd
 
 	if [ $err -ne 0 ]; then
-	    echo 'config buildroot failed'
-	    return $err
+		echo 'config buildroot failed'
+		return $err
 	fi
 
 	pushd $RV_BUILDROOT_DIR
@@ -1247,8 +1061,8 @@ function build_ap_ramfs()
 	popd
 
 	if [ $err -ne 0 ]; then
-	    echo 'build buildroot failed'
-	    return $err
+		echo 'build buildroot failed'
+		return $err
 	fi
 
 	cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_FIRMWARE_INSTALL_DIR/ap_rootfs.cpio
@@ -1295,8 +1109,8 @@ function build_rv_ramfs()
 	popd
 
 	if [ $err -ne 0 ]; then
-	    echo 'config buildroot failed'
-	    return $err
+		echo 'config buildroot failed'
+		return $err
 	fi
 
 	pushd $RV_BUILDROOT_DIR
@@ -1305,8 +1119,8 @@ function build_rv_ramfs()
 	popd
 
 	if [ $err -ne 0 ]; then
-	    echo 'build buildroot failed'
-	    return $err
+		echo 'build buildroot failed'
+		return $err
 	fi
 
 	cp $RV_BUILDROOT_DIR/output/images/rootfs.cpio $RV_FIRMWARE_INSTALL_DIR/
@@ -1404,7 +1218,7 @@ function build_rv_firmware_bin()
 	elif [ "$CHIP" = "sg2044" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
 		./pack -a -p SG2044.fd -t 0x80000 -f ${PLAT^^}.fd -l 0x80200000 -o 0x600000 firmware.bin
-		./pack -a -p fsbl.bin -t 0x80000 -f fsbl.bin -l 0x7010080000 firmware.bin
+		./pack -a -p fsbl.bin -t 0x80000 -f $RV_FIRMWARE/fsbl.bin -l 0x7010080000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
 		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
@@ -1479,19 +1293,20 @@ function build_rv_firmware_image()
 
 	echo copy bootloader...
 	if [[ "$CHIP" = "sg2044" ]];then
-	sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
-	sudo cp zsbl.bin efi/riscv64
-	sudo cp *.dtbo efi/riscv64
-	sudo cp ${PLAT^^}.fd efi/riscv64/SG2044.fd
-	else
-	sudo cp $RV_FIRMWARE/fip.bin efi/
-	sudo cp zsbl.bin efi/
-	sudo cp *.dtb efi/riscv64
-	sudo cp *.dtbo efi/riscv64
-	sudo cp ${PLAT^^}.fd efi/riscv64/${PLAT}.fd
+		sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/SG2044.fd
 	fi
-	sudo cp fw_dynamic.bin efi/riscv64
-	sudo touch efi/BOOT
+
+	if [[ "$CHIP" = "mango" ]];then
+		sudo cp $RV_FIRMWARE/fip.bin efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/${PLAT}.fd
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb efi/riscv64
+	fi
+
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtbo efi/riscv64
 
 	echo cleanup...
 	sudo umount /dev/mapper/$fat32part
@@ -1522,18 +1337,20 @@ function build_rv_firmware_package()
 
 	echo copy bootloader...
 	if [[ "$CHIP" = "sg2044" ]];then
-	cp $RV_FIRMWARE/fsbl.bin firmware/riscv64
-	cp zsbl.bin firmware/riscv64
-	cp ${PLAT^^}.fd firmware/riscv64/SG2044.fd
-	else
-	cp $RV_FIRMWARE/fip.bin firmware
-	cp zsbl.bin firmware
-	cp *.fd firmware/riscv64
+		sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/SG2044.fd
 	fi
-	cp *.dtb firmware/riscv64
-	cp *.dtbo firmware/riscv64
-	cp fw_dynamic.bin firmware/riscv64
-	touch firmware/BOOT
+
+	if [[ "$CHIP" = "mango" ]];then
+		sudo cp $RV_FIRMWARE/fip.bin efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/${PLAT}.fd
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb efi/riscv64
+	fi
+
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtbo efi/riscv64
 
 	tar -czvf firmware.tgz firmware
 	rm -rf firmware

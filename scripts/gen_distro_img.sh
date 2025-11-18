@@ -40,7 +40,7 @@ dpkg -i /home/sophgo/bsp-debs/*.deb
 echo '$nrconf{kernelhints} = 0;' > /etc/needrestart/conf.d/99_disable_kernel_hint.conf
 apt autoremove -y || true
 rm /etc/needrestart/conf.d/99_disable_kernel_hint.conf
-apt-mark hold `find /home/sophgo/bsp-debs -name 'linux-image*' | xargs basename -s .deb`
+find /home/sophgo/bsp-debs -name 'linux-image*.deb' -print0 | xargs -0 -r -I{} dpkg-deb -f {} Package | sort -u | xargs -r -I{} sudo apt-mark hold {}
 EOT
 }
 
@@ -93,30 +93,26 @@ function build_rv_image()
 		if [ ! -f "$RV_FIRMWARE_INSTALL_DIR/fsbl.bin" ]; then
 			wget -O "$RV_FIRMWARE_INSTALL_DIR/fsbl.bin" "$RV_SG2044_FSBL_BIN"
 		fi
-	fi
-
-	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $EFI_PARTITION_DIR/riscv64
-
-
-	if [ -f $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd ]; then
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $EFI_PARTITION_DIR/riscv64
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $EFI_PARTITION_DIR/riscv64
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd $EFI_PARTITION_DIR/riscv64/${CHIP^^}.fd
 	fi
 
-	if [ -f $RV_FIRMWARE_INSTALL_DIR/u-boot.bin ]; then
-		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/u-boot.bin $EFI_PARTITION_DIR/riscv64
+	if [ "$CHIP" = "mango" ]; then
+		sudo cp -v $RV_FIRMWARE/fip.bin $EFI_PARTITION_DIR/
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $EFI_PARTITION_DIR/
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd $EFI_PARTITION_DIR/riscv64/${PLAT}.fd
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb $EFI_PARTITION_DIR/riscv64
 	fi
 
-	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $EFI_PARTITION_DIR/riscv64
 	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin $EFI_PARTITION_DIR/riscv64
-
-	if [ "$CHIP" = "bm1690" ]; then
-		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/initrd.img $EFI_PARTITION_DIR/riscv64
-		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/rp_Image $EFI_PARTITION_DIR/riscv64
-		sudo cp -v $RV_TOP_DIR/bootloader-riscv/scripts/bm1690-config.ini $RV_FIRMWARE_INSTALL_DIR/conf.ini
-		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/conf.ini $EFI_PARTITION_DIR/riscv64
-	fi
-
 	sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtbo $EFI_PARTITION_DIR/riscv64
+
+	if [[ "$PLAT" = "SRA1-20" ]];then
+		echo 'cp power good scripts'
+		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/powergood.service $RV_OUTPUT_DIR/root/etc/systemd/system/
+		sudo cp $RV_SERVICE_DIR/sg2042-pisces/powergood/power_good.sh $RV_OUTPUT_DIR/root/usr/local/
+	fi
 
 	echo 'mount system files'
 	sudo mount --bind /proc $RV_OUTPUT_DIR/root/proc
@@ -191,7 +187,7 @@ function gen_changelog()
 	local repo=$1
 	local name=$2
 	local version=$3
-    local code=$4
+	local code=$4
 	local file=$5
 
 	echo "Generating change log $name ($version) [$repo]"
@@ -263,7 +259,7 @@ function export_rv_ubuntu_packages()
 	# modules
 	cp $work_space/linux-modules*.deb $RV_DEB_INSTALL_DIR
 
-    # generic
+	# generic
 	cp $work_space/linux-generic*.deb $RV_DEB_INSTALL_DIR
 
 	# tools  
@@ -312,6 +308,8 @@ function build_rv_ubuntu_kernel_native()
 	# change version information in debian/control
 	sed -e "s/\${KERNEL_VERSION}/$kernel_version/g" -i $linux_riscv/debian/control
 	sed -e "s/\${DISTRO_MAJOR}/$distro_major/g" -i $linux_riscv/debian/control
+	sed -e "s/\${SOPHGO_TARGET_DEFCONFIG}/sophgo_${CHIP}_ubuntu_defconfig/g" -i $linux_riscv/debian/rules.d/2-binary-arch.mk
+	sed -e "s/\${SOPHGO_TARGET_DEFCONFIG}/sophgo_${CHIP}_ubuntu_defconfig/g" -i $linux_riscv/debian/scripts/misc/kernelconfig
 
 
 	echo 'Setup debian build environment for linux package'
@@ -348,21 +346,65 @@ function build_rv_ubuntu_kernel_native()
 	export_rv_ubuntu_packages
 }
 
+function build_rv_ubuntu_kernel_cross()
+{
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_ubuntu_defconfig
+	local err
+	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/ubuntu
+
+	pushd $RV_KERNEL_SRC_DIR
+	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making kernel config failed"
+		return $err
+	fi
+
+	pushd $RV_KERNEL_BUILD_DIR
+	rm -f ../linux-*
+	rm -rf ./debs
+
+	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg dtbs
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		popd
+		echo "making deb package failed"
+		return $ret
+	fi
+
+	if [ ! -d $RV_DEB_INSTALL_DIR ]; then
+		mkdir -p $RV_DEB_INSTALL_DIR
+	fi
+	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
+	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
+	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
+	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
+
+	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+	fi
+
+	popd
+}
+
 function clean_rv_debian_kernel_native()
 {
 	local work_space=$RV_TOP_DIR/build/$CHIP/debian
 
-    if [[ ! -d $work_space ]]; then
-        return
-    fi
+	if [[ ! -d $work_space ]]; then
+		return
+	fi
 
 	echo 'Remove legacy source code'
-    pushd $work_space
+	pushd $work_space
 	rm -rf linux* *.log
 	echo 'Cleanup deb files'
 	rm -rf $work_space/*.deb
 	rm -f $RV_DEBIAN_DEB_INSTALL_DIR/*.deb
-    popd
+	popd
 }
 
 # $1 repository dir
@@ -378,9 +420,9 @@ function prepare_debian_kernel()
 	make ARCH=riscv mrproper
 	popd
 
-    rm -rf $dest
+	rm -rf $dest
 
-    cp -r $repo $dest
+	cp -r $repo $dest
 }
 
 function export_rv_debian_packages()
@@ -396,22 +438,22 @@ function export_rv_debian_packages()
 # $1: kernel source dir
 function patch_debian_kernel()
 {
-    pushd $1
-    git apply debian/patches/debian/perf-traceevent-support-asciidoctor-for-documentatio.patch
-    git apply debian/patches/debian/documentation-drop-sphinx-version-check.patch
-    git apply debian/patches/bugfix/all/revert-tools-build-clean-cflags-and-ldflags-for-fixdep.patch
-    git apply debian/patches/debian/fixdep-allow-overriding-hostcc-and-hostld.patch
-    git apply debian/patches/debian/gitignore.patch
-    git apply debian/patches/debian/kbuild-abort-build-if-subdirs-used.patch
-    git apply debian/patches/debian/kbuild-look-for-module.lds-under-arch-directory-too.patch
-    git apply debian/patches/debian/kernelvariables.patch
-    git apply debian/patches/debian/linux-perf-remove-remaining-source-filenames-from-executable.patch
-    git apply debian/patches/debian/makefile-make-compiler-version-comparison-optional.patch
-    git apply debian/patches/debian/tools-perf-install-python-bindings.patch
-    git apply debian/patches/debian/tools-perf-perf-read-vdso-in-libexec.patch
-    git apply debian/patches/debian/uname-version-timestamp.patch
-    git apply debian/patches/debian/version.patch
-    popd
+	pushd $1
+	git apply debian/patches/debian/perf-traceevent-support-asciidoctor-for-documentatio.patch
+	git apply debian/patches/debian/documentation-drop-sphinx-version-check.patch
+	git apply debian/patches/bugfix/all/revert-tools-build-clean-cflags-and-ldflags-for-fixdep.patch
+	git apply debian/patches/debian/fixdep-allow-overriding-hostcc-and-hostld.patch
+	git apply debian/patches/debian/gitignore.patch
+	git apply debian/patches/debian/kbuild-abort-build-if-subdirs-used.patch
+	git apply debian/patches/debian/kbuild-look-for-module.lds-under-arch-directory-too.patch
+	git apply debian/patches/debian/kernelvariables.patch
+	git apply debian/patches/debian/linux-perf-remove-remaining-source-filenames-from-executable.patch
+	git apply debian/patches/debian/makefile-make-compiler-version-comparison-optional.patch
+	git apply debian/patches/debian/tools-perf-install-python-bindings.patch
+	git apply debian/patches/debian/tools-perf-perf-read-vdso-in-libexec.patch
+	git apply debian/patches/debian/uname-version-timestamp.patch
+	git apply debian/patches/debian/version.patch
+	popd
 }
 
 function build_rv_debian_kernel_native()
@@ -440,15 +482,167 @@ function build_rv_debian_kernel_native()
 	echo 'Generating changelog for linux package'
 	gen_changelog $RV_KERNEL_SRC_DIR linux-$kernel_version "$kernel_version-$distro_major" trixie $linux/debian/changelog
 
-    echo 'Applying debian kernel patches'
-    patch_debian_kernel $linux
+	echo 'Applying debian kernel patches'
+	patch_debian_kernel $linux
 
 	echo 'Build linux package'
 	pushd $linux
-    export DEB_BUILD_OPTIONS="parallel=$(nproc)"
-    fakeroot debian/rules debian/control-real
+	export DEB_BUILD_OPTIONS="parallel=$(nproc)"
+	fakeroot debian/rules debian/control-real
 	fakeroot debian/rules binary 2>&1 | tee ../compile-linux.log
 	popd
 
 	export_rv_debian_packages
+}
+
+function build_rv_debian_kernel_cross()
+{
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_debian_defconfig
+	local err
+	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/debian
+
+	pushd $RV_KERNEL_SRC_DIR
+	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
+	err=$?
+	popd
+
+	if [ $err -ne 0 ]; then
+		echo "making kernel config failed"
+		return $err
+	fi
+
+	pushd $RV_KERNEL_BUILD_DIR
+	rm -f ../linux-*
+	rm -rf ./debs
+
+	local KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" bindeb-pkg dtbs
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		popd
+		echo "making deb package failed"
+		return $ret
+	fi
+
+	if [ ! -d $RV_DEB_INSTALL_DIR ]; then
+		mkdir -p $RV_DEB_INSTALL_DIR
+	fi
+	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
+	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
+	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
+	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
+
+	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+	fi
+
+	popd
+}
+
+function build_rv_euler_kernel_native()
+{
+	local kernel_ver
+	local rpm_build_dir="${HOME}/rpmbuild"
+	local config_file="sophgo_${CHIP}_openeuler_defconfig"
+
+	# clean up kernel source
+	pushd $RV_KERNEL_SRC_DIR
+	make distclean
+	popd
+
+	pushd ${RV_TOP_DIR}
+
+	rpmdev-setuptree
+	find ${rpm_build_dir}/RPMS -type f -delete
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/kernel.spec      ${rpm_build_dir}/SPECS/
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.config  ${rpm_build_dir}/SOURCES/
+	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.service ${rpm_build_dir}/SOURCES/
+	tar -czf ${rpm_build_dir}/SOURCES/kernel.tar.gz \
+		--exclude-vcs \
+		--transform s/linux-riscv/kernel/ \
+		linux-riscv
+
+	pushd linux-riscv
+	IFS='.' read -ra kernel_ver <<< $(make kernelversion)
+	sed -i \
+		"/%global upstream_version/c\%global upstream_version ${kernel_ver[0]}.${kernel_ver[1]}" \
+		${rpm_build_dir}/SPECS/kernel.spec
+	sed -i \
+		"/%global upstream_sublevel/c\%global upstream_sublevel ${kernel_ver[2]}" \
+		${rpm_build_dir}/SPECS/kernel.spec
+	sed -i "s/sophgo_sg2044_openeuler_defconfig/${config_file}/g" ${rpm_build_dir}/SPECS/kernel.spec
+	popd
+
+	pushd ${rpm_build_dir}
+	rpmbuild -bb SPECS/kernel.spec
+
+	mkdir -p ${RV_RPM_INSTALL_DIR}
+	kernel_ver=${kernel_ver[0]}.${kernel_ver[1]}.${kernel_ver[2]}
+	cp -f RPMS/riscv64/kernel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/kernel-devel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/perf-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	popd
+
+	popd
+}
+
+function build_rv_euler_kernel_cross()
+{
+	local RV_KERNEL_CONFIG=${VENDOR}_${CHIP}_openeuler_defconfig
+	local KERNELRELEASE
+	local RPMBUILD_DIR
+	local err
+
+	pushd $RV_KERNEL_SRC_DIR
+	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
+	err=$?
+	if [ $err -ne 0 ]; then
+		echo "making kernel config failed"
+		popd
+		return $err
+	fi
+
+	if [ -e ~/.rpmmacros ]; then
+		mv ~/.rpmmacros ~/.rpmmacros.orig
+	fi
+
+# following lines must not be started with space or tab.
+cat >> ~/.rpmmacros << "EOT"
+%_build_name_fmt        %%{ARCH}/%%{NAME}-%%{VERSION}.%%{ARCH}.rpm
+EOT
+
+	KERNELRELEASE=$(make ARCH=riscv LOCALVERSION="" kernelrelease)
+	if [[ ${KERNELRELEASE:0:4} == "6.1." ]]; then
+		RPMBUILD_DIR=$HOME/rpmbuild
+	else
+		RPMBUILD_DIR=$RV_KERNEL_SRC_DIR/rpmbuild
+	fi
+
+	make -j$(nproc) ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE LOCALVERSION="" rpm-pkg
+	ret=$?
+	rm ~/.rpmmacros
+	if [ -e ~/.rpmmacros.orig ]; then
+		mv ~/.rpmmacros.orig ~/.rpmmacros
+	fi
+	if [ $ret -ne 0 ]; then
+		echo "making rpm package failed"
+		make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
+		rm *.tar.gz
+		rm -rf $RPMBUILD_DIR
+		popd
+		return $ret
+	fi
+
+	if [ ! -d $RV_RPM_INSTALL_DIR ]; then
+		mkdir -p $RV_RPM_INSTALL_DIR
+	else
+		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+	fi
+
+
+	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
+	rm *.tar.gz
+	rm -rf $RPMBUILD_DIR
+	popd
 }

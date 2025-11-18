@@ -33,7 +33,7 @@ mode=${1}
 
 case "${mode}" in
 	updateconfigs)  target="syncconfig" ;;
-	defaultconfigs) target="sophgo_sg2044_ubuntu_defconfig" ;;
+	defaultconfigs) target="${SOPHGO_TARGET_DEFCONFIG}" ;;
 	genconfigs)     target="oldconfig" ;;
 	editconfigs)    ;;  # Target is set later based on user input
 	*) echo "ERROR: Invalid mode: ${1}" >&2
