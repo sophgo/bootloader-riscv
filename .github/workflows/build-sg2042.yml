@@ -103,13 +103,17 @@ jobs:
                 build_rv_firmware_image
 
                 mkdir ~/firmware_artifact
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware*.bin $GITHUB_WORKSPACE/firmware_${PLAT}_${BRANCH}.bin
-                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware_${PLAT}_${BRANCH}.img
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.bin $GITHUB_WORKSPACE/firmware.bin
+                cp -v $RV_FIRMWARE_INSTALL_DIR/firmware.img $GITHUB_WORKSPACE/firmware.img
+                cp -v $RV_FIRMWARE_INSTALL_DIR/obmc-bios.tar.gz $GITHUB_WORKSPACE/obmc-bios.tar.gz
               popd
 
       - name: 'Upload Build Artifact'
         uses: actions/upload-artifact@v4
         with:
           name: sophgo-bootloader-${{ matrix.M_PLAT_NAME }}-${{ matrix.LINUX_BRANCH }}
-          path: firmware_*
+          path: |
+                firmware.bin
+                firmware.img
+                obmc-bios.tar.gz
           retention-days: 30
