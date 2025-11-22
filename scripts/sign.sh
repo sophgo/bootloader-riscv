@@ -8,7 +8,7 @@ function sign()
 
 	if [[ ! -f "$PRIVATE_KEY" || ! -f "$ORIGIN_FILE" ]]; then
 		echo "Error: use as 'sign private_key origin_file (signed_file)'."
-		exit 1
+		return 1
 	fi
 
 	if [ -z "$SIGNED_FILE" ]; then
@@ -27,7 +27,7 @@ function verify()
 
 	if [[ ! -f "$PUBLIC_KEY" || ! -f "$ORIGIN_FILE" ]]; then
 		echo "Error: use as 'verify public_key origin_file (signed_file)'."
-		exit 1
+		return 1
 	fi
 
 	if [ -z "$SIGNED_FILE" ]; then
@@ -38,7 +38,7 @@ function verify()
 	if ! openssl dgst -sha256 -verify $PUBLIC_KEY -signature "$SIGNED_FILE" "$ORIGIN_FILE" >/dev/null 2>&1; then
 		echo "verify failed: ${ORIGIN_FILE}"
 		rm "$HASH_FILE"
-		exit 1
+		return 1
 	fi
 
 	rm $HASH_FILE
@@ -64,7 +64,7 @@ function export_key()
 
 	if [[ ! -f "$PRIVATE_KEY_FILE" || ! -f "$PUBLIC_KEY_FILE" ]]; then
 		echo "UsaError: private_key or public_key is not found"
-		exit 1
+		return 1
 	fi
 	convert_to_der $PUBLIC_KEY_FILE $PUBLIC_KEY_DER_FILE
 
