@@ -1,3 +1,29 @@
+# 1.3.0_2025-12-10
+
+## [zsbl(master)](https://github.com/sophgo/zsbl/tree/master)
+
++ Compatible with the current conf.ini status
+
++ Pass zsbl dtb to opensbi and edk2
+
+## [opensbi(sg2042-dev)](https://github.com/sophgo/opensbi/tree/sg2042-dev)
+
++ Add virtual global timer device driver
+
+## [sophgo-edk2(devel-sg2042)](https://github.com/sophgo/sophgo-edk2/tree/devel-sg2042)
+
++ Add ACPI support for different SG2042 platforms
+
++ Support runtime services
+
+## [linux-riscv(sg2042-dev-6.6)](https://github.com/sophgo/linux-riscv/tree/sg2042-dev-6.6)
+
++ Update to 6.6.119
+
++ Enable CONFIG_ACPI by default
+
++ Add ACPI support for SG2042
+
 # 1.2.0_2025-06-09
 
 ## [zsbl(master)](https://github.com/sophgo/zsbl/tree/master)
@@ -22,7 +48,7 @@
 + Add sg2044-sra3.dtso and update all *conf.ini (@kun-chang in [65ca399b089b65d](https://github.com/sophgo/zsbl/commit/65ca399b089b65d) at 2025-04-17 13:08:48)
     > Signed-off-by: kun-chang &lt;kun.chang@sophgo.com&gt;
 
-+ Modify to read secure boot flag and public key hash from ‌eFuse0‌ (@Jianhang Wu in [33a6e22653cbc89](https://github.com/sophgo/zsbl/commit/33a6e22653cbc89) at 2025-04-17 02:48:49)
++ Modify to read secure boot flag and public key hash from ‌eFuse0�? (@Jianhang Wu in [33a6e22653cbc89](https://github.com/sophgo/zsbl/commit/33a6e22653cbc89) at 2025-04-17 02:48:49)
     > Signed-off-by: Jianhang Wu &lt;jianhang.wu@sophgo.com&gt;
 
 + fixbug, ini parser doesn&#x27;t work well if \r\n as new line (@Chao Wei in [ab4cb7cb70649d7](https://github.com/sophgo/zsbl/commit/ab4cb7cb70649d7) at 2025-04-16 13:42:24)
@@ -76,8 +102,8 @@
     > Signed-off-by: Jianhang Wu &lt;jianhang.wu@sophgo.com&gt;
 
 + Add secure boot function in zsbl. (@Jianhang Wu in [4d639fee26b4995](https://github.com/sophgo/zsbl/commit/4d639fee26b4995) at 2025-03-18 08:09:29)
-    > The PKA driver has been added, supporting both ‌RSA (SHA256)‌ and ‌SM2 (SM3)‌ signature verification algorithms.
-    > If the secure boot option is enabled in the efuse configuration, the original boot files must be augmented with ‌additional signature files and public keys‌.
+    > The PKA driver has been added, supporting both ‌RSA (SHA256)�? and ‌SM2 (SM3)�? signature verification algorithms.
+    > If the secure boot option is enabled in the efuse configuration, the original boot files must be augmented with ‌additional signature files and public keys�?.
     > Signed-off-by: Jianhang Wu &lt;jianhang.wu@sophgo.comn&gt;
 
 + riscv: conf: modify processor name (@Jingyu Li in [af8a0c2936926a3](https://github.com/sophgo/zsbl/commit/af8a0c2936926a3) at 2025-03-15 08:08:53)
