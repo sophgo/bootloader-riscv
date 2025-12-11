@@ -1225,7 +1225,7 @@ function build_rv_firmware_bin()
 		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware.bin
 		export_key $PRIVKEY_PATH $PUBKEY_PATH
 		sign $PRIVKEY_PATH ${PLAT^^}.fd
-		sign $PRIVKEY_PATH fsbl.bin
+		sign $PRIVKEY_PATH $RV_FIRMWARE/fsbl.bin fsbl.bin.sig
 		sign $PRIVKEY_PATH zsbl.bin
 		sign $PRIVKEY_PATH fw_dynamic.bin
 		sign $PRIVKEY_PATH sg2044-evb.dtbo
