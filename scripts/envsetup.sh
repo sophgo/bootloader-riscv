@@ -41,38 +41,6 @@ TPUV7_RP_DAEMON=${TPUV7_RP_DAEMON:-rp_dir} # receive import path
 RV_TOP_DIR=${TOP_DIR:-$(get_rv_top)}
 
 RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
-RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/$PLAT
-
-RV_BOOTROM_SRC_DIR=$RV_TOP_DIR/sophgo-2260/bootrom
-RV_BOOTROM_BUILD_DIR=$RV_BOOTROM_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
-
-RV_ZSBL_SRC_DIR=$RV_TOP_DIR/zsbl
-RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
-RV_SBI_SRC_DIR=$RV_TOP_DIR/opensbi
-
-RV_EDKII_SRC_DIR=$RV_TOP_DIR/sophgo-edk2
-
-RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-riscv
-RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/$KERNEL_VARIANT
-# RV_KERNEL_BUILD_DIR should only be used inside build/clean kernel functions
-
-RV_RAMDISK_DIR=$RV_TOP_DIR/bootloader-riscv/ramdisk
-
-RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
-
-RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
-RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
-
-TPUV7_RUNTIME_DIR=$RV_TOP_DIR/tpuv7-runtime
-TPUV7_AP_DAEMON=$TPUV7_RUNTIME_DIR/build/fw/ap/daemon/cdm_daemon
-TPUV7_TP_DAEMON=$TPUV7_RUNTIME_DIR/build/fw/tp/daemon/tp_daemon
-
-RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
-RV_UBUNTU_DISTRO=ubuntu
-RV_EULER_DISTRO=euler
-
-RV_UBUNTU_SOPHGO_IMAGE=ubuntu-sophgo.img
-RV_EULER_SOPHGO_IMAGE=euler-sophgo.img
 
 # check parameters
 
@@ -133,12 +101,45 @@ fi
 
 echo "Build environment for chip $CHIP and platform $PLAT setups done"
 
-RV_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debs
-RV_RPM_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-rpms
-RV_DEBIAN_DEB_INSTALL_DIR=$RV_OUTPUT_DIR/bsp-debian-debs
+RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/$PLAT
+
+RV_BOOTROM_SRC_DIR=$RV_TOP_DIR/sophgo-2260/bootrom
+RV_BOOTROM_BUILD_DIR=$RV_BOOTROM_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
+
+RV_ZSBL_SRC_DIR=$RV_TOP_DIR/zsbl
+RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
+RV_SBI_SRC_DIR=$RV_TOP_DIR/opensbi
+
+RV_EDKII_SRC_DIR=$RV_TOP_DIR/sophgo-edk2
+
+RV_KERNEL_SRC_DIR=$RV_TOP_DIR/linux-riscv
+RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/$KERNEL_VARIANT
+# RV_KERNEL_BUILD_DIR should only be used inside build/clean kernel functions
+
+RV_RAMDISK_DIR=$RV_TOP_DIR/bootloader-riscv/ramdisk
+
+RV_BUILDROOT_DIR=$RV_TOP_DIR/bootloader-riscv/buildroot
+
+RV_LTP_SRC_DIR=$RV_TOP_DIR/bsp-solutions/ltp
+RV_LTP_OUTPUT_DIR=$RV_OUTPUT_DIR/ltp
+
+TPUV7_RUNTIME_DIR=$RV_TOP_DIR/tpuv7-runtime
+TPUV7_AP_DAEMON=$TPUV7_RUNTIME_DIR/build/fw/ap/daemon/cdm_daemon
+TPUV7_TP_DAEMON=$TPUV7_RUNTIME_DIR/build/fw/tp/daemon/tp_daemon
+
+RV_DISTRO_DIR=$RV_TOP_DIR/distro_riscv
+RV_UBUNTU_DISTRO=ubuntu
+RV_EULER_DISTRO=euler
+
+RV_UBUNTU_SOPHGO_IMAGE=ubuntu-sophgo.img
+RV_EULER_SOPHGO_IMAGE=euler-sophgo.img
+
+RV_IMAGE_INSTALL_DIR=$RV_OUTPUT_DIR/image
+RV_PACKAGE_INSTALL_DIR=$RV_OUTPUT_DIR/package
 RV_FIRMWARE_INSTALL_DIR=$RV_OUTPUT_DIR/firmware
 RV_RP_DEB_INSTALL_DIR=$RV_FIRMWARE_INSTALL_DIR/rp_ramdisk_debs
 RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
+RV_SERVICE_DIR=$RV_TOP_DIR/bootloader-riscv/service
 RV_TOOLS_DIR=$RV_OUTPUT_DIR/tools
 
 RV_GCC_DIR=$RV_TOP_DIR/gcc-riscv
@@ -240,6 +241,7 @@ function show_rv_functions()
 	echo "clean_rv_ubuntu_image		-clean ubuntu image"
 	echo "clean_rv_euler_image		-clean euler image"
 	echo "clean_rv_ubuntu			-clean ubuntu image"
+	echo "clean_rv_euler			-clean euler image"
 	echo "clean_rv_all			-clean all bin and image(default: ubuntu)"
 	echo "clean_tpuv7_runtime		-clean tpuv7 runtime for sdk"
 }
@@ -710,6 +712,7 @@ function clean_rv_kernel()
 function build_rv_ubuntu_kernel()
 {
 	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
+	RV_LINUX_PACKAGE_INSTALL_DIR=$RV_PACKAGE_INSTALL_DIR/ubuntu
 
 	if [ "$(arch)_${os_name}" == "riscv64_Ubuntu" ]; then
 		echo "Build $os_name natively"
@@ -725,13 +728,15 @@ function build_rv_ubuntu_kernel()
 function clean_rv_ubuntu_kernel()
 {
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/ubuntu
+	RV_LINUX_PACKAGE_INSTALL_DIR=$RV_PACKAGE_INSTALL_DIR/ubuntu
 	rm -rf $RV_KERNEL_BUILD_DIR
-	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
+	rm -rf $RV_LINUX_PACKAGE_INSTALL_DIR
 }
 
 function build_rv_debian_kernel()
 {
 	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
+	RV_LINUX_PACKAGE_INSTALL_DIR=$RV_PACKAGE_INSTALL_DIR/debian
 
 	# on SG2044 + Debian, using native build instead of cross compile build
 	if [ "${CHIP}_$(arch)_${os_name}" == "sg2044_riscv64_Debian GNU/Linux" ]; then
@@ -748,12 +753,15 @@ function build_rv_debian_kernel()
 function clean_rv_debian_kernel()
 {
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/debian
+	RV_LINUX_PACKAGE_INSTALL_DIR=$RV_PACKAGE_INSTALL_DIR/debian
 	rm -rf $RV_KERNEL_BUILD_DIR
+	rm -rf $RV_LINUX_PACKAGE_INSTALL_DIR
 }
 
 function build_rv_euler_kernel()
 {
 	local os_name=$(grep -oP "^NAME=(.*)" /etc/os-release | awk -F '=' '{print $2}' | tr -d '"')
+	RV_LINUX_PACKAGE_INSTALL_DIR=$RV_PACKAGE_INSTALL_DIR/euler
 
 	if [ "$(arch)_${os_name}" == "riscv64_openEuler" ]; then
 		echo "Build ${os_name} natively"
@@ -768,10 +776,12 @@ function build_rv_euler_kernel()
 
 function clean_rv_euler_kernel()
 {
+	RV_LINUX_PACKAGE_INSTALL_DIR=$RV_PACKAGE_INSTALL_DIR/euler
 	pushd $RV_KERNEL_SRC_DIR
-	make distclean
+	make ARCH=riscv distclean
+	make ARCH=riscv mrproper
 	popd
-	rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+	rm -rf $RV_LINUX_PACKAGE_INSTALL_DIR
 }
 
 RAMDISK_CPU_TYPES=(
@@ -1393,6 +1403,7 @@ function clean_rv_ltp()
 
 function build_rv_ubuntu()
 {
+	build_rv_firmware
 	build_rv_ubuntu_kernel
 	build_rv_ubuntu_distro
 	build_rv_ubuntu_image
@@ -1400,6 +1411,7 @@ function build_rv_ubuntu()
 
 function clean_rv_ubuntu()
 {
+	clean_rv_firmware
 	clean_rv_ubuntu_kernel
 	clean_rv_ubuntu_distro
 	clean_rv_ubuntu_image
@@ -1407,6 +1419,7 @@ function clean_rv_ubuntu()
 
 function build_rv_euler()
 {
+	build_rv_firmware
 	build_rv_euler_kernel
 	build_rv_euler_distro
 	build_rv_euler_image
@@ -1414,6 +1427,7 @@ function build_rv_euler()
 
 function clean_rv_euler()
 {
+	clean_rv_firmware
 	clean_rv_euler_kernel
 	clean_rv_euler_distro
 	clean_rv_euler_image

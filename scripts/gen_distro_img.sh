@@ -30,30 +30,32 @@ function gen_distro_img_name()
 
 function install_deb_packages()
 {
-	echo 'copy bsp packages'
-	sudo cp -v -r $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/root/home/sophgo
+	echo 'copy deb packages'
+	sudo cp -v -r $RV_LINUX_PACKAGE_INSTALL_DIR $RV_OUTPUT_DIR/root/home/sophgo
 
 	echo install linux image...
 	# following lines must not be started with space or tab.
 	sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
-dpkg -i /home/sophgo/bsp-debs/*.deb
+dpkg -i /home/sophgo/ubuntu/*.deb
 echo '$nrconf{kernelhints} = 0;' > /etc/needrestart/conf.d/99_disable_kernel_hint.conf
 apt autoremove -y || true
 rm /etc/needrestart/conf.d/99_disable_kernel_hint.conf
-find /home/sophgo/bsp-debs -name 'linux-image*.deb' -print0 | xargs -0 -r -I{} dpkg-deb -f {} Package | sort -u | xargs -r -I{} sudo apt-mark hold {}
+find /home/sophgo/ubuntu -name 'linux-image*.deb' -print0 | xargs -0 -r -I{} dpkg-deb -f {} Package | sort -u | xargs -r -I{} sudo apt-mark hold {}
+rm -rf /home/sophgo/ubuntu
 EOT
 }
 
 function install_rpm_packages()
 {
-	echo 'copy bsp packages'
-	sudo cp -v -r $RV_RPM_INSTALL_DIR $RV_OUTPUT_DIR/root/home/sophgo
+	echo 'copy rpm packages'
+	sudo cp -v -r $RV_LINUX_PACKAGE_INSTALL_DIR $RV_OUTPUT_DIR/root/home/sophgo
 
 	echo install linux image...
 	# following lines must not be started with space or tab.
 	sudo chroot $RV_OUTPUT_DIR/root /bin/bash << "EOT"
-rpm -i /home/sophgo/bsp-rpms/kernel-[0-9]*.riscv64.rpm
+rpm -i /home/sophgo/euler/kernel-[0-9]*.riscv64.rpm
 dracut --force --regenerate-all --no-hostonly
+rm -rf /home/sophgo/euler
 EOT
 
 }
@@ -121,7 +123,7 @@ function build_rv_image()
 	sudo mount --bind /dev/pts $RV_OUTPUT_DIR/root/dev/pts
 
 	echo 'create vendor home directory'
-	sudo mkdir -p $RV_DEB_INSTALL_DIR $RV_OUTPUT_DIR/root/home/sophgo
+	sudo mkdir -p $RV_OUTPUT_DIR/root/home/sophgo
 
 	if [ $1 == "rpm" ]; then
 		install_rpm_packages
@@ -142,9 +144,9 @@ function build_rv_image()
 	sudo rm -r $RV_OUTPUT_DIR/root
 
 	gen_distro_img_name $RV_OFFICIAL_IMAGE
-	mv $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE $RV_OUTPUT_DIR/$BUILD_DISTRO_IMAGE
+	mv $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE $RV_IMAGE_INSTALL_DIR/$BUILD_DISTRO_IMAGE
 	# overwrite the existing one
-	xz -v --keep --force -T $(nproc) $RV_OUTPUT_DIR/$BUILD_DISTRO_IMAGE
+	xz -v --keep --force -T $(nproc) $RV_IMAGE_INSTALL_DIR/$BUILD_DISTRO_IMAGE
 
 	echo "build $RV_DISTRO successfully!"
 }
@@ -154,13 +156,17 @@ function build_rv_ubuntu_image()
 	RV_OFFICIAL_IMAGE=$RV_UBUNTU_OFFICIAL_IMAGE
 	RV_SOPHGO_IMAGE=$RV_UBUNTU_SOPHGO_IMAGE
 	RV_DISTRO=$RV_UBUNTU_DISTRO
+	RV_LINUX_PACKAGE_INSTALL_DIR=$RV_PACKAGE_INSTALL_DIR/ubuntu
+	if [ ! -d $RV_IMAGE_INSTALL_DIR ]; then
+		mkdir -p $RV_IMAGE_INSTALL_DIR
+	fi
 	build_rv_image deb
 }
 
 function clean_rv_ubuntu_image()
 {
 	gen_distro_img_name $RV_UBUNTU_OFFICIAL_IMAGE
-	rm -rf $RV_OUTPUT_DIR/$DISTRO_NAME-$DISTRO_VERSION-$DISTRO_ARCH-$CHIP-*
+	rm -rf $RV_IMAGE_INSTALL_DIR/$DISTRO_NAME-$DISTRO_VERSION-$DISTRO_ARCH-$CHIP-*
 }
 
 function build_rv_euler_image()
@@ -168,13 +174,17 @@ function build_rv_euler_image()
 	RV_OFFICIAL_IMAGE=$RV_EULER_OFFICIAL_IMAGE
 	RV_SOPHGO_IMAGE=$RV_EULER_SOPHGO_IMAGE
 	RV_DISTRO=$RV_EULER_DISTRO
+	RV_LINUX_PACKAGE_INSTALL_DIR=$RV_PACKAGE_INSTALL_DIR/euler
+	if [ ! -d $RV_IMAGE_INSTALL_DIR ]; then
+		mkdir -p $RV_IMAGE_INSTALL_DIR
+	fi
 	build_rv_image rpm
 }
 
 function clean_rv_euler_image()
 {
 	gen_distro_img_name $RV_EULER_OFFICIAL_IMAGE
-	rm -rf $RV_OUTPUT_DIR/$DISTRO_NAME-$DISTRO_VERSION-$DISTRO_ARCH-$CHIP-*
+	rm -rf $RV_IMAGE_INSTALL_DIR/$DISTRO_NAME-$DISTRO_VERSION-$DISTRO_ARCH-$CHIP-*
 }
 
 # $1 repository dir
@@ -238,35 +248,38 @@ function clean_rv_ubuntu_kernel_native()
 	rm -rf $linux_riscv $linux_meta_riscv $linux $work_space/*.log
 	echo 'Cleanup deb files'
 	rm -rf $work_space/*.deb
-	rm -f $RV_DEB_INSTALL_DIR/*.deb
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.deb
 }
 
 function export_rv_ubuntu_packages()
 {
 	local work_space=$RV_TOP_DIR/build/$CHIP/ubuntu
 
-	mkdir -p $RV_DEB_INSTALL_DIR
+	if [ ! -d $RV_LINUX_PACKAGE_INSTALL_DIR ]; then
+		mkdir -p $RV_LINUX_PACKAGE_INSTALL_DIR
+	fi
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.deb
 
 	# image
-	cp $work_space/linux-image-[0-9]*.deb $RV_DEB_INSTALL_DIR
-	cp $work_space/linux-image-generic*.deb $RV_DEB_INSTALL_DIR
+	cp $work_space/linux-image-[0-9]*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
+	cp $work_space/linux-image-generic*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
 
 	# headers
-	cp $work_space/linux-headers-[0-9]*.deb $RV_DEB_INSTALL_DIR
-	cp $work_space/linux-riscv-headers*.deb $RV_DEB_INSTALL_DIR
-	cp $work_space/linux-headers-generic*.deb $RV_DEB_INSTALL_DIR
+	cp $work_space/linux-headers-[0-9]*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
+	cp $work_space/linux-riscv-headers*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
+	cp $work_space/linux-headers-generic*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
 
 	# modules
-	cp $work_space/linux-modules*.deb $RV_DEB_INSTALL_DIR
+	cp $work_space/linux-modules*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
 
 	# generic
-	cp $work_space/linux-generic*.deb $RV_DEB_INSTALL_DIR
+	cp $work_space/linux-generic*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
 
 	# tools  
-	cp $work_space/linux-riscv-tools-*.deb $RV_DEB_INSTALL_DIR
-	cp $work_space/linux-tools-[0-9]*.deb $RV_DEB_INSTALL_DIR
-	cp $work_space/linux-tools-common*.deb $RV_DEB_INSTALL_DIR
-	cp $work_space/linux-tools-generic*.deb $RV_DEB_INSTALL_DIR
+	cp $work_space/linux-riscv-tools-*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
+	cp $work_space/linux-tools-[0-9]*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
+	cp $work_space/linux-tools-common*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
+	cp $work_space/linux-tools-generic*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
 }
 
 function build_rv_ubuntu_kernel_native()
@@ -353,6 +366,8 @@ function build_rv_ubuntu_kernel_cross()
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/ubuntu
 
 	pushd $RV_KERNEL_SRC_DIR
+	make ARCH=riscv distclean
+	make ARCH=riscv mrproper
 	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
 	err=$?
 	popd
@@ -375,13 +390,14 @@ function build_rv_ubuntu_kernel_cross()
 		return $ret
 	fi
 
-	if [ ! -d $RV_DEB_INSTALL_DIR ]; then
-		mkdir -p $RV_DEB_INSTALL_DIR
+	if [ ! -d $RV_LINUX_PACKAGE_INSTALL_DIR ]; then
+		mkdir -p $RV_LINUX_PACKAGE_INSTALL_DIR
 	fi
-	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
-	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
-	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
-	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.deb
+
+	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_LINUX_PACKAGE_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
+	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_LINUX_PACKAGE_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
+	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_LINUX_PACKAGE_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
 
 	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
@@ -403,7 +419,9 @@ function clean_rv_debian_kernel_native()
 	rm -rf linux* *.log
 	echo 'Cleanup deb files'
 	rm -rf $work_space/*.deb
-	rm -f $RV_DEBIAN_DEB_INSTALL_DIR/*.deb
+	rm -rf $work_space/*.udeb
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.deb
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.udeb
 	popd
 }
 
@@ -429,10 +447,14 @@ function export_rv_debian_packages()
 {
 	local work_space=$RV_TOP_DIR/build/$CHIP/debian
 
-	mkdir -p $RV_DEBIAN_DEB_INSTALL_DIR
+	if [ ! -d $RV_LINUX_PACKAGE_INSTALL_DIR ]; then
+		mkdir -p $RV_LINUX_PACKAGE_INSTALL_DIR
+	fi
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.deb
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.udeb
 
-	cp $work_space/*.deb $RV_DEBIAN_DEB_INSTALL_DIR
-	cp $work_space/*.udeb $RV_DEBIAN_DEB_INSTALL_DIR
+	cp $work_space/*.deb $RV_LINUX_PACKAGE_INSTALL_DIR
+	cp $work_space/*.udeb $RV_LINUX_PACKAGE_INSTALL_DIR
 }
 
 # $1: kernel source dir
@@ -502,6 +524,8 @@ function build_rv_debian_kernel_cross()
 	RV_KERNEL_BUILD_DIR=$RV_TOP_DIR/build/$CHIP/linux-riscv/debian
 
 	pushd $RV_KERNEL_SRC_DIR
+	make ARCH=riscv distclean
+	make ARCH=riscv mrproper
 	make O=$RV_KERNEL_BUILD_DIR ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
 	err=$?
 	popd
@@ -524,13 +548,14 @@ function build_rv_debian_kernel_cross()
 		return $ret
 	fi
 
-	if [ ! -d $RV_DEB_INSTALL_DIR ]; then
-		mkdir -p $RV_DEB_INSTALL_DIR
+	if [ ! -d $RV_LINUX_PACKAGE_INSTALL_DIR ]; then
+		mkdir -p $RV_LINUX_PACKAGE_INSTALL_DIR
 	fi
-	rm -f $RV_DEB_INSTALL_DIR/linux-*.deb
-	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
-	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_DEB_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
-	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_DEB_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.deb
+
+	mv ../linux-image-${KERNELRELEASE}_*.deb $RV_LINUX_PACKAGE_INSTALL_DIR/linux-image-${KERNELRELEASE}.deb
+	mv ../linux-headers-${KERNELRELEASE}_*.deb $RV_LINUX_PACKAGE_INSTALL_DIR/linux-headers-${KERNELRELEASE}.deb
+	mv ../linux-libc-dev_${KERNELRELEASE}-*.deb $RV_LINUX_PACKAGE_INSTALL_DIR/linux-libc-dev_${KERNELRELEASE}.deb
 
 	if [ ! -d $RV_FIRMWARE_INSTALL_DIR ]; then
 		mkdir -p $RV_FIRMWARE_INSTALL_DIR
@@ -547,7 +572,8 @@ function build_rv_euler_kernel_native()
 
 	# clean up kernel source
 	pushd $RV_KERNEL_SRC_DIR
-	make distclean
+	make ARCH=riscv distclean
+	make ARCH=riscv mrproper
 	popd
 
 	pushd ${RV_TOP_DIR}
@@ -576,11 +602,15 @@ function build_rv_euler_kernel_native()
 	pushd ${rpm_build_dir}
 	rpmbuild -bb SPECS/kernel.spec
 
-	mkdir -p ${RV_RPM_INSTALL_DIR}
+	if [ ! -d $RV_LINUX_PACKAGE_INSTALL_DIR ]; then
+		mkdir -p $RV_LINUX_PACKAGE_INSTALL_DIR
+	fi
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/*.rpm
+
 	kernel_ver=${kernel_ver[0]}.${kernel_ver[1]}.${kernel_ver[2]}
-	cp -f RPMS/riscv64/kernel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
-	cp -f RPMS/riscv64/kernel-devel-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
-	cp -f RPMS/riscv64/perf-${kernel_ver}*.rpm ${RV_RPM_INSTALL_DIR}
+	cp -f RPMS/riscv64/kernel-${kernel_ver}*.rpm ${RV_LINUX_PACKAGE_INSTALL_DIR}
+	cp -f RPMS/riscv64/kernel-devel-${kernel_ver}*.rpm ${RV_LINUX_PACKAGE_INSTALL_DIR}
+	cp -f RPMS/riscv64/perf-${kernel_ver}*.rpm ${RV_LINUX_PACKAGE_INSTALL_DIR}
 	popd
 
 	popd
@@ -594,6 +624,8 @@ function build_rv_euler_kernel_cross()
 	local err
 
 	pushd $RV_KERNEL_SRC_DIR
+	make ARCH=riscv distclean
+	make ARCH=riscv mrproper
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE $RV_KERNEL_CONFIG
 	err=$?
 	if [ $err -ne 0 ]; then
@@ -633,14 +665,12 @@ EOT
 		return $ret
 	fi
 
-	if [ ! -d $RV_RPM_INSTALL_DIR ]; then
-		mkdir -p $RV_RPM_INSTALL_DIR
-	else
-		rm -f $RV_RPM_INSTALL_DIR/kernel-*.rpm
+	if [ ! -d $RV_LINUX_PACKAGE_INSTALL_DIR ]; then
+		mkdir -p $RV_LINUX_PACKAGE_INSTALL_DIR
 	fi
+	rm -f $RV_LINUX_PACKAGE_INSTALL_DIR/kernel-*.rpm
 
-
-	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_RPM_INSTALL_DIR/
+	cp $RPMBUILD_DIR/RPMS/riscv64/*.rpm $RV_LINUX_PACKAGE_INSTALL_DIR/
 	make ARCH=riscv CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE distclean
 	rm *.tar.gz
 	rm -rf $RPMBUILD_DIR
