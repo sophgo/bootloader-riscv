@@ -1,3 +1,81 @@
+# 1.4.0_2026-01-10
+
+## sophgo-2260
+branch: master \
+tag: NA \
+commit: fd1221b048416053bf02291afa00775b56049bc9
+
++ Modify layout of 32bit PCIe bars
+
+## bootloader-riscv
+branch: master \
+tag: NA \
+commit: 8c139ab99e2412c40bed9f83afab75aaea545539
+
++ No update
+
+## zsbl
+branch: sg2044-rel-v3.0.5 \
+tag: sg2044-rel-v3.0.5 \
+commit: 8769ba57ba44c2234038a328a4d5008a9b851c16
+
++ SG2044: preserve devicetree load behavior
++ SG2044: Support specify dtbo in devicetree command
++ RISC-V: Fixbug, asm files doesn't have debug information
++ modify PCIe bar addr and Replace SRA3 conf ini files
++ Support REAL malloc/free
++ Add mrq and mwq commands for 64bit read write
++ Fixbug: ROM mode doen't work
++ LD: Move dynsym and rely.sym before bss section
++ FAT32: Change the OEM code page to 437-U.S.
++ LD: Move dynsym and rely.sym before bss section and fix alignment issue
++ Use imac instead of imafdc
+
+## opensbi
+branch: sg2044-1.6-v20251223 \
+tag: SG2044_OpenSBI-1.6.0_v20251223 \
+commit: 15c8ab7701d19059e5cd2d39f58160cf6688e26e
+
++ SG2044: add t-head c9xx jtlb errta
+
+## linux-riscv
+branch: sg2044-rel-6.12.64 \
+tag: SG2044_Linux-6.12.64_v20260109 \
+commit: 42d49531a70bef002c629107aba842a90c147854
+
++ Update to 6.12.64
++ configs: Update defconfig, enable DEVICE_PRIVATE, MEMORY_HOTPLUG, MEMORY_HOTREMOVE, ZONE_DEVICE and PCI_P2PDMA
+
+## sophgo-edk2
+branch: devel-sg2044 \
+tag: sg2044_sophgo-edk2_20260110 \
+commit: 765c7c573905cc530794b02a9f6fe73607675747
+
++ SG2044/Library: Optimize related bootoptions code
++ SG2044/EfuseTool: Standardized the return value
++ SG2044: Modify the update method of ACPI PPTT table
++ SG2044: Add reboot prompt for 'Reserve Memory' option
++ Sophgo: Add PEI phase between SEC and DXE
++ Sophgo/SG2044: Fix boot option cleanup logic
++ SG2044/PciPlatformLib: Fixbug, wrong class code of PCIe root port
++ SG2044/ACPI: Add dependency between PLIC and MSI controller
++ SG2044: Change some log level from ERROR to VERBOSE
++ SG2044/APEI: Add EINJ and fix BERT/HEST
++ SG2044 BmcConfigDxe: Modify BMC network parameter setting function
++ Sophgo: Add Tpm modules for SG2044
++ SG2044Pkg/ACPI: Modify Pci bar length
++ SG2044Pkg/ACPI: modify PCIe Bar Addr
++ SG2044Pkg/ACPI: Removed unimplemented low power states
++ Sophgo/SG2044Pkg: Organize the code related to the SG2044 platform
++ SG2044Pkg/MemoryInitPei: Fix MemSize calculation formula.
++ Sophgo/SG2044Pkg: pcie: move slave mapping setup from FSBL to EDK2
++ Sophgo/SG2044Pkg: Refactor PCD-based PCIe resource descriptors
++ Sophgo/Core: Replace the PEI core implementation
++ Sophgo/SG2044: Fixbug, PCIe in CXP not working in EDK2
++ Sophgo/SG2044: Add Sietium GPU support
++ Sophgo/SG2044: Modify layout of 32bit PCIe bars
++ Sophgo/SG2044Pkg: pcie: adjust bus region for CCN PCIe slave map
+
 # 1.3.0_2025-06-09
 
 ## sophgo-2260
