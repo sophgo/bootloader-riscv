@@ -27,7 +27,6 @@ jobs:
       PLAT: ${{ matrix.M_PLAT_NAME }}
       BRANCH: ${{ matrix.LINUX_BRANCH }}
       TOOLCHAIN_HOME: /opt/riscv/
-      RV_SG2044_FSBL_BIN: https://github.com/sophgo/bootloader-riscv/releases/download/sg2044-v0.1/fsbl.bin
 
     steps:
       - name: Checkout bootloader-riscv
@@ -82,7 +81,6 @@ jobs:
 
                 build_rv_zsbl
                 build_rv_sbi
-                ${wget_alias} -O "firmware/fsbl.bin" "$RV_SG2044_FSBL_BIN"
                 cp -v firmware/fsbl.bin ${RV_FIRMWARE_INSTALL_DIR}/
               popd
 
