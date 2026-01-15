@@ -49,7 +49,7 @@ commit: 42d49531a70bef002c629107aba842a90c147854
 ## sophgo-edk2
 branch: devel-sg2044 \
 tag: sg2044_sophgo-edk2_20260110 \
-commit: 765c7c573905cc530794b02a9f6fe73607675747
+commit: 23067bccbc8c73155fd533ea9bc390fad7aded53
 
 + SG2044/Library: Optimize related bootoptions code
 + SG2044/EfuseTool: Standardized the return value
@@ -75,6 +75,7 @@ commit: 765c7c573905cc530794b02a9f6fe73607675747
 + Sophgo/SG2044: Add Sietium GPU support
 + Sophgo/SG2044: Modify layout of 32bit PCIe bars
 + Sophgo/SG2044Pkg: pcie: adjust bus region for CCN PCIe slave map
++ Sophgo/SG2044: Fixbug, vaild boot option have been cleared
 
 # 1.3.0_2025-06-09
 
