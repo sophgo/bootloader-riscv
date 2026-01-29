@@ -1,3 +1,48 @@
+# 1.4.2_2026-01-29
+
+## sophgo-2260
+branch: master \
+tag: NA \
+commit: 155aaee012e0b98928a3359a2d97a69e77208ce5
+
++ No update
+
+## bootloader-riscv
+branch: master \
+tag: NA \
+commit: b6e20f0c0111ed52e0c90f6e8d87f895569f1594
+
++ No update
+
+## zsbl
+branch: sg2044-rel-v3.0.5 \
+tag: sg2044-rel-v3.0.5 \
+commit: 8769ba57ba44c2234038a328a4d5008a9b851c16
+
++ No update
+
+## opensbi
+branch: sg2044-1.6-v20251223 \
+tag: SG2044_OpenSBI-1.6.0_v20251223 \
+commit: 15c8ab7701d19059e5cd2d39f58160cf6688e26e
+
++ No update
+
+## linux-riscv
+branch: sg2044-rel-6.12.66 \
+tag: SG2044_Linux-6.12.66_v20260123 \
+commit: 4660e3dc088a2960965f67630cd0fcba1d89a859
+
++ No update
+
+## sophgo-edk2
+branch: devel-sg2044 \
+tag: sg2044_sophgo-edk2_20260127 \
+commit: fe34fdba0d66cd92e06cb8e18f36767801635e6d
+
++ Sophgo/SG2044: Correct the calculation method of translation
+
+
 # 1.4.1_2026-01-27
 
 ## sophgo-2260
