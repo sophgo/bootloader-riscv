@@ -315,22 +315,18 @@ get_msg_id_usage() {
       return 1
   fi
 
-  if [ $input -ge 384 ] && [ $input -le 511 ]; then
+  if [ $input -ge 0 ] && [ $input -le 127 ]; then
+      echo "0x$(printf "%x" $input)(crs)"
+  elif [ $input -ge 128 ] && [ $input -le 191 ]; then
+      echo "0x$(printf "%x" $input)(prv)"
+  elif [ $input -ge 192 ] && [ $input -le 255 ]; then
+      echo "0x$(printf "%x" $input)(glb)"
+  elif [ $input -ge 256 ] && [ $input -le 319 ]; then
+      echo "0x$(printf "%x" $input)(sch)"
+  elif [ $input -ge 320 ] && [ $input -le 383 ]; then
+      echo "0x$(printf "%x" $input)(c2c)"
+  elif [ $input -ge 384 ] && [ $input -le 511 ]; then
       echo "0x$(printf "%x" $input)(rt)"
-  else
-      local core_number=$((input / 48))
-      local position_in_core=$((input % 48))
-      if [ $position_in_core -ge 0 ] && [ $position_in_core -le 23 ]; then
-          echo "0x$(printf "%x" $input)(prv)"
-      elif [ $position_in_core -ge 24 ] && [ $position_in_core -le 31 ]; then
-          echo "0x$(printf "%x" $input)(crs)"
-      elif [ $position_in_core -ge 32 ] && [ $position_in_core -le 39 ]; then
-          echo "0x$(printf "%x" $input)(glb)"
-      elif [ $position_in_core -ge 40 ] && [ $position_in_core -le 45 ]; then
-          echo "0x$(printf "%x" $input)(c2c)"
-      elif [ $position_in_core -ge 46 ] && [ $position_in_core -le 47 ]; then
-          echo "0x$(printf "%x" $input)(sch)"
-      fi
   fi
 }
 
