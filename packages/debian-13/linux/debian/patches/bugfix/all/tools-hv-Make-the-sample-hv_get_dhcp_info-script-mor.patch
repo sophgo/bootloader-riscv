@@ -1,0 +1,136 @@
+From: Ben Hutchings <benh@debian.org>
+Date: Sun, 15 Jun 2025 23:35:52 +0200
+Subject: tools/hv: Make the sample hv_get_dhcp_info script more useful
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/hyperv/linux.git/commit?id=29c75ddc2d1952528a1195b6ac52054c47c0ee89
+Bug-Debian: https://bugs.debian.org/919350
+
+Currently the sample hv_get_dhcp_info script only supports the old Red
+Hat network-scripts configuration format and leaves everything else to
+downstream distributions.
+
+However, Network Manager and systemd-networkd are available across
+many distributions, so it makes more sense to implement support for
+them here.
+
+Debian's ifupdown is also used in several distributions that are not
+Debian derivatives, so I think it makes sense to implement support for
+that here too.
+
+Extend the script to support all of these:
+
+- Add a report function that reports the status based on the result of
+  the previous command
+- Add a function for each configuration system that checks whether
+  that system in use for the given interface, and:
+  - If so, checks and reports the DHCP status
+  - If not, returns failure
+- Call each of those functions, exiting once one of them succeeds,
+  with a final fallback to reporting 'Disabled'
+
+The network-scripts check is placed last, because it only checks a
+file and not the actual interface state and so is the least reliable
+check.
+
+Signed-off-by: Ben Hutchings <benh@debian.org>
+---
+ tools/hv/hv_get_dhcp_info.sh | 87 +++++++++++++++++++++++++++++++-----
+ 1 file changed, 75 insertions(+), 12 deletions(-)
+
+diff --git a/tools/hv/hv_get_dhcp_info.sh b/tools/hv/hv_get_dhcp_info.sh
+index 2f2a3c7df3de..310b16a2f734 100755
+--- a/tools/hv/hv_get_dhcp_info.sh
++++ b/tools/hv/hv_get_dhcp_info.sh
+@@ -12,18 +12,81 @@
+ #	that DHCP is enabled on the interface. If DHCP is not enabled,
+ #	the script prints the string "Disabled" to stdout.
+ #
+-# Each Distro is expected to implement this script in a distro specific
+-# fashion. For instance, on Distros that ship with Network Manager enabled,
+-# this script can be based on the Network Manager APIs for retrieving DHCP
+-# information.
++# Distributions may need to adapt or replace this script for their
++# preferred network configuration system.
+ 
+-if_file="/etc/sysconfig/network-scripts/ifcfg-"$1
++# Report status based on result of previous command
++report() {
++    if [ $? -eq 0 ]; then
++	echo "Enabled"
++    else
++	echo "Disabled"
++    fi
++}
+ 
+-dhcp=$(grep "dhcp" $if_file 2>/dev/null)
++check_network_manager() {
++    local conn_name
+ 
+-if [ "$dhcp" != "" ];
+-then
+-echo "Enabled"
+-else
+-echo "Disabled"
+-fi
++    # Check that the interface has a configured connection, and get
++    # its name
++    if conn_name="$(nmcli -g GENERAL.CONNECTION device show "$1" 2>/dev/null)" &&
++       [ "$conn_name" ]; then
++	# Check whether the connection enables DHCPv4
++	test "$(nmcli -g ipv4.method connection show "$conn_name")" = auto
++	report
++    else
++	return 1
++    fi
++}
++
++check_systemd_networkd() {
++    local status
++
++    # Check that the interface is managed by networkd
++    if status="$(networkctl status --json=short -- "$1" 2>/dev/null)" &&
++       ! printf '%s' "$status" |
++	   grep -qE '"AdministrativeState":"unmanaged"'; then
++	# Check for DHCPv4 client state in the interface status
++	printf '%s' "$status" | grep -q '"DHCPv4Client":'
++	report
++    else
++	return 1
++    fi
++}
++
++check_ifupdown() {
++    local conf_name
++
++    # Check that a configuration has been applied to the interface
++    if command -v ifquery >/dev/null &&
++       conf_name="$(ifquery --state -- "$1" | sed 's/[^=]*=//')" &&
++       [ "$conf_name" ]; then
++	# Check whether that configuration enables DHCPv4.
++	# Unfortunately ifquery does not expose the method name, so we
++	# have to grep through the configuration file(s) and make an
++	# assumption about which are included.
++	find /etc/network/interfaces /etc/network/interfaces.d \
++	     -type f -regex '.*/[a-zA-Z0-9_-]+$' -print |
++	    xargs grep -qE '^\s*iface\s+'"$conf_name"'\s+inet\s+dhcp(\s|$)'
++	report
++    else
++	return 1
++    fi
++}
++
++check_network_scripts() {
++    local if_file="/etc/sysconfig/network-scripts/ifcfg-"$1
++
++    if [ -f "$if_file" ]; then
++	grep -q dhcp "$if_file"
++	report
++    else
++	return 1
++    fi
++}
++
++check_network_manager "$1" ||
++check_systemd_networkd "$1" ||
++check_ifupdown "$1" ||
++check_network_scripts "$1" ||
++report

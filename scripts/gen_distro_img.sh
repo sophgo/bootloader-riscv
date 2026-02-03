@@ -456,20 +456,15 @@ function export_rv_debian_packages()
 function patch_debian_kernel()
 {
 	pushd $1
-	git apply debian/patches/debian/perf-traceevent-support-asciidoctor-for-documentatio.patch
-	git apply debian/patches/debian/documentation-drop-sphinx-version-check.patch
-	git apply debian/patches/bugfix/all/revert-tools-build-clean-cflags-and-ldflags-for-fixdep.patch
-	git apply debian/patches/debian/fixdep-allow-overriding-hostcc-and-hostld.patch
-	git apply debian/patches/debian/gitignore.patch
-	git apply debian/patches/debian/kbuild-abort-build-if-subdirs-used.patch
-	git apply debian/patches/debian/kbuild-look-for-module.lds-under-arch-directory-too.patch
-	git apply debian/patches/debian/kernelvariables.patch
-	git apply debian/patches/debian/linux-perf-remove-remaining-source-filenames-from-executable.patch
-	git apply debian/patches/debian/makefile-make-compiler-version-comparison-optional.patch
-	git apply debian/patches/debian/tools-perf-install-python-bindings.patch
-	git apply debian/patches/debian/tools-perf-perf-read-vdso-in-libexec.patch
-	git apply debian/patches/debian/uname-version-timestamp.patch
-	git apply debian/patches/debian/version.patch
+	mkdir -p .pc
+	echo 'debian/patches' > .pc/.quilt_patches
+	echo 'series' > .pc/.quilt_series
+	echo '2' > .pc/.version
+	if ! quilt push -a ; then
+		echo 'Not all patches are applied, please check if these patches work with this kernel'
+		echo 'Upgrading kernel may cause these patches out of date'
+		return 1
+	fi
 	popd
 }
 
@@ -497,7 +492,7 @@ function build_rv_debian_kernel_native()
 	cp -r ${RV_TOP_DIR}/bootloader-riscv/packages/debian-13/linux/. $linux
 
 	echo 'Generating changelog for linux package'
-	gen_changelog $RV_KERNEL_SRC_DIR linux-$kernel_version "$kernel_version-$distro_major" trixie $linux/debian/changelog
+	gen_changelog $RV_KERNEL_SRC_DIR linux "$kernel_version-$distro_major" trixie $linux/debian/changelog
 
 	echo 'Applying debian kernel patches'
 	patch_debian_kernel $linux

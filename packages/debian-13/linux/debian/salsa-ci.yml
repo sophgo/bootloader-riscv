@@ -19,23 +19,55 @@ variables:
 
 # Add stages for signed packages
 stages:
+  - provisioning
   - build
   - publish
   - sign-code
   - build-signed
   - test
 
+orig:
+  stage: provisioning
+  image: $SALSA_CI_IMAGES_BASE
+  cache:
+    key: "orig-${RELEASE}"
+    paths:
+      - orig
+  extends:
+    - .artifacts-default-expire
+  except:
+    variables:
+      - $CI_COMMIT_TAG != null
+  script:
+    # Move orig tarball cache
+    - |
+      if [ -d orig ]; then
+          mv orig/* ..
+          rmdir orig
+      fi
+
+    - apt-get update
+    - eatmydata apt-get install --no-install-recommends -y devscripts git
+    - USCAN_VCS_EXPORT_UNCOMPRESSED=yes origtargz -dt
+
+    # Move orig tarballs back to where GitLab wants them
+    - mkdir orig
+    - mv ../*.orig.tar.* orig
+
 # Our modified build jobs
 
 build:
   timeout: 3 hours
   cache:
-    key: "orig-${RELEASE}"
-    paths:
-      - orig
-    key: "build-${BUILD_ARCH}_${HOST_ARCH}"
-    paths:
-      - .ccache
+    - key: "orig-${RELEASE}"
+      paths:
+        - orig
+      policy: pull
+    - key: "build-${BUILD_ARCH}_${HOST_ARCH}"
+      paths:
+        - .ccache
+  needs:
+    - job: orig
   extends:
     - .build-definition
   rules:
@@ -55,13 +87,10 @@ build:
       fi
 
     # Install dependencies of gencontrol.py and debian/rules orig
-    # plus origtargz
     - apt-get update
     - |
       eatmydata apt-get install --no-install-recommends -y \
         debhelper \
-        devscripts \
-        git \
         kernel-wedge \
         python3 \
         python3-dacite \
@@ -70,6 +99,7 @@ build:
         quilt \
         rsync
 
+    - source=$(dpkg-parsechangelog -SSource)
     - version=$(dpkg-parsechangelog -SVersion)
     - upstream_version=$(echo $version | sed 's/-[^-]*$//')
 
@@ -95,19 +125,14 @@ build:
     # Put packed source in artifacts
     - dpkg-buildpackage -uc -us -S -sa -d
     - mkdir -p ${WORKING_DIR}
-    - cp ../linux_${upstream_version}.orig.tar.xz ${WORKING_DIR}
-    - mv ../linux_${version}.dsc ../linux_${version}.debian.tar.xz ${WORKING_DIR}
-
-    # Move orig tarballs back to where GitLab wants them
-    - mkdir ${CI_PROJECT_DIR}/orig
-    - cp -v ${WORKING_DIR}/*.orig.tar.* ${CI_PROJECT_DIR}/orig
+    - mv ../${source}_${upstream_version}.orig.tar.xz ../${source}_${version}.dsc ../${source}_${version}.debian.tar.xz ../${source}_${version}_source.buildinfo ../${source}_${version}_source.changes ${WORKING_DIR}
 
     - chown -R 'salsa-ci:' ${WORKING_DIR} ${CCACHE_DIR}
 
     - !reference [.build-script-setup-build-command]
 
     - cd ${WORKING_DIR}
-    - export BUILD_COMMAND="${BUILD_COMMAND} linux_${version}.dsc"
+    - export BUILD_COMMAND="${BUILD_COMMAND} ${source}_${version}.dsc"
 
     - !reference [.build-script-run-build-command]
   after_script:
@@ -272,12 +297,12 @@ sign-code:
     # Sign the code and build a source package
     - |
       "$kernel_team_dir"/scripts/debian-test-sign \
-        ${WORKING_DIR}/linux_*_${BUILD_ARCH}.changes \
+        ${WORKING_DIR}/linux*_${BUILD_ARCH}.changes \
         debian/certs/ci-test-sign/ci-test-sign-key.pem \
         debian/certs/ci-test-sign/ci-test-sign.pem
   artifacts:
     paths:
-      - ${WORKING_DIR}/linux-signed-${BUILD_ARCH}_*
+      - ${WORKING_DIR}/linux-signed*-${BUILD_ARCH}_*
   needs:
     - job: build
       artifacts: true
@@ -304,7 +329,7 @@ build-signed:
 
     - !reference [.build-script-setup-build-command]
 
-    - export BUILD_COMMAND="${BUILD_COMMAND} ${WORKING_DIR}/linux-signed-${BUILD_ARCH}_*.dsc"
+    - export BUILD_COMMAND="${BUILD_COMMAND} ${WORKING_DIR}/linux-signed*-${BUILD_ARCH}_*.dsc"
 
     - !reference [.build-script-run-build-command]
   after_script:
@@ -314,7 +339,7 @@ build-signed:
     # packages, and (for piuparts) the versioned dependencies produced
     # by the build job
     paths:
-      - ${WORKING_DIR}/linux-signed-${BUILD_ARCH}_*
+      - ${WORKING_DIR}/linux-signed*-${BUILD_ARCH}_*
       - ${WORKING_DIR}/linux-headers-*_${BUILD_ARCH}.deb
       - ${WORKING_DIR}/linux-headers-*-common_*_all.deb
       - ${WORKING_DIR}/linux-image-*_${BUILD_ARCH}.deb
