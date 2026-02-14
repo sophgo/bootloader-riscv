@@ -546,7 +546,11 @@ for i in $(seq 0 $((core_num - 1))); do
 
   if [ "$cmd_type_desc" = "sys" ]; then
     # Extract message count and message ID fields (for sys_wait)
-    msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
+    if [ $core_num -eq 8 ]; then
+      msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
+    else
+      msg_cnt=$(extract_bits_128 "$full_value" 127 112)   # scnt[7:0]
+    fi
     msg_id=$(extract_bits_128 "$full_value" 104 96)     # message_id[9:0]
     msg_id=$(get_msg_id_usage $msg_id)
   else
@@ -658,7 +662,11 @@ for i in $(seq 0 $((core_num - 1))); do
   cmd_special_desc=$(get_dma_special_function_desc "$cmd_special_function" "$cmd_type")
   if [ "$cmd_type_desc" = "sys" ]; then
     # Extract message count and message ID fields (for sys_wait)
-    msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
+    if [ $core_num -eq 8 ]; then
+      msg_cnt=$(extract_bits_128 "$full_value" 127 105)   # scnt[7:0]
+    else
+      msg_cnt=$(extract_bits_128 "$full_value" 127 112)   # scnt[7:0]
+    fi
     msg_id=$(extract_bits_128 "$full_value" 104 96)     # message_id[9:0]
     msg_id=$(get_msg_id_usage $msg_id)
   else
