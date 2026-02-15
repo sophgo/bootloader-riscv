@@ -143,7 +143,7 @@ slv_inst_parity_err_intrp:21:21:slave inst parity error intrp
 mst_mpu_fetch_addr_err:22:22:master MPU fetch addr error
 slv_mpu_fetch_addr_err:23:23:slave MPU fetch addr error
 mst_mpu_inst_araddr_err:24:24:master MPU inst araddr error
-mst_mpu_inst_awaddr_err:25:25:master MPU inst awaddr error
+slv_mpu_inst_awaddr_err:25:25:slave MPU inst awaddr error
 slv_des_mode_set_err:26:26:slave des mode set error
 mst_mpu_inst_awaddr_err:27:27:master MPU inst awaddr error
 slv_mpu_inst_awaddr_err:28:28:slave MPU inst awaddr error
@@ -442,11 +442,11 @@ if [ $core_num -eq 8 ]; then
   printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "Port" "Send CmdId" "Recv CmdId" "Des addr" "Base Addr"
   printf "+------------------+----------------+----------------+----------------+----------------+\n"
 
-  for i in $(seq 0 10); do 
+  for i in $(seq 0 10); do
     if [ $i -le 7 ]; then
       let base_addr=0x6C00790000+\($i/4\)*0x2000000+\($i%4\)*0x10000
       let base=$base_addr+0x1000
-    else 
+    else
       let base_addr=0x6C08790000+\($i-8\)*0x10000
       let base=$base_addr+0x1000
     fi
@@ -454,7 +454,36 @@ if [ $core_num -eq 8 ]; then
     let sendAddr=$base+68
     let recvAddr=$base+72
     let desAddr=$base+0x2c
-    
+
+    sendValue=$(devmem $sendAddr 32)
+    sendValue=$(remove_unnecessary_zero $sendValue)
+    recvValue=$(devmem $recvAddr 32)
+    recvValue=$(remove_unnecessary_zero $recvValue)
+    desValue=$(devmem $desAddr 32)
+    # Shift left by 7 is equivalent to multiplying by 128
+    # Using multiplication avoids syntax highlighting bugs with '<<'
+    desValue=$((desValue * 128))
+    desValue=$(remove_unnecessary_zero $desValue)
+    printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "$i" "$sendValue" "$recvValue" "$desValue" "$base_addr"
+    printf "+------------------+----------------+----------------+----------------+----------------+\n"
+  done
+fi
+
+if [ $core_num -eq 4 ]; then
+  printf "CDMA CMD Info\n"
+  # Print table header with core numbers
+  printf "+------------------+----------------+----------------+----------------+----------------+\n"
+  printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "Port" "Send CmdId" "Recv CmdId" "Des addr" "Base Addr"
+  printf "+------------------+----------------+----------------+----------------+----------------+\n"
+
+  for i in $(seq 0 9); do
+    let base_addr=0x6B007A0000+\($i/2\)*0x2000000+\($i%2\)*0x10000
+    base=$base_addr+0x1000
+    base_addr=$(printf "0x%X" $base_addr)
+    let sendAddr=$base+68
+    let recvAddr=$base+72
+    let desAddr=$base+0x2c
+
     sendValue=$(devmem $sendAddr 32)
     sendValue=$(remove_unnecessary_zero $sendValue)
     recvValue=$(devmem $recvAddr 32)
