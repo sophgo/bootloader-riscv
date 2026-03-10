@@ -6,8 +6,10 @@ echo "chip_id: $chip_id"
 
 if [ "$chip_id" = "0x20440000" ]; then
   core_num=8
+  cdma_num=11
 else
   core_num=4
+  cdma_num=10
 fi
 
 
@@ -96,6 +98,20 @@ extract_bit() {
   else
     echo "0x1"
   fi
+}
+
+read_64() {
+  addr=$1
+  let low_addr=$addr
+  let high_addr=$addr+0x4
+  low_value=$(devmem $low_addr 32)
+  high_value=$(devmem $high_addr 32)
+  low_value=${low_value#0x}
+  high_value=${high_value#0x}
+  value="0x${high_value}${low_value}"
+  value=$(printf "0x%X" $value)
+  value=$(remove_unnecessary_zero $value)
+  echo "$value"
 }
 
 # Define register data structure
@@ -281,55 +297,6 @@ print_register_fields() {
   done
 }
 
-# Main execution
-
-# Print register descriptions
-print_register_description "h110" "$DMA_H110_FIELDS"
-print_register_description "h12c" "$DMA_H12C_FIELDS"
-
-# Get register values for all cores
-gdma_h110_values=$(get_all_gdma_register "h110")
-gdma_h12c_values=$(get_all_gdma_register "h12c")
-
-
-# Print register values tables
-print_register_fields "h110" "$DMA_H110_FIELDS" "$gdma_h110_values" "GDMA"
-print_register_fields "h12c" "$DMA_H12C_FIELDS" "$gdma_h12c_values" "GDMA"
-
-sdma_h110_values=$(get_all_sdma_register "h110")
-sdma_h12c_values=$(get_all_sdma_register "h12c")
-
-print_register_fields "h110" "$DMA_H110_FIELDS" "$sdma_h110_values" "SDMA"
-print_register_fields "h12c" "$DMA_H12C_FIELDS" "$sdma_h12c_values" "SDMA"
-
-get_msg_id_usage() {
-  local input=$1
-  input=$(printf "%d" "$input")
-  if ! [[ "$input" =~ ^[0-9]+$ ]]; then
-      echo "error: please input a valid number"
-      return 1
-  fi
-
-  if [ $input -lt 0 ] || [ $input -gt 511 ]; then
-      echo "error: number must be in 0-511 range"
-      return 1
-  fi
-
-  if [ $input -ge 0 ] && [ $input -le 127 ]; then
-      echo "0x$(printf "%x" $input)(crs)"
-  elif [ $input -ge 128 ] && [ $input -le 191 ]; then
-      echo "0x$(printf "%x" $input)(prv)"
-  elif [ $input -ge 192 ] && [ $input -le 255 ]; then
-      echo "0x$(printf "%x" $input)(glb)"
-  elif [ $input -ge 256 ] && [ $input -le 319 ]; then
-      echo "0x$(printf "%x" $input)(sch)"
-  elif [ $input -ge 320 ] && [ $input -le 383 ]; then
-      echo "0x$(printf "%x" $input)(c2c)"
-  elif [ $input -ge 384 ] && [ $input -le 511 ]; then
-      echo "0x$(printf "%x" $input)(rt)"
-  fi
-}
-
 # Function to extract a single bit from a 128-bit hex value
 extract_bit_128() {
   hex_value=$1   # 128-bit hex value as string (with or without 0x prefix)
@@ -401,6 +368,56 @@ function remove_unnecessary_zero() {
   echo "$value"
 }
 
+
+get_msg_id_usage() {
+  local input=$1
+  input=$(printf "%d" "$input")
+  if ! [[ "$input" =~ ^[0-9]+$ ]]; then
+      echo "error: please input a valid number"
+      return 1
+  fi
+
+  if [ $input -lt 0 ] || [ $input -gt 511 ]; then
+      echo "error: number must be in 0-511 range"
+      return 1
+  fi
+
+  if [ $input -ge 0 ] && [ $input -le 127 ]; then
+      echo "0x$(printf "%x" $input)(crs)"
+  elif [ $input -ge 128 ] && [ $input -le 191 ]; then
+      echo "0x$(printf "%x" $input)(prv)"
+  elif [ $input -ge 192 ] && [ $input -le 255 ]; then
+      echo "0x$(printf "%x" $input)(glb)"
+  elif [ $input -ge 256 ] && [ $input -le 319 ]; then
+      echo "0x$(printf "%x" $input)(sch)"
+  elif [ $input -ge 320 ] && [ $input -le 383 ]; then
+      echo "0x$(printf "%x" $input)(c2c)"
+  elif [ $input -ge 384 ] && [ $input -le 511 ]; then
+      echo "0x$(printf "%x" $input)(rt)"
+  fi
+}
+
+# Main execution
+
+# Print register descriptions
+print_register_description "h110" "$DMA_H110_FIELDS"
+print_register_description "h12c" "$DMA_H12C_FIELDS"
+
+# Get register values for all cores
+gdma_h110_values=$(get_all_gdma_register "h110")
+gdma_h12c_values=$(get_all_gdma_register "h12c")
+
+
+# Print register values tables
+print_register_fields "h110" "$DMA_H110_FIELDS" "$gdma_h110_values" "GDMA"
+print_register_fields "h12c" "$DMA_H12C_FIELDS" "$gdma_h12c_values" "GDMA"
+
+sdma_h110_values=$(get_all_sdma_register "h110")
+sdma_h12c_values=$(get_all_sdma_register "h12c")
+
+print_register_fields "h110" "$DMA_H110_FIELDS" "$sdma_h110_values" "SDMA"
+print_register_fields "h12c" "$DMA_H12C_FIELDS" "$sdma_h12c_values" "SDMA"
+
 printf "\n"
 printf "\n"
 
@@ -435,14 +452,87 @@ print_dynamic_row "MSGID32-63 REUSE" "msgid32_63_reuse"
 
 printf "\n\n"
 
-if [ $core_num -eq 8 ]; then
-  printf "CDMA CMD Info\n"
-  # Print table header with core numbers
-  printf "+------------------+----------------+----------------+----------------+----------------+\n"
-  printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "Port" "Send CmdId" "Recv CmdId" "Des addr" "Base Addr"
-  printf "+------------------+----------------+----------------+----------------+----------------+\n"
 
-  for i in $(seq 0 10); do
+printf "\n\n"
+
+get_mpu_desc() {
+  case $1 in
+    "0x0") echo "R/W" ;;
+    "0x1") echo "NR/W" ;;
+    "0x2") echo "R/NW" ;;
+    "0x3") echo "NR/NW" ;;
+    *) echo "Unknown" ;;
+  esac
+}
+
+if [ $core_num -eq 4 ]; then
+  mpu_num=16
+  print_dynamic_header "MPU Info"
+  for j in $(seq 0 $((mpu_num - 1))); do
+    for i in $(seq 0 $((core_num - 1))); do
+      let gdma_addr=0x69${i}8010000+0x1000
+      if [ $i -le 3 ]; then
+        let sdma_addr=0x69${i}8020000+0x1000
+      else
+        let sdma_addr=0x6B00080000+\($i-4\)*0x2000000+0x1000
+      fi
+      let gdma_attr_addr=$gdma_addr+0x144
+      let gdma_mpu_start_l32_addr=$gdma_addr+0x148+0x8*j
+      gdma_mpu_start=$(read_64 $gdma_mpu_start_l32_addr)
+      let gdma_mpu_end_l32_addr=$gdma_addr+0x1c8+0x8*j
+      gdma_mpu_end=$(read_64 $gdma_mpu_end_l32_addr)
+      gdma_attr=$(devmem $gdma_attr_addr 32)
+      gdma_attr=$(extract_bits "$gdma_attr"  $((2*j+1)) $((2*j)))
+      gdma_attr=$(printf "0x%X" $gdma_attr)
+      gdma_attr=$(remove_unnecessary_zero $gdma_attr)
+      gdma_attr=$(get_mpu_desc $gdma_attr)
+      eval "gdma_attr_$i=\"$gdma_attr\""
+      eval "gdma_mpu_start_$i=\"$gdma_mpu_start\""
+      eval "gdma_mpu_end_$i=\"$gdma_mpu_end\""
+    done
+    print_dynamic_row "gdma_attr_$j" "gdma_attr"
+    print_dynamic_row "gdma_start_$j" "gdma_mpu_start"
+    print_dynamic_row "gdma_end_$j" "gdma_mpu_end"
+  done
+fi
+
+printf "\n\n"
+
+base_addr_num=32
+print_dynamic_header "Base Address"
+for j in $(seq 0 $((base_addr_num - 1))); do
+  for i in $(seq 0 $((core_num - 1))); do
+    let gdma_addr=0x69${i}8010000+0x1000
+    if [ $i -le 3 ]; then
+      let sdma_addr=0x69${i}8020000+0x1000
+    else
+      let sdma_addr=0x6B00080000+\($i-4\)*0x2000000+0x1000
+    fi
+    let gdma_base=$gdma_addr+0x34+0x4*j
+    let sdma_base=$sdma_addr+0x34+0x4*j
+    let gdma_base_value=$(devmem $gdma_base 32)
+    let sdma_base_value=$(devmem $sdma_base 32)
+    gdma_base_value=$(($gdma_base_value * 256))
+    gdma_base_value=$(printf "0x%X" $gdma_base_value)
+    sdma_base_value=$(($sdma_base_value * 256))
+    sdma_base_value=$(printf "0x%X" $sdma_base_value)
+    eval "gdma_base_addr_$i=\"$gdma_base_value\""
+    eval "sdma_base_addr_$i=\"$sdma_base_value\""
+  done
+  print_dynamic_row "gdma_base_addr_$j" "gdma_base_addr"
+  print_dynamic_row "sdma_base_addr_$j" "sdma_base_addr"
+done
+
+printf "\n\n"
+
+printf "CDMA CMD Info\n"
+# Print table header with core numbers
+printf "+------------------+----------------+----------------+----------------+----------------+\n"
+printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "Port" "Send CmdId" "Recv CmdId" "Des addr" "Base Addr"
+printf "+------------------+----------------+----------------+----------------+----------------+\n"
+
+for i in $(seq 0 $((cdma_num - 1))); do
+  if [ $core_num -eq 8 ]; then
     if [ $i -le 7 ]; then
       let base_addr=0x6C00790000+\($i/4\)*0x2000000+\($i%4\)*0x10000
       let base=$base_addr+0x1000
@@ -450,53 +540,27 @@ if [ $core_num -eq 8 ]; then
       let base_addr=0x6C08790000+\($i-8\)*0x10000
       let base=$base_addr+0x1000
     fi
-    base_addr=$(printf "0x%X" $base_addr)
-    let sendAddr=$base+68
-    let recvAddr=$base+72
-    let desAddr=$base+0x2c
-
-    sendValue=$(devmem $sendAddr 32)
-    sendValue=$(remove_unnecessary_zero $sendValue)
-    recvValue=$(devmem $recvAddr 32)
-    recvValue=$(remove_unnecessary_zero $recvValue)
-    desValue=$(devmem $desAddr 32)
-    # Shift left by 7 is equivalent to multiplying by 128
-    # Using multiplication avoids syntax highlighting bugs with '<<'
-    desValue=$((desValue * 128))
-    desValue=$(remove_unnecessary_zero $desValue)
-    printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "$i" "$sendValue" "$recvValue" "$desValue" "$base_addr"
-    printf "+------------------+----------------+----------------+----------------+----------------+\n"
-  done
-fi
-
-if [ $core_num -eq 4 ]; then
-  printf "CDMA CMD Info\n"
-  # Print table header with core numbers
-  printf "+------------------+----------------+----------------+----------------+----------------+\n"
-  printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "Port" "Send CmdId" "Recv CmdId" "Des addr" "Base Addr"
-  printf "+------------------+----------------+----------------+----------------+----------------+\n"
-
-  for i in $(seq 0 9); do
+  else
     let base_addr=0x6B007A0000+\($i/2\)*0x2000000+\($i%2\)*0x10000
-    base=$base_addr+0x1000
-    base_addr=$(printf "0x%X" $base_addr)
-    let sendAddr=$base+68
-    let recvAddr=$base+72
-    let desAddr=$base+0x2c
+  fi
+  base=$base_addr+0x1000
+  base_addr=$(printf "0x%X" $base_addr)
+  let sendAddr=$base+68
+  let recvAddr=$base+72
+  let desAddr=$base+0x2c
 
-    sendValue=$(devmem $sendAddr 32)
-    sendValue=$(remove_unnecessary_zero $sendValue)
-    recvValue=$(devmem $recvAddr 32)
-    recvValue=$(remove_unnecessary_zero $recvValue)
-    desValue=$(devmem $desAddr 32)
-    # Shift left by 7 is equivalent to multiplying by 128
-    # Using multiplication avoids syntax highlighting bugs with '<<'
-    desValue=$((desValue * 128))
-    desValue=$(remove_unnecessary_zero $desValue)
-    printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "$i" "$sendValue" "$recvValue" "$desValue" "$base_addr"
-    printf "+------------------+----------------+----------------+----------------+----------------+\n"
-  done
-fi
+  sendValue=$(devmem $sendAddr 32)
+  sendValue=$(remove_unnecessary_zero $sendValue)
+  recvValue=$(devmem $recvAddr 32)
+  recvValue=$(remove_unnecessary_zero $recvValue)
+  desValue=$(devmem $desAddr 32)
+  # Shift left by 7 is equivalent to multiplying by 128
+  # Using multiplication avoids syntax highlighting bugs with '<<'
+  desValue=$((desValue * 128))
+  desValue=$(remove_unnecessary_zero $desValue)
+  printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "$i" "$sendValue" "$recvValue" "$desValue" "$base_addr"
+  printf "+------------------+----------------+----------------+----------------+----------------+\n"
+done
 
 # Function to get cmd_type description
 get_dma_cmd_type_desc() {
