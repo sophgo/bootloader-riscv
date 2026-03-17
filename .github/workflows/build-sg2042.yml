@@ -70,7 +70,12 @@ jobs:
               tar -xvf ${mainline_toolchain_file_name} -C /opt
 
       - name: prepare
-        run: mkdir -p artifact
+        run: |
+              mkdir -p artifact
+              pushd sophgo-edk2
+                # get all submodules before building
+                git submodule update --init --recursive
+              popd
 
       - name: Compile zsbl & sbi
         run: |

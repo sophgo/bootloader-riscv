@@ -138,7 +138,12 @@ RV_IMAGE_INSTALL_DIR=$RV_OUTPUT_DIR/image
 RV_PACKAGE_INSTALL_DIR=$RV_OUTPUT_DIR/package
 RV_FIRMWARE_INSTALL_DIR=$RV_OUTPUT_DIR/firmware
 RV_RP_DEB_INSTALL_DIR=$RV_FIRMWARE_INSTALL_DIR/rp_ramdisk_debs
+
+if [ x$CHIP == xmango ]; then
+RV_FIRMWARE=$RV_TOP_DIR/sophgo-edk2/edk2-non-osi/Silicon/Sophgo/SG2042/Boot
+else
 RV_FIRMWARE=$RV_TOP_DIR/sophgo-edk2/edk2-non-osi/Silicon/Sophgo/${CHIP^^}/Boot
+fi
 RV_SERVICE_DIR=$RV_TOP_DIR/bootloader-riscv/service
 RV_TOOLS_DIR=$RV_OUTPUT_DIR/tools
 

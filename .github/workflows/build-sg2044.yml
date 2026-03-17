@@ -70,7 +70,12 @@ jobs:
               tar -xvf ${mainline_toolchain_file_name} -C /opt
 
       - name: prepare
-        run: mkdir -p artifact
+        run: |
+              mkdir -p artifact
+              pushd sophgo-edk2
+                # get all submodules before building
+                git submodule update --init --recursive
+              popd
 
       - name: Compile zsbl & sbi & fsbl
         run: |
@@ -81,7 +86,7 @@ jobs:
 
                 build_rv_zsbl
                 build_rv_sbi
-                cp -v firmware/fsbl.bin ${RV_FIRMWARE_INSTALL_DIR}/
+                cp -v ${RV_FIRMWARE}/fsbl.bin ${RV_FIRMWARE_INSTALL_DIR}/
               popd
 
       - name: Compile edk2
