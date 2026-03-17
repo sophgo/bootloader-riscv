@@ -138,7 +138,7 @@ RV_IMAGE_INSTALL_DIR=$RV_OUTPUT_DIR/image
 RV_PACKAGE_INSTALL_DIR=$RV_OUTPUT_DIR/package
 RV_FIRMWARE_INSTALL_DIR=$RV_OUTPUT_DIR/firmware
 RV_RP_DEB_INSTALL_DIR=$RV_FIRMWARE_INSTALL_DIR/rp_ramdisk_debs
-RV_FIRMWARE=$RV_TOP_DIR/bootloader-riscv/firmware
+RV_FIRMWARE=$RV_TOP_DIR/sophgo-edk2/edk2-non-osi/Silicon/Sophgo/${CHIP^^}/Boot
 RV_SERVICE_DIR=$RV_TOP_DIR/bootloader-riscv/service
 RV_TOOLS_DIR=$RV_OUTPUT_DIR/tools
 
@@ -423,6 +423,10 @@ function build_rv_zsbl()
 	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR
 	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/${CHIP}*.dtbo $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
 	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dts/${CHIP}*.dtb $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
+
+	mkdir -p $RV_FIRMWARE
+	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE
+	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/${CHIP}*.dtbo $RV_FIRMWARE 2>/dev/null | true
 }
 
 function clean_rv_zsbl()
@@ -1180,7 +1184,9 @@ function clean_rv_euler_distro()
 
 function build_rv_firmware()
 {
-	build_rv_zsbl
+	if [ -d $RV_ZSBL_SRC_DIR ]; then
+		build_rv_zsbl
+	fi
 	build_rv_sbi
 	build_rv_edk2
 }
@@ -1229,17 +1235,17 @@ function build_rv_firmware_bin()
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
 		./pack -a -p SG2044.fd -t 0x80000 -f ${PLAT^^}.fd -l 0x80200000 -o 0x600000 firmware.bin
 		./pack -a -p fsbl.bin -t 0x80000 -f $RV_FIRMWARE/fsbl.bin -l 0x7010080000 firmware.bin
-		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
+		./pack -a -p zsbl.bin -t 0x80000 -f $RV_FIRMWARE/zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
-		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
-		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware.bin
+		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f $RV_FIRMWARE/sg2044-evb.dtbo -l 0x88000000 firmware.bin
+		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f $RV_FIRMWARE/sg2044-sra3.dtbo -l 0x88000000 firmware.bin
 		export_key $PRIVKEY_PATH $PUBKEY_PATH
 		sign $PRIVKEY_PATH ${PLAT^^}.fd
 		sign $PRIVKEY_PATH $RV_FIRMWARE/fsbl.bin fsbl.bin.sig
-		sign $PRIVKEY_PATH zsbl.bin
+		sign $PRIVKEY_PATH $RV_FIRMWARE/zsbl.bin zsbl.bin.sig
 		sign $PRIVKEY_PATH fw_dynamic.bin
-		sign $PRIVKEY_PATH sg2044-evb.dtbo
-		sign $PRIVKEY_PATH sg2044-sra3.dtbo
+		sign $PRIVKEY_PATH $RV_FIRMWARE/sg2044-evb.dtbo sg2044-evb.dtbo.sig
+		sign $PRIVKEY_PATH $RV_FIRMWARE/sg2044-sra3.dtbo sg2044-sra3.dtbo.sig
 		./pack -a -p SG2044.fd.sig -t 0x80000 -f ${PLAT^^}.fd.sig firmware.bin
 		./pack -a -p fsbl.bin.sig -t 0x80000 -f fsbl.bin.sig firmware.bin
 		./pack -a -p zsbl.bin.sig -t 0x80000 -f zsbl.bin.sig firmware.bin
@@ -1304,7 +1310,7 @@ function build_rv_firmware_image()
 	echo copy bootloader...
 	if [[ "$CHIP" = "sg2044" ]];then
 		sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
-		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE/zsbl.bin efi/riscv64
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/SG2044.fd
 	fi
 
@@ -1348,8 +1354,9 @@ function build_rv_firmware_package()
 	echo copy bootloader...
 	if [[ "$CHIP" = "sg2044" ]];then
 		sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
-		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE/zsbl.bin efi/riscv64
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/SG2044.fd
+		sudo cp $RV_FIRMWARE/*.dtbo efi/riscv64
 	fi
 
 	if [[ "$CHIP" = "mango" ]];then
@@ -1357,10 +1364,10 @@ function build_rv_firmware_package()
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/${PLAT}.fd
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtbo efi/riscv64
 	fi
 
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin efi/riscv64
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtbo efi/riscv64
 
 	tar -czvf firmware.tgz firmware
 	rm -rf firmware
