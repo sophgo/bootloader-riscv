@@ -1227,18 +1227,18 @@ function build_rv_firmware_bin()
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_release_note.md"
 		./pack -a -p fip.bin -t 0x600000 -f $RV_FIRMWARE/fip.bin -o 0x30000 firmware.bin
 		./pack -a -p ${PLAT}.fd -t 0x600000 -f ${PLAT^^}.fd -l 0x2000000 -o 0x2040000 firmware.bin
-		./pack -a -p zsbl.bin -t 0x600000 -f zsbl.bin -l 0x40000000 firmware.bin
+		./pack -a -p zsbl.bin -t 0x600000 -f $RV_FIRMWARE/zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x600000 -f fw_dynamic.bin -l 0x0 firmware.bin
-		./pack -a -p mango-milkv-pioneer.dtb -t 0x600000 -f mango-milkv-pioneer.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-milkv-pioneer.dtbo -t 0x600000 -f mango-milkv-pioneer.dtbo -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-pisces.dtb -t 0x600000 -f mango-sophgo-pisces.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-pisces.dtbo -t 0x600000 -f mango-sophgo-pisces.dtbo -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-x4evb.dtb -t 0x600000 -f mango-sophgo-x4evb.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-x4evb.dtbo -t 0x600000 -f mango-sophgo-x4evb.dtbo -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-x8evb.dtb -t 0x600000 -f mango-sophgo-x8evb.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-x8evb.dtbo -t 0x600000 -f mango-sophgo-x8evb.dtbo -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-capricorn.dtb -t 0x600000 -f mango-sophgo-capricorn.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-milkv-pioneer.dtb -t 0x600000 -f $RV_FIRMWARE/mango-milkv-pioneer.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-milkv-pioneer.dtbo -t 0x600000 -f $RV_FIRMWARE/mango-milkv-pioneer.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-pisces.dtb -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-pisces.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-pisces.dtbo -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-pisces.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x4evb.dtb -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-x4evb.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x4evb.dtbo -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-x4evb.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x8evb.dtb -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-x8evb.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x8evb.dtbo -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-x8evb.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-capricorn.dtb -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-capricorn.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f $RV_FIRMWARE/mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
 	elif [ "$CHIP" = "sg2044" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
 		./pack -a -p SG2044.fd -t 0x80000 -f ${PLAT^^}.fd -l 0x80200000 -o 0x600000 firmware.bin
@@ -1324,13 +1324,13 @@ function build_rv_firmware_image()
 
 	if [[ "$CHIP" = "mango" ]];then
 		sudo cp $RV_FIRMWARE/fip.bin efi/
-		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/
+		sudo cp $RV_FIRMWARE/zsbl.bin efi/
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/${PLAT}.fd
-		sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb efi/riscv64
+		sudo cp $RV_FIRMWARE/*.dtb efi/riscv64
 	fi
 
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin efi/riscv64
-	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtbo efi/riscv64
+	sudo cp $RV_FIRMWARE/*.dtbo efi/riscv64
 
 	echo cleanup...
 	sudo umount /dev/mapper/$fat32part
