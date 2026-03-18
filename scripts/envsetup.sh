@@ -397,6 +397,17 @@ function clean_rv_tp_zsbl()
 
 function build_rv_zsbl()
 {
+	if [ ! -d $RV_ZSBL_SRC_DIR ]; then
+		echo 'No ZSBL source code, using pre-built binaries'
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+		cp -v $RV_FIRMWARE/zsbl.bin $RV_FIRMWARE_INSTALL_DIR
+			cp -v $RV_FIRMWARE/${CHIP}*.dtbo $RV_FIRMWARE_INSTALL_DIR
+			if [ $CHIP = 'mango' ]; then
+				cp -v $RV_FIRMWARE/${CHIP}*.dtb $RV_FIRMWARE_INSTALL_DIR
+			fi
+		return 0;
+	fi
+
 	local err
 
 	pushd $RV_ZSBL_SRC_DIR
@@ -427,13 +438,8 @@ function build_rv_zsbl()
 
 	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE_INSTALL_DIR
 	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/${CHIP}*.dtbo $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
-	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dts/${CHIP}*.dtb $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
-
-	mkdir -p $RV_FIRMWARE
-	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE
-	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/${CHIP}*.dtbo $RV_FIRMWARE 2>/dev/null | true
 	if [ $CHIP = 'mango' ]; then
-		cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dts/${CHIP}*.dtb $RV_FIRMWARE 2>/dev/null | true
+		cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dts/${CHIP}*.dtb $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
 	fi
 }
 
@@ -447,7 +453,14 @@ function clean_rv_zsbl()
 
 function build_rv_sbi()
 {
-	PLATFORM=generic
+	if [ ! -d $RV_SBI_SRC_DIR ]; then
+		echo 'No opensbi source code, using pre-built binaries'
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+		cp -v $RV_FIRMWARE/fw_dynamic.bin $RV_FIRMWARE_INSTALL_DIR
+		return 0;
+	fi
+
+	local PLATFORM=generic
 
 	pushd $RV_SBI_SRC_DIR
 	make -j$(nproc) CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE PLATFORM=$PLATFORM FW_PIC=y BUILD_INFO=y
@@ -456,7 +469,6 @@ function build_rv_sbi()
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
 
 	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_dynamic.bin $RV_FIRMWARE_INSTALL_DIR
-	cp $RV_SBI_SRC_DIR/build/platform/$PLATFORM/firmware/fw_dynamic.elf $RV_FIRMWARE_INSTALL_DIR
 }
 
 function clean_rv_sbi()
@@ -1192,9 +1204,19 @@ function clean_rv_euler_distro()
 
 function build_rv_firmware()
 {
-	if [ -d $RV_ZSBL_SRC_DIR ]; then
-		build_rv_zsbl
+	if [ "$CHIP" = "mango" ]; then
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+		if [ ! -f $RV_FIRMWARE_INSTALL_DIR/fip.bin ]; then
+			cp -v $RV_FIRMWARE/fip.bin $RV_FIRMWARE_INSTALL_DIR/fip.bin
+		fi
+	else
+		mkdir -p $RV_FIRMWARE_INSTALL_DIR
+		if [ ! -f $RV_FIRMWARE_INSTALL_DIR/fsbl.bin ]; then
+			cp -v $RV_FIRMWARE/fsbl.bin $RV_FIRMWARE_INSTALL_DIR/fsbl.bin
+		fi
 	fi
+
+	build_rv_zsbl
 	build_rv_sbi
 	build_rv_edk2
 }
@@ -1225,35 +1247,35 @@ function build_rv_firmware_bin()
 	rm -f firmware*.bin
 	if [ "$CHIP" = "mango" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_release_note.md"
-		./pack -a -p fip.bin -t 0x600000 -f $RV_FIRMWARE/fip.bin -o 0x30000 firmware.bin
+		./pack -a -p fip.bin -t 0x600000 -f fip.bin -o 0x30000 firmware.bin
 		./pack -a -p ${PLAT}.fd -t 0x600000 -f ${PLAT^^}.fd -l 0x2000000 -o 0x2040000 firmware.bin
-		./pack -a -p zsbl.bin -t 0x600000 -f $RV_FIRMWARE/zsbl.bin -l 0x40000000 firmware.bin
+		./pack -a -p zsbl.bin -t 0x600000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x600000 -f fw_dynamic.bin -l 0x0 firmware.bin
-		./pack -a -p mango-milkv-pioneer.dtb -t 0x600000 -f $RV_FIRMWARE/mango-milkv-pioneer.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-milkv-pioneer.dtbo -t 0x600000 -f $RV_FIRMWARE/mango-milkv-pioneer.dtbo -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-pisces.dtb -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-pisces.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-pisces.dtbo -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-pisces.dtbo -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-x4evb.dtb -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-x4evb.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-x4evb.dtbo -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-x4evb.dtbo -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-x8evb.dtb -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-x8evb.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-x8evb.dtbo -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-x8evb.dtbo -l 0x20000000 firmware.bin
-		./pack -a -p mango-sophgo-capricorn.dtb -t 0x600000 -f $RV_FIRMWARE/mango-sophgo-capricorn.dtb -l 0x20000000 firmware.bin
-		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f $RV_FIRMWARE/mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-milkv-pioneer.dtb -t 0x600000 -f mango-milkv-pioneer.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-milkv-pioneer.dtbo -t 0x600000 -f mango-milkv-pioneer.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-pisces.dtb -t 0x600000 -f mango-sophgo-pisces.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-pisces.dtbo -t 0x600000 -f mango-sophgo-pisces.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x4evb.dtb -t 0x600000 -f mango-sophgo-x4evb.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x4evb.dtbo -t 0x600000 -f mango-sophgo-x4evb.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x8evb.dtb -t 0x600000 -f mango-sophgo-x8evb.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-x8evb.dtbo -t 0x600000 -f mango-sophgo-x8evb.dtbo -l 0x20000000 firmware.bin
+		./pack -a -p mango-sophgo-capricorn.dtb -t 0x600000 -f mango-sophgo-capricorn.dtb -l 0x20000000 firmware.bin
+		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
 	elif [ "$CHIP" = "sg2044" ]; then
 		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
 		./pack -a -p SG2044.fd -t 0x80000 -f ${PLAT^^}.fd -l 0x80200000 -o 0x600000 firmware.bin
-		./pack -a -p fsbl.bin -t 0x80000 -f $RV_FIRMWARE/fsbl.bin -l 0x7010080000 firmware.bin
-		./pack -a -p zsbl.bin -t 0x80000 -f $RV_FIRMWARE/zsbl.bin -l 0x40000000 firmware.bin
+		./pack -a -p fsbl.bin -t 0x80000 -f fsbl.bin -l 0x7010080000 firmware.bin
+		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
-		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f $RV_FIRMWARE/sg2044-evb.dtbo -l 0x88000000 firmware.bin
-		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f $RV_FIRMWARE/sg2044-sra3.dtbo -l 0x88000000 firmware.bin
+		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
+		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware.bin
 		export_key $PRIVKEY_PATH $PUBKEY_PATH
 		sign $PRIVKEY_PATH ${PLAT^^}.fd
-		sign $PRIVKEY_PATH $RV_FIRMWARE/fsbl.bin fsbl.bin.sig
-		sign $PRIVKEY_PATH $RV_FIRMWARE/zsbl.bin zsbl.bin.sig
+		sign $PRIVKEY_PATH fsbl.bin
+		sign $PRIVKEY_PATH zsbl.bin
 		sign $PRIVKEY_PATH fw_dynamic.bin
-		sign $PRIVKEY_PATH $RV_FIRMWARE/sg2044-evb.dtbo sg2044-evb.dtbo.sig
-		sign $PRIVKEY_PATH $RV_FIRMWARE/sg2044-sra3.dtbo sg2044-sra3.dtbo.sig
+		sign $PRIVKEY_PATH sg2044-evb.dtbo
+		sign $PRIVKEY_PATH sg2044-sra3.dtbo
 		./pack -a -p SG2044.fd.sig -t 0x80000 -f ${PLAT^^}.fd.sig firmware.bin
 		./pack -a -p fsbl.bin.sig -t 0x80000 -f fsbl.bin.sig firmware.bin
 		./pack -a -p zsbl.bin.sig -t 0x80000 -f zsbl.bin.sig firmware.bin
@@ -1317,20 +1339,20 @@ function build_rv_firmware_image()
 
 	echo copy bootloader...
 	if [[ "$CHIP" = "sg2044" ]];then
-		sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
-		sudo cp $RV_FIRMWARE/zsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/fsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/riscv64
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/SG2044.fd
 	fi
 
 	if [[ "$CHIP" = "mango" ]];then
-		sudo cp $RV_FIRMWARE/fip.bin efi/
-		sudo cp $RV_FIRMWARE/zsbl.bin efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/fip.bin efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/${PLAT}.fd
-		sudo cp $RV_FIRMWARE/*.dtb efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb efi/riscv64
 	fi
 
 	sudo cp $RV_FIRMWARE_INSTALL_DIR/fw_dynamic.bin efi/riscv64
-	sudo cp $RV_FIRMWARE/*.dtbo efi/riscv64
+	sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtbo efi/riscv64
 
 	echo cleanup...
 	sudo umount /dev/mapper/$fat32part
@@ -1361,14 +1383,14 @@ function build_rv_firmware_package()
 
 	echo copy bootloader...
 	if [[ "$CHIP" = "sg2044" ]];then
-		sudo cp $RV_FIRMWARE/fsbl.bin efi/riscv64
-		sudo cp $RV_FIRMWARE/zsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/fsbl.bin efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/riscv64
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/SG2044.fd
-		sudo cp $RV_FIRMWARE/*.dtbo efi/riscv64
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtbo efi/riscv64
 	fi
 
 	if [[ "$CHIP" = "mango" ]];then
-		sudo cp $RV_FIRMWARE/fip.bin efi/
+		sudo cp $RV_FIRMWARE_INSTALL_DIR/fip.bin efi/
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/zsbl.bin efi/
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd efi/riscv64/${PLAT}.fd
 		sudo cp $RV_FIRMWARE_INSTALL_DIR/*.dtb efi/riscv64

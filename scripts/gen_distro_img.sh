@@ -66,6 +66,8 @@ function build_rv_image()
 {
 	echo $0
 
+    build_rv_firmware
+
 	echo 'remove old image'
 	rm -f $RV_OUTPUT_DIR/$RV_SOPHGO_IMAGE
 
@@ -90,13 +92,13 @@ function build_rv_image()
 	sudo mkdir $EFI_PARTITION_DIR/riscv64
 
 	if [ "$CHIP" = "sg2044" ]; then
-		sudo cp -v $RV_FIRMWARE/fsbl.bin $EFI_PARTITION_DIR/riscv64
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fsbl.bin $EFI_PARTITION_DIR/riscv64
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $EFI_PARTITION_DIR/riscv64
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd $EFI_PARTITION_DIR/riscv64/${CHIP^^}.fd
 	fi
 
 	if [ "$CHIP" = "mango" ]; then
-		sudo cp -v $RV_FIRMWARE/fip.bin $EFI_PARTITION_DIR/
+		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/fip.bin $EFI_PARTITION_DIR/
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/zsbl.bin $EFI_PARTITION_DIR/
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${PLAT^^}.fd $EFI_PARTITION_DIR/riscv64/${PLAT}.fd
 		sudo cp -v $RV_FIRMWARE_INSTALL_DIR/${CHIP}-*.dtb $EFI_PARTITION_DIR/riscv64
