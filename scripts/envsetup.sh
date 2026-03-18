@@ -1230,7 +1230,7 @@ function clean_rv_firmware()
 
 function build_rv_firmware_bin()
 {
-	local RELEASED_NOTE_PATH="$RV_TOP_DIR/bootloader-riscv/release-note"
+	local RELEASED_NOTE_PATH="$RV_TOP_DIR/sophgo-edk2/release-note"
 	local PRIVKEY_PATH="$RV_SCRIPTS_DIR/key/sophgo-root-private-key.pem"
 	local PUBKEY_PATH="$RV_SCRIPTS_DIR/key/sophgo-root-public-key.pem"
 	local PUBKEY_DER_PATH="public_key.der"
@@ -1246,7 +1246,7 @@ function build_rv_firmware_bin()
 	pushd $RV_FIRMWARE_INSTALL_DIR
 	rm -f firmware*.bin
 	if [ "$CHIP" = "mango" ]; then
-		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_release_note.md"
+		local RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2042_firmware_release_note.md"
 		./pack -a -p fip.bin -t 0x600000 -f fip.bin -o 0x30000 firmware.bin
 		./pack -a -p ${PLAT}.fd -t 0x600000 -f ${PLAT^^}.fd -l 0x2000000 -o 0x2040000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x600000 -f zsbl.bin -l 0x40000000 firmware.bin
@@ -1262,7 +1262,7 @@ function build_rv_firmware_bin()
 		./pack -a -p mango-sophgo-capricorn.dtb -t 0x600000 -f mango-sophgo-capricorn.dtb -l 0x20000000 firmware.bin
 		./pack -a -p mango-yixin-s2110.dtb -t 0x600000 -f mango-yixin-s2110.dtb -l 0x20000000 firmware.bin
 	elif [ "$CHIP" = "sg2044" ]; then
-		RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_release_note.md"
+		local RELEASED_NOTE_MD="$RELEASED_NOTE_PATH/sg2044_firmware_release_note.md"
 		./pack -a -p SG2044.fd -t 0x80000 -f ${PLAT^^}.fd -l 0x80200000 -o 0x600000 firmware.bin
 		./pack -a -p fsbl.bin -t 0x80000 -f fsbl.bin -l 0x7010080000 firmware.bin
 		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
@@ -1286,10 +1286,10 @@ function build_rv_firmware_bin()
 	fi
 
 	if [ ! -e "$RELEASED_NOTE_MD" ] || [ ! -s "$RELEASED_NOTE_MD" ];then
-		version="1.0.0"
+		local version="1.0.0"
 	else
-		FIRST_MATCH=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}' "$RELEASED_NOTE_MD" | head -n 1)
-		version="$(echo "$FIRST_MATCH" | cut -d'_' -f1)"
+		local FIRST_MATCH=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}' "$RELEASED_NOTE_MD" | head -n 1)
+		local version="$(echo "$FIRST_MATCH" | cut -d'_' -f1)"
 	fi
 	echo ${version} | ./pack -a -o 0x0 firmware.bin
 
