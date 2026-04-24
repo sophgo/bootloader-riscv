@@ -1294,7 +1294,7 @@ function build_rv_firmware_bin()
 		local FIRST_MATCH=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}' "$RELEASED_NOTE_MD" | head -n 1)
 		local version="$(echo "$FIRST_MATCH" | cut -d'_' -f1)"
 	fi
-	echo ${version} | ./pack -a -o 0x0 firmware.bin
+	echo -n ${version} | ./pack -a -o 0x0 firmware.bin
 
 	if [ "$CHIP" = "mango" ];then
 		cp firmware.bin image-bmc
