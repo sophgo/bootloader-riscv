@@ -483,9 +483,6 @@ function build_rv_edk2()
 {
 	pushd $RV_EDKII_SRC_DIR
 
-	git submodule sync
-	git submodule update --init --recursive
-
 	export WORKSPACE=$RV_EDKII_SRC_DIR
 	export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi:$WORKSPACE/external-modules
 	export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
