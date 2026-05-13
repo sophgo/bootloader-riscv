@@ -484,9 +484,16 @@ function build_rv_edk2()
 	pushd $RV_EDKII_SRC_DIR
 
 	export WORKSPACE=$RV_EDKII_SRC_DIR
-	export PACKAGES_PATH=$WORKSPACE/edk2:$RV_EDKII_SRC_DIR/edk2-platforms:$RV_EDKII_SRC_DIR/edk2-non-osi:$WORKSPACE/external-modules
+	export PACKAGES_PATH=$WORKSPACE/edk2:$WORKSPACE/edk2-platforms:$WORKSPACE/edk2-non-osi:$WORKSPACE/external-modules
 	export EDK_TOOLS_PATH=$WORKSPACE/edk2/BaseTools
-	export GCC5_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
+
+	# Auto-detect edk2 toolchain tag: GCC5 was removed in tools_def v3.06
+	if grep -q "Remove.*GCC5" "$EDK_TOOLS_PATH/Conf/tools_def.template" 2>/dev/null; then
+		local EDK2_TOOLCHAIN=GCC
+    else
+        local EDK2_TOOLCHAIN=GCC5
+	fi
+	export ${EDK2_TOOLCHAIN}_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
 
 	source edk2/edksetup.sh
 
@@ -495,13 +502,13 @@ function build_rv_edk2()
 	TARGET=RELEASE
 
 	if [ $CHIP = 'mango' ]; then
-		build -a RISCV64 -t GCC5 -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/${PLAT}/${PLAT}.dsc
+		build -a RISCV64 -t $EDK2_TOOLCHAIN -b $TARGET -D ACPI_ENABLE -p Platform/Sophgo/SG2042Pkg/${PLAT}/${PLAT}.dsc
 	else
-		build -a RISCV64 -t GCC5 -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${PLAT}/${PLAT^^}.dsc
+		build -a RISCV64 -t $EDK2_TOOLCHAIN -b $TARGET -p Platform/Sophgo/${CHIP^^}Pkg/${PLAT}/${PLAT^^}.dsc
 	fi
 
 	mkdir -p $RV_FIRMWARE_INSTALL_DIR
-	cp $RV_EDKII_SRC_DIR/Build/${PLAT}/$TARGET\_GCC5/FV/${PLAT^^}.fd $RV_FIRMWARE_INSTALL_DIR
+	cp $RV_EDKII_SRC_DIR/Build/${PLAT}/$TARGET\_$EDK2_TOOLCHAIN/FV/${PLAT^^}.fd $RV_FIRMWARE_INSTALL_DIR
 
 	popd
 }
