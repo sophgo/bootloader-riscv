@@ -1,3 +1,33 @@
+# 20260622
+
+## bootloader-riscv
+branch: master \
+tag: NA \
+commit: cc238d22c14d111f2885b9c86ad56aa7df63268f
+
++ No update
+
+## sophgo-edk2
+branch: devel-sg2042 \
+tag: sg2042_sophgo-edk2_20260617 \
+commit: cd2d36fde3e0247a91fdb192f17882a4dc317159
+
++ SG2042: v1.4.3 BIOS release
++ SG2042: fixbug, virtual timer may never expired
++ SG2042: Set PCIe max payload supported to 128.
++ SG2042: Slow down virtual timer update frequency
++ SG2042: Reset PCIe QoS from highest to normal
++ SG2042: Fixbug, Wrong PCIe controller is used in MCFG
++ SG2042: Delete ethernet in DSDT
+
+## linux-riscv
+branch: sg2042-dev-6.6 \
+tag: SG2042_Linux-6.6.127_v20260611 \
+commit: ba8bf477523bd90dc33d083d94b0f0eff79186dc
+
++ Fixbug: memory leak in pcie controller driver
++ SG2042: enable lr/sc live lock workaround
+
 # 20260424
 
 ## bootloader-riscv
