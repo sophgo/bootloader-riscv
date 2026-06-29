@@ -46,7 +46,7 @@ RV_SCRIPTS_DIR=$RV_TOP_DIR/bootloader-riscv/scripts
 
 CHIP_LIST='mango sg2044 bm1690e'
 MANGO_PLAT_LIST='SG2042-EVB MilkV-Pioneer SRA1-20'
-SG2044_PLAT_LIST='SD3-10 SRA3-40 SRA3-40-8 BM1690'
+SG2044_PLAT_LIST='SD3-10 SD3-12 SRA3-40 SRA3-40-8 BM1690'
 
 # $1: variable
 # $2: list
@@ -490,8 +490,8 @@ function build_rv_edk2()
 	# Auto-detect edk2 toolchain tag: GCC5 was removed in tools_def v3.06
 	if grep -q "Remove.*GCC5" "$EDK_TOOLS_PATH/Conf/tools_def.template" 2>/dev/null; then
 		local EDK2_TOOLCHAIN=GCC
-    else
-        local EDK2_TOOLCHAIN=GCC5
+	else
+		local EDK2_TOOLCHAIN=GCC5
 	fi
 	export ${EDK2_TOOLCHAIN}_RISCV64_PREFIX=$RISCV64_ELF_CROSS_COMPILE
 
@@ -1271,6 +1271,7 @@ function build_rv_firmware_bin()
 		./pack -a -p zsbl.bin -t 0x80000 -f zsbl.bin -l 0x40000000 firmware.bin
 		./pack -a -p fw_dynamic.bin -t 0x80000 -f fw_dynamic.bin -l 0x80000000 firmware.bin
 		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
+		./pack -a -p sg2044-sd3-12.dtbo -t 0x80000 -f sg2044-sd3-12.dtbo -l 0x88000000 firmware.bin
 		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware.bin
 		export_key $PRIVKEY_PATH $PUBKEY_PATH
 		sign $PRIVKEY_PATH ${PLAT^^}.fd
@@ -1278,12 +1279,14 @@ function build_rv_firmware_bin()
 		sign $PRIVKEY_PATH zsbl.bin
 		sign $PRIVKEY_PATH fw_dynamic.bin
 		sign $PRIVKEY_PATH sg2044-evb.dtbo
+		sign $PRIVKEY_PATH sg2044-sd3-12.dtbo
 		sign $PRIVKEY_PATH sg2044-sra3.dtbo
 		./pack -a -p SG2044.fd.sig -t 0x80000 -f ${PLAT^^}.fd.sig firmware.bin
 		./pack -a -p fsbl.bin.sig -t 0x80000 -f fsbl.bin.sig firmware.bin
 		./pack -a -p zsbl.bin.sig -t 0x80000 -f zsbl.bin.sig firmware.bin
 		./pack -a -p fw_dynamic.bin.sig -t 0x80000 -f fw_dynamic.bin.sig firmware.bin
 		./pack -a -p sg2044-evb.dtbo.sig -t 0x80000 -f sg2044-evb.dtbo.sig firmware.bin
+		./pack -a -p sg2044-sd3-12.dtbo.sig -t 0x80000 -f sg2044-sd3-12.dtbo.sig firmware.bin
 		./pack -a -p sg2044-sra3.dtbo.sig -t 0x80000 -f sg2044-sra3.dtbo.sig firmware.bin
 		./pack -a -p public_key.der -t 0x80000 -f $PUBKEY_DER_PATH firmware.bin
 	fi
