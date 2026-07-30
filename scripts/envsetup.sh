@@ -441,7 +441,7 @@ function build_rv_zsbl()
 		cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dts/${CHIP}*.dtb $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
 	fi
 
-	overwrite prebuild binaries
+    # overwrite prebuild binaries
 	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE
 	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/${CHIP}*.dtbo $RV_FIRMWARE 2>/dev/null | true
 	if [ $CHIP = 'mango' ]; then
