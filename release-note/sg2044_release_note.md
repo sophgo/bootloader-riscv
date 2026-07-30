@@ -1,11 +1,21 @@
-# 20260318
+# 20260730
 
-## bootloader-riscv
-branch: master \
+## sophgo-edk2
+branch: devel-sg2044 \
 tag: NA \
-commit: 0602ca18b7f8fe9c27ab4c2cf7e2b425d7729cc7
+commit: 711d5672cb9e081a130fa5c7cfdf9ab4abb74f3d
 
-+ Base release note
++ SG2044: BIOS v2.0.0 release, see sg2044_firmware_release_note.md
+
+## linux-riscv
+branch: sg2042-dev-6.12 \
+tag: SG2044_Linux-6.12.66_v20260706 \
+commit: 5b8267fcc03bda9cf1709e0e29d66b2ac634bcbc
+
++ irqchip/sifive-plic: fix stuck in-progress IRQ on affinity migration
++ net: phy: motorcomm: use device properties for firmware tuning
+
+# 20260318
 
 ## sophgo-edk2
 branch: devel-sg2044 \
