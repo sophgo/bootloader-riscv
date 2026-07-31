@@ -18,6 +18,7 @@ jobs:
     env:
       mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.03.01
       mainline_toolchain_file_name: riscv64-glibc-ubuntu-22.04-gcc-nightly-2024.03.01-nightly.tar.gz
+      mainline_elf_toolchain_file_name: riscv64-elf-ubuntu-22.04-gcc-nightly-2024.03.01-nightly.tar.gz
       wget_alias: 'wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0'
       ARCH: riscv
       KBUILD_BUILD_USER: riscv
@@ -66,8 +67,13 @@ jobs:
                                   texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
                                   ninja-build uuid-dev gcc-riscv64-unknown-elf acpica-tools
               update-binfmts --display
+              sudo mkdir -p ${TOOLCHAIN_HOME}
               ${wget_alias} ${mainline_toolchain}/${mainline_toolchain_file_name}
-              tar -xvf ${mainline_toolchain_file_name} -C /opt
+              tar -xvf ${mainline_toolchain_file_name} -C ${TOOLCHAIN_HOME}
+              sudo mv ${TOOLCHAIN_HOME}/riscv ${TOOLCHAIN_HOME}/gcc-unknown-linux-gnu
+              ${wget_alias} ${mainline_toolchain}/${mainline_elf_toolchain_file_name}
+              tar -xvf ${mainline_elf_toolchain_file_name} -C ${TOOLCHAIN_HOME}
+              sudo mv ${TOOLCHAIN_HOME}/riscv ${TOOLCHAIN_HOME}/gcc-unknown-elf
 
       - name: prepare
         run: |
