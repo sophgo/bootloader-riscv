@@ -1,9 +1,9 @@
-# 20260731
+# 20260804
 
 ## sophgo-edk2
 branch: devel-sg2044 \
 tag: NA \
-commit: 7d72a48a1ab3939f86238b783dea842817301a11
+commit: 0a6ba96c7fbaa86a3233913d7773fc92ffeef672
 
 + SG2044: BIOS v2.0.0 release, see sg2044_firmware_release_note.md
 
