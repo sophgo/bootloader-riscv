@@ -140,9 +140,9 @@ RV_FIRMWARE_INSTALL_DIR=$RV_OUTPUT_DIR/firmware
 RV_RP_DEB_INSTALL_DIR=$RV_FIRMWARE_INSTALL_DIR/rp_ramdisk_debs
 
 if [ x$CHIP == xmango ]; then
-RV_FIRMWARE=$RV_TOP_DIR/sophgo-edk2/edk2-non-osi/Silicon/Sophgo/SG2042/Boot
+RV_FIRMWARE=$RV_EDKII_SRC_DIR/edk2-non-osi/Silicon/Sophgo/SG2042/Boot
 else
-RV_FIRMWARE=$RV_TOP_DIR/sophgo-edk2/edk2-non-osi/Silicon/Sophgo/${CHIP^^}/Boot
+RV_FIRMWARE=$RV_EDKII_SRC_DIR/edk2-non-osi/Silicon/Sophgo/${CHIP^^}/Boot
 fi
 RV_SERVICE_DIR=$RV_TOP_DIR/bootloader-riscv/service
 RV_TOOLS_DIR=$RV_OUTPUT_DIR/tools
@@ -1240,7 +1240,7 @@ function clean_rv_firmware()
 
 function build_rv_firmware_bin()
 {
-	local RELEASED_NOTE_PATH="$RV_TOP_DIR/sophgo-edk2/release-note"
+	local RELEASED_NOTE_PATH="$RV_EDKII_SRC_DIR/release-note"
 	local PRIVKEY_PATH="$RV_SCRIPTS_DIR/key/sophgo-root-private-key.pem"
 	local PUBKEY_PATH="$RV_SCRIPTS_DIR/key/sophgo-root-public-key.pem"
 	local PUBKEY_DER_PATH="public_key.der"
