@@ -441,7 +441,7 @@ function build_rv_zsbl()
 		cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dts/${CHIP}*.dtb $RV_FIRMWARE_INSTALL_DIR 2>/dev/null | true
 	fi
 
-    # overwrite prebuild binaries
+	# overwrite prebuild binaries
 	cp $RV_ZSBL_BUILD_DIR/zsbl.bin $RV_FIRMWARE
 	cp $RV_ZSBL_BUILD_DIR/arch/riscv/boot/dtso/${CHIP}*.dtbo $RV_FIRMWARE 2>/dev/null | true
 	if [ $CHIP = 'mango' ]; then
@@ -1306,10 +1306,15 @@ function build_rv_firmware_bin()
 	fi
 	echo -n ${version} | ./pack -a -o 0x0 firmware.bin
 
-	if [ "$CHIP" = "mango" ];then
-		cp firmware.bin image-bmc
-		$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m ast2600-sophgo -v $version -s
+	# generate open-bmc tar ball
+	if [ "$CHIP" = "mango" ]; then
+		local machine=ast2600-sophgo
+	else
+        local machine=${PLAT^^}
 	fi
+	cp firmware.bin image-bmc
+	$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m $machine -v $version -s
+
 	rm -f image-bmc pack *.md sign *.sig $PUBKEY_DER_PATH
 
 	popd
