@@ -1,3 +1,19 @@
+# 20261008
+
+## sophgo-edk2
+branch: devel-sg2044 \
+tag: NA \
+commit: e71c6efc7192222325570d8f586e094ec0647e9a
+
++ SG2044: BIOS v2.1.1 release, see sg2044_firmware_release_note.md
+
+## linux-riscv
+branch: sg2042-dev-6.12 \
+tag: SG2044_Linux-6.12.66_v20260706 \
+commit: 5b8267fcc03bda9cf1709e0e29d66b2ac634bcbc
+
++ No update
+
 # 20260804
 
 ## sophgo-edk2
