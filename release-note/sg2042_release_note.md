@@ -1,3 +1,26 @@
+# 20261012
+
+## bootloader-riscv
+branch: master \
+tag: NA \
+commit: fcc74ae19ee945faa726577f9452ae5450a1353b
+
++ No update
+
+## sophgo-edk2
+branch: devel-sg2042 \
+tag: sg2042_sophgo-edk2_20260617 \
+commit: 23808ac8f0d18be05983b134f064331159519ae3
+
++ BIOS v1.5.0 release, see sg2042_firmware_release_note.md
+
+## linux-riscv
+branch: sg2042-dev-6.6 \
+tag: SG2042_Linux-6.6.127_v20260908 \
+commit: d11e87070a4d3cba5734177e1d52ba6f725cf88f
+
++ SG2042: Add Cambricon MLU370 in MSI-X white list
+
 # 20260714
 
 ## bootloader-riscv
