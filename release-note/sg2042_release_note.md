@@ -1,3 +1,26 @@
+# 20261015
+
+## bootloader-riscv
+branch: master \
+tag: NA \
+commit: ccf5eaaa9122ee5f18d33dbfa8bb0d021e4cdd25
+
++ SG2042: Add release script
+
+## sophgo-edk2
+branch: devel-sg2042 \
+tag: sg2042_sophgo-edk2_20261015 \
+commit: bafa5020e9daa9e37584a1637e4e04ae6d24fdfd
+
++ BIOS v1.5.1 release, see sg2042_firmware_release_note.md
+
+## linux-riscv
+branch: sg2042-dev-6.6 \
+tag: SG2042_Linux-6.6.127_v20260908 \
+commit: d11e87070a4d3cba5734177e1d52ba6f725cf88f
+
++ No update
+
 # 20261012
 
 ## bootloader-riscv
