@@ -106,8 +106,8 @@ RV_OUTPUT_DIR=$RV_TOP_DIR/install/soc_$CHIP/$PLAT
 RV_BOOTROM_SRC_DIR=$RV_TOP_DIR/sophgo-2260/bootrom
 RV_BOOTROM_BUILD_DIR=$RV_BOOTROM_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
 
-RV_ZSBL_SRC_DIR=$RV_TOP_DIR/zsbl
-RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/$CHIP/$KERNEL_VARIANT
+RV_ZSBL_SRC_DIR=$RV_TOP_DIR/eboot
+RV_ZSBL_BUILD_DIR=$RV_ZSBL_SRC_DIR/build/${CHIP}_zsbl
 RV_SBI_SRC_DIR=$RV_TOP_DIR/opensbi
 
 RV_EDKII_SRC_DIR=$RV_TOP_DIR/sophgo-edk2
@@ -364,7 +364,7 @@ function build_rv_tp_zsbl()
 	local err
 
 	pushd $RV_ZSBL_SRC_DIR
-	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv bm1690tp_defconfig
+	make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv bm1690_zsbl_defconfig
 	err=$?
 	popd
 
@@ -411,9 +411,9 @@ function build_rv_zsbl()
 
 	pushd $RV_ZSBL_SRC_DIR
 	if [ $CHIP = 'mango' ]; then
-		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_defconfig
+		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv sg2042_zsbl_defconfig
 	else
-		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv ${CHIP}_defconfig
+		make CROSS_COMPILE=$RISCV64_LINUX_CROSS_COMPILE O=$RV_ZSBL_BUILD_DIR ARCH=riscv ${CHIP}_zsbl_defconfig
 	fi
 	err=$?
 	popd
@@ -455,6 +455,12 @@ function clean_rv_zsbl()
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP}*.dtbo
 	rm -rf $RV_FIRMWARE_INSTALL_DIR/${CHIP}*.dtb
 	rm -rf $RV_ZSBL_BUILD_DIR
+
+    # clean source directory
+    pushd $RV_ZSBL_SRC_DIR
+        rm -rf build
+        make ARCH=riscv distclean
+    popd
 }
 
 function build_rv_sbi()
