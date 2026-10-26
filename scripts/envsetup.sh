@@ -91,7 +91,6 @@ elif [[ "$CHIP" = "sg2044" ]]; then
 	fi
 
 	source $RV_SCRIPTS_DIR/gen_distro_img.sh
-	source $RV_SCRIPTS_DIR/sign.sh
 elif [[ "$CHIP" = "bm1690e" ]]; then
 	echo "use bm1690e config"
 else
@@ -168,6 +167,8 @@ TP_IMAGES=(
 	tp.dtb
 	tp_rootfs.cpio
 )
+
+source $RV_EDKII_SRC_DIR/tools/sign.sh
 
 #######################################################################
 # common function
@@ -1247,13 +1248,13 @@ function clean_rv_firmware()
 function build_rv_firmware_bin()
 {
 	local RELEASED_NOTE_PATH="$RV_EDKII_SRC_DIR/release-note"
-	local PRIVKEY_PATH="$RV_SCRIPTS_DIR/key/sophgo-root-private-key.pem"
-	local PUBKEY_PATH="$RV_SCRIPTS_DIR/key/sophgo-root-public-key.pem"
+	local PRIVKEY_PATH="$RV_EDKII_SRC_DIR/keys/sophgo-root-private-key.pem"
+	local PUBKEY_PATH="$RV_EDKII_SRC_DIR/keys/sophgo-root-public-key.pem"
 	local PUBKEY_DER_PATH="public_key.der"
 
 	build_rv_firmware
 
-	pushd $RV_SCRIPTS_DIR/pack/
+	pushd $RV_EDKII_SRC_DIR/tools/pack/
 	make clean
 	make
 	cp pack $RV_FIRMWARE_INSTALL_DIR
