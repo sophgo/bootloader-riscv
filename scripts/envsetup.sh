@@ -168,8 +168,6 @@ TP_IMAGES=(
 	tp_rootfs.cpio
 )
 
-source $RV_EDKII_SRC_DIR/tools/sign.sh
-
 #######################################################################
 # common function
 #######################################################################
@@ -1287,6 +1285,7 @@ function build_rv_firmware_bin()
 		./pack -a -p sg2044-evb.dtbo -t 0x80000 -f sg2044-evb.dtbo -l 0x88000000 firmware.bin
 		./pack -a -p sg2044-sd3-12.dtbo -t 0x80000 -f sg2044-sd3-12.dtbo -l 0x88000000 firmware.bin
 		./pack -a -p sg2044-sra3.dtbo -t 0x80000 -f sg2044-sra3.dtbo -l 0x88000000 firmware.bin
+		source $RV_EDKII_SRC_DIR/tools/sign.sh
 		export_key $PRIVKEY_PATH $PUBKEY_PATH
 		sign $PRIVKEY_PATH ${PLAT^^}.fd
 		sign $PRIVKEY_PATH fsbl.bin
