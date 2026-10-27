@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        M_PLAT_NAME: [SRA3-40, SRA3-40-8, SD3-10]
+        M_PLAT_NAME: [SD3-10, SD3-10-LB, SD3-12, SRA3-40, SRA3-40-LB, SRA3-40-8, SRM31]
         LINUX_BRANCH: [sg2044-dev-6.12]
 
     env:
@@ -35,25 +35,19 @@ jobs:
         with:
           path: bootloader-riscv
 
-      - name: Checkout zsbl
-        uses: actions/checkout@v4
-        with:
-          repository: sophgo/zsbl
-          path: zsbl
-
       - name: Checkout opensbi
         uses: actions/checkout@v4
         with:
           repository: sophgo/opensbi
           path: opensbi
-          ref: sg2044-dev
+          ref: ${{ github.head_ref || 'sg2044-dev' }}
 
       - name: Checkout sophgo-edk2
         uses: actions/checkout@v4
         with:
           repository: sophgo/sophgo-edk2
           path: sophgo-edk2
-          ref: devel-sg2044
+          ref: ${{ github.head_ref || 'devel-sg2044' }}
 
       - name: Install software
         run: |
@@ -65,7 +59,7 @@ jobs:
                                   qemu-system binfmt-support qemu-user-static curl wget \
                                   automake autotools-dev python3 libmpc-dev libmpfr-dev libgmp-dev \
                                   texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
-                                  ninja-build uuid-dev acpica-tools
+                                  ninja-build uuid-dev acpica-tools parted kpartx dosfstools mtools
               update-binfmts --display
               sudo mkdir -p ${TOOLCHAIN_HOME}
               ${wget_alias} ${mainline_toolchain}/${mainline_toolchain_file_name}
@@ -83,14 +77,13 @@ jobs:
                 git submodule update --init --recursive
               popd
 
-      - name: Compile zsbl & sbi & fsbl
+      - name: Compile sbi & fsbl
         run: |
               pushd bootloader-riscv
                 source scripts/envsetup.sh
                 # fix build variable in github action
                 source scripts/github_env.sh
 
-                build_rv_zsbl
                 build_rv_sbi
                 cp -v ${RV_FIRMWARE}/fsbl.bin ${RV_FIRMWARE_INSTALL_DIR}/
               popd
@@ -106,7 +99,7 @@ jobs:
                 build_rv_edk2
               popd
 
-      - name: Packege firmware
+      - name: Package firmware
         run: |
               pushd bootloader-riscv
                 source scripts/envsetup.sh
