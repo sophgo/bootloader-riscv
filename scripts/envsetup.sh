@@ -1319,7 +1319,7 @@ function build_rv_firmware_bin()
         local machine=${PLAT^^}
 	fi
 	cp firmware.bin image-bmc
-	$RV_SCRIPTS_DIR/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m $machine -v $version -s
+	$RV_EDKII_SRC_DIR/tools/gen-tar-for-bmc.sh image-bmc -o obmc-bios.tar.gz -m $machine -v $version -s
 
 	rm -f image-bmc pack *.md sign *.sig $PUBKEY_DER_PATH
 
