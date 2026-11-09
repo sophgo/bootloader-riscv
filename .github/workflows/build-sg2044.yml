@@ -47,7 +47,7 @@ jobs:
         with:
           repository: sophgo/sophgo-edk2
           path: sophgo-edk2
-          ref: ${{ github.head_ref || 'devel-sg2044' }}
+          ref: ${{ github.head_ref || 'devel-sophgo' }}
 
       - name: Install software
         run: |
