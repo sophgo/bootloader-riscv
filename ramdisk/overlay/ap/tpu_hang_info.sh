@@ -12,11 +12,17 @@ else
   cdma_num=10
 fi
 
+# Precompute core/cdma index lists once. These loops run hundreds of times
+# across the table helpers; expanding a cached variable avoids spawning a
+# `seq` subprocess every single time.
+CORE_SEQ=$(seq 0 $((core_num - 1)))
+CDMA_SEQ=$(seq 0 $((cdma_num - 1)))
+
 
 # Helper function: Print dynamic separator line
 print_dynamic_separator() {
   printf "+------------------"
-  for i in $(seq 0 $((core_num - 1))); do
+  for i in $CORE_SEQ; do
     printf "+----------------"
   done
   printf "+\n"
@@ -27,7 +33,7 @@ print_dynamic_header() {
   first_col_name=$1
   print_dynamic_separator
   printf "| %-16s " "$first_col_name"
-  for i in $(seq 0 $((core_num - 1))); do
+  for i in $CORE_SEQ; do
     printf "| %-14s " "Core $i"
   done
   printf "|\n"
@@ -41,7 +47,7 @@ print_dynamic_row() {
   var_prefix=$2
   
   printf "| %-16s " "$label"
-  for i in $(seq 0 $((core_num - 1))); do
+  for i in $CORE_SEQ; do
     # Construct variable name dynamically (e.g., tp_value_0)
     eval "val=\${${var_prefix}_${i}}"
     printf "| %-14s " "$val"
@@ -56,21 +62,12 @@ extract_bits() {
   msb=$2        # most significant bit
   lsb=$3        # least significant bit
   
-  # Remove 0x prefix
-  clean_hex=$(echo "$hex_value" | sed 's/^0x//')
-  
-  # Convert to decimal for bit manipulation
-  decimal_value=$(printf "%d" "0x$clean_hex" 2>/dev/null || echo 0)
-  
-  # Create mask for the bits we want to extract
-  # mask=$((((1<<(msb-lsb+1))-1)<<lsb ))
+  # The shell's arithmetic context parses a "0x..." literal directly, so we
+  # mask/shift in one step with no `sed`/`printf` subprocesses for conversion.
   width=$((msb - lsb + 1))
-  mask=$(( ((1 << width) - 1) << lsb ))
-  
-  # Extract the bits and shift right
-  result=$(( (decimal_value & mask) >> lsb ))
-  
-  # Format: return 0 as "0", non-zero as "0xN"
+  result=$(( ($hex_value >> lsb) & ((1 << width) - 1) ))
+
+# Format: return 0 as "0", non-zero as "0xN"
   if [ "$result" -eq 0 ]; then
     echo "0"
   else
@@ -83,15 +80,8 @@ extract_bit() {
   hex_value=$1  # hex value, e.g., 0x12345678
   bit_pos=$2    # bit position to extract (0-31)
   
-  # Remove 0x prefix
-  clean_hex=$(echo "$hex_value" | sed 's/^0x//')
-  
-  # Convert to decimal for bit manipulation
-  decimal_value=$(printf "%d" "0x$clean_hex" 2>/dev/null || echo 0)
-  
-  # Extract the specific bit
-  result=$(( (decimal_value >> bit_pos) & 1 ))
-  
+  result=$(( ($hex_value >> bit_pos) & 1 ))
+
   # Format: return 0 as "0", 1 as "0x1"
   if [ "$result" -eq 0 ]; then
     echo "0"
@@ -102,16 +92,13 @@ extract_bit() {
 
 read_64() {
   addr=$1
-  let low_addr=$addr
-  let high_addr=$addr+0x4
-  low_value=$(devmem $low_addr 32)
-  high_value=$(devmem $high_addr 32)
-  low_value=${low_value#0x}
-  high_value=${high_value#0x}
-  value="0x${high_value}${low_value}"
-  value=$(printf "0x%X" $value)
-  value=$(remove_unnecessary_zero $value)
-  echo "$value"
+  # These addr segments are 32-bit-access only, so two 32-bit reads are a
+  # hardware requirement, not a slow workaround. Only the combine is simplified.
+  low_value=$(devmem $addr 32)
+  high_value=$(devmem $(( addr + 4 )) 32)
+  # devmem prints fixed-width 8-hex-digit words; concatenate the two halves and
+  # let printf normalize. This avoids signed overflow from a 64-bit shift.
+  printf "0x%X" "0x${high_value#0x}${low_value#0x}"
 }
 
 # Define register data structure
@@ -185,7 +172,7 @@ get_all_gdma_register() {
   reg_addr=$1
   
   result=""
-  for i in $(seq 0 $((core_num - 1))); do
+  for i in $CORE_SEQ; do
     case "$reg_addr" in
       "h110")
         value=$(devmem 0x69${i}8011110 32)
@@ -211,7 +198,7 @@ get_all_sdma_register() {
   reg_addr=$1
   
   result=""
-  for i in $(seq 0 $((core_num - 1))); do
+  for i in $CORE_SEQ; do
     case "$reg_addr" in
       "h110")
         if [ $i -le 3 ]; then
@@ -259,7 +246,7 @@ print_register_fields() {
   
   # 1. Print Dynamic Header
   printf "| %-25s |" "Field Name"
-  for i in $(seq 0 $((core_num - 1))); do
+  for i in $CORE_SEQ; do
     printf " %-10s |" "Core $i"
   done
   printf "\n"
@@ -267,7 +254,7 @@ print_register_fields() {
   # 2. Print Dynamic Separator
   # Field column separator (25 chars + 2 spaces)
   printf "|%s|" "---------------------------"
-  for i in $(seq 0 $((core_num - 1))); do
+  for i in $CORE_SEQ; do
     # Core column separator (10 chars + 2 spaces)
     printf "%s|" "------------"
   done
@@ -299,73 +286,50 @@ print_register_fields() {
 
 # Function to extract a single bit from a 128-bit hex value
 extract_bit_128() {
-  hex_value=$1   # 128-bit hex value as string (with or without 0x prefix)
-  bit_pos=$2     # bit position to extract (0-127)
-  
-  # Remove 0x prefix if present
-  hex_value=$(echo "$hex_value" | sed 's/^0x//')
-  
-  # Calculate which hex digit contains this bit (hex digits are 4 bits each)
-  # Counting from the right (least significant) side
-  hex_digit_pos=$(( (127 - bit_pos) / 4 ))
-  
-  # Calculate which bit within that hex digit (0-3, from least to most significant)
-  bit_in_digit=$(( 3 - ((127 - bit_pos) % 4) ))
-  
-  # Extract the hex digit
-  digit=$(echo "$hex_value" | cut -c$(( hex_digit_pos + 1 )))
-  
-  # Convert hex digit to decimal
-  decimal=$(printf "%d" "0x$digit" 2>/dev/null || echo 0)
-  
-  # Extract the specific bit
-  result=$(( (decimal >> bit_in_digit) & 1 ))
-  
-  echo "$result"
+  hex_value=${1#0x}   # strip optional 0x via parameter expansion (no subprocess)
+  bit_pos=$2  # bit position to extract (0-127)
+
+  # Pad to 32 nibbles if devmem dropped leading zeros (fork-free loop).
+  len=${#hex_value}
+  while [ "$len" -lt 32 ]; do hex_value="0$hex_value"; len=$((len + 1)); done
+
+  # Nibble containing the bit, counted from the right (nibble 0 = rightmost).
+  # In a 32-char string, nibble n sits at cut position (32 - n).
+  nib=$((bit_pos / 4))
+  digit=$(printf '%s' "$hex_value" | cut -c$((32 - nib)))
+
+  echo $(( ( $(printf "%d" "0x$digit") >> (bit_pos % 4) ) & 1 ))
 }
 
 # Function to extract a range of bits from a 128-bit hex value
 extract_bits_128() {
-  hex_value=$1   # 128-bit hex value as string
-  msb=$2         # most significant bit
-  lsb=$3         # least significant bit
-  
-  # Remove 0x prefix if present
-  hex_value=$(echo "$hex_value" | sed 's/^0x//')
-  
-  # Calculate number of bits to extract
-  num_bits=$(( msb - lsb + 1 ))
-  
-  # Initialize result
-  result=0
-  
-  # Initialize result
-  result=0
-  # Start with 2^0 = 1
-  current_pos_val=1
-  
-  # Extract each bit and compose the result
-  for bit_pos in $(seq $lsb $msb); do
-    bit_val=$(extract_bit_128 "0x$hex_value" $bit_pos)
-    
-    # If bit is 1, add current position value to result
-    if [ "$bit_val" -eq 1 ]; then
-      result=$(( result | current_pos_val ))
-    fi
-    
-    # Prepare for next iteration: multiply by 2 (equivalent to << 1)
-    # We use addition (+) to strictly avoid '<<' syntax highlighting bugs
-    current_pos_val=$(( current_pos_val + current_pos_val ))
-  done
-  
+  hex_value=${1#0x}   # strip optional 0x (no subprocess)
+  msb=$2          # most significant bit
+  lsb=$3            # least significant bit
+
+  # Pad to 32 nibbles if devmem dropped leading zeros (fork-free loop).
+  len=${#hex_value}
+  while [ "$len" -lt 32 ]; do hex_value="0$hex_value"; len=$((len + 1)); done
+
+  # Instead of looping bit-by-bit (which forked ~5 subprocesses per bit), grab
+  # only the hex nibbles that cover [lsb, msb] with a single cut, convert once,
+  # then mask/shift natively. Every field here is < ~36 bits wide, well within
+  # the shell's 64-bit arithmetic, so no 128-bit big-int handling is needed.
+  lo_nib=$((lsb / 4))
+  hi_nib=$((msb / 4))
+  # nibble n -> cut position (32 - n); chunk runs hi_nib (left) .. lo_nib (right)
+  chunk=$(printf '%s' "$hex_value" | cut -c$((32 - hi_nib))-$((32 - lo_nib)))
+  val=$(printf "%d" "0x$chunk")
+
+  width=$((msb - lsb + 1))
+  result=$(( (val >> (lsb - lo_nib * 4)) & ((1 << width) - 1) ))
   printf "0x%X" "$result"
 }
 
-function remove_unnecessary_zero() {
-  value=$1
-  value=$(printf "%d" $value)
-  value=$(printf "0x%X" $value)
-  echo "$value"
+remove_unnecessary_zero() {
+  # Re-normalize a hex string (strip leading zeros). The arithmetic context
+  # parses the 0x literal; a single printf emits the canonical form.
+  printf "0x%X" "$(( $1 ))"
 }
 
 
@@ -421,7 +385,7 @@ print_register_fields "h12c" "$DMA_H12C_FIELDS" "$sdma_h12c_values" "SDMA"
 printf "\n"
 printf "\n"
 
-for i in $(seq 0 $((core_num - 1))); do
+for i in $CORE_SEQ; do
   tp_value=$(devmem 0x69${i}8050184 32)
   msgid0_31_diff=$(devmem 0x69${i}804041c 32)
   msgid0_31_diff=$(remove_unnecessary_zero $msgid0_31_diff)
@@ -469,7 +433,7 @@ if [ $core_num -eq 4 ]; then
   mpu_num=16
   print_dynamic_header "MPU Info"
   for j in $(seq 0 $((mpu_num - 1))); do
-    for i in $(seq 0 $((core_num - 1))); do
+    for i in $CORE_SEQ; do
       let gdma_addr=0x69${i}8010000+0x1000
       if [ $i -le 3 ]; then
         let sdma_addr=0x69${i}8020000+0x1000
@@ -501,7 +465,7 @@ printf "\n\n"
 base_addr_num=32
 print_dynamic_header "Base Address"
 for j in $(seq 0 $((base_addr_num - 1))); do
-  for i in $(seq 0 $((core_num - 1))); do
+  for i in $CORE_SEQ; do
     let gdma_addr=0x69${i}8010000+0x1000
     if [ $i -le 3 ]; then
       let sdma_addr=0x69${i}8020000+0x1000
@@ -531,7 +495,7 @@ printf "+------------------+----------------+----------------+----------------+-
 printf "| %-16s | %-14s | %-14s | %-14s | %-14s |\n" "Port" "Send CmdId" "Recv CmdId" "Des addr" "Base Addr"
 printf "+------------------+----------------+----------------+----------------+----------------+\n"
 
-for i in $(seq 0 $((cdma_num - 1))); do
+for i in $CDMA_SEQ; do
   if [ $core_num -eq 8 ]; then
     if [ $i -le 7 ]; then
       let base_addr=0x6C00790000+\($i/4\)*0x2000000+\($i%4\)*0x10000
@@ -608,7 +572,7 @@ printf "\n\n"
 
 # Read data from all cores first
 echo "GDMA CMD Info"
-for i in $(seq 0 $((core_num - 1))); do
+for i in $CORE_SEQ; do
   let addr=0x6908010000+\($i\*\(1\<\<28\)\)
   full_value=$(devmem $addr 128)
   let des_addr=0x6908011004+\($i\*\(1\<\<28\)\)
@@ -689,7 +653,7 @@ print_dynamic_row "base_msg_id" "base_msg_id"
 printf "\n\n"
 
 echo "SDMA CMD Info"
-for i in $(seq 0 $((core_num - 1))); do
+for i in $CORE_SEQ; do
   if [ $i -le 3 ]; then
     # For SDMA 0-3
     addr=0x69${i}8020000
@@ -857,7 +821,7 @@ printf "\n\n"
 
 # Read TIU CMD
 echo "TIU CMD Info"
-for i in $(seq 0 $((core_num - 1))); do
+for i in $CORE_SEQ; do
   let addr=0x6908000000+\($i\*\(1\<\<28\)\)
   full_value=$(devmem $addr 128)
   let des_addr=0x6908000100+\($i\*\(1\<\<28\)\)
