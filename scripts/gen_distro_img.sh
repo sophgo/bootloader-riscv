@@ -541,7 +541,12 @@ function build_rv_debian_kernel_cross()
 function build_rv_euler_kernel_native()
 {
 	local kernel_ver
-	local rpm_build_dir="${HOME}/rpmbuild"
+	# Use a per-chip rpmbuild tree under the build scratch area instead of the
+	# shared ${HOME}/rpmbuild. Multiple jobs (e.g. sg2044 and sg2042) may build
+	# euler natively on the same node under the same user; a shared ${HOME}/rpmbuild
+	# makes them clobber each other's rpms (find -delete / overwrite). Keeping it
+	# under build/${CHIP} isolates per chip and keeps build scratch out of install/.
+	local rpm_build_dir="${RV_TOP_DIR}/build/${CHIP}/rpmbuild"
 	local config_file="sophgo_${CHIP}_openeuler_defconfig"
 
 	# clean up kernel source
@@ -552,7 +557,8 @@ function build_rv_euler_kernel_native()
 
 	pushd ${RV_TOP_DIR}
 
-	rpmdev-setuptree
+	# Build the rpm tree ourselves; rpmdev-setuptree only ever targets ${HOME}/rpmbuild.
+	mkdir -p ${rpm_build_dir}/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 	find ${rpm_build_dir}/RPMS -type f -delete
 	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/kernel.spec      ${rpm_build_dir}/SPECS/
 	cp -f bootloader-riscv/packages/openeuler-24.03/kernel/cpupower.config  ${rpm_build_dir}/SOURCES/
@@ -574,7 +580,9 @@ function build_rv_euler_kernel_native()
 	popd
 
 	pushd ${rpm_build_dir}
-	rpmbuild -bb SPECS/kernel.spec
+	# _topdir cascades to _builddir/_sourcedir/_rpmdir/_buildrootdir etc., so the
+	# whole build stays inside the workspace tree, not ${HOME}/rpmbuild.
+	rpmbuild --define "_topdir ${rpm_build_dir}" -bb SPECS/kernel.spec
 
 	if [ ! -d $RV_LINUX_PACKAGE_INSTALL_DIR ]; then
 		mkdir -p $RV_LINUX_PACKAGE_INSTALL_DIR
