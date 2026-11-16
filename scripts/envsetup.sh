@@ -1354,7 +1354,7 @@ function build_rv_firmware_image()
 	sudo parted firmware.img mkpart p fat32 0% 100%
 	loops=$(sudo kpartx -av firmware.img | cut -d ' ' -f 3)
 	fat32part=$(echo $loops | cut -d ' ' -f 1)
-	sudo mkfs.vfat /dev/mapper/$fat32part -n EFI
+	sudo mkfs.vfat -F32 /dev/mapper/$fat32part -n EFI
 
 	echo mount EFI partition...
 	sudo mkdir -p efi/
